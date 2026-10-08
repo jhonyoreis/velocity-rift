@@ -794,7 +794,15 @@ function guardianLaserLine(){
   let dx=guardian.aimX-ox,dy=guardian.aimY-oy;
   const magnitude=Math.hypot(dx,dy)||1;
   dx/=magnitude;dy/=magnitude;
-  return {x1:ox,y1:oy,x2:ox+dx*1350,y2:oy+dy*1350};
+  // Stop at the arena walls/ceiling/floor; the laser never bleeds into the
+  // preceding platforming section.
+  let reach=1350;
+  if(dx<-.0001)reach=Math.min(reach,(guardian.arenaLeft+8-ox)/dx);
+  if(dx>.0001)reach=Math.min(reach,(guardian.arenaRight-8-ox)/dx);
+  if(dy<-.0001)reach=Math.min(reach,(93-oy)/dy);
+  if(dy>.0001)reach=Math.min(reach,(guardian.arenaFloor-12-oy)/dy);
+  reach=Math.max(0,reach);
+  return {x1:ox,y1:oy,x2:ox+dx*reach,y2:oy+dy*reach};
 }
 function distanceToLaser(px,py,line){
   const dx=line.x2-line.x1,dy=line.y2-line.y1;
