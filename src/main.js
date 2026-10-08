@@ -279,7 +279,7 @@ function createStageTwoWorld() {
       rect(6340,346,44,74,"break-gate"),rect(13760,336,44,80,"break-gate")],
     tunnels:[{x:3500,w:240,ground:435},{x:10630,w:290,ground:405}],
     enemies:stageEnemies,rings:stageRings,
-    boostOrbs:[510,2250,5830,8420,10390,12450,13430,15630,16990]
+    boostOrbs:[510,2250,5920,8420,10390,12660,13430,15630,16990]
       .map(x=>orb(x,lookup(x)-32)),
     springs:[{x:1840,y:394,w:36,h:15,powerX:540,powerY:-700},
       {x:7650,y:449,w:36,h:15,powerX:525,powerY:-690},
@@ -1004,6 +1004,7 @@ function draw() {
   drawSky();
   drawBackground();
   drawForest();
+  if(activeStage===2)drawChasms();
   drawTracks();
   drawTunnels();
   drawPulseGates();
@@ -1019,9 +1020,15 @@ function draw() {
 
 function drawSky() {
   const grad = ctx.createLinearGradient(0, cameraY, 0, cameraY + VIEW_H);
-  grad.addColorStop(0, "#101c36");
-  grad.addColorStop(0.55, "#12344a");
-  grad.addColorStop(1, "#153a38");
+  if (activeStage===2) {
+    grad.addColorStop(0,"#170f33");
+    grad.addColorStop(.53,"#2d2453");
+    grad.addColorStop(1,"#132b4a");
+  } else {
+    grad.addColorStop(0,"#101c36");
+    grad.addColorStop(.55,"#12344a");
+    grad.addColorStop(1,"#153a38");
+  }
   ctx.fillStyle = grad;
   ctx.fillRect(cameraX, cameraY, VIEW_W, VIEW_H);
 
@@ -1033,6 +1040,7 @@ function drawSky() {
 }
 
 function drawBackground() {
+  if(activeStage===2){drawCanyonBackground();return;}
   // Three parallax layers, rendered in screen space with distinct scroll factors.
   ctx.fillStyle = "#163b50";
   for (let i = -2; i < 24; i += 1) {
@@ -1060,7 +1068,49 @@ function drawBackground() {
   }
 }
 
+function drawCanyonBackground() {
+  const first=Math.floor(cameraX/340)-3;
+  const last=Math.ceil((cameraX+VIEW_W)/340)+3;
+  for(let i=first;i<=last;i++){
+    const x=i*340+cameraX*.14;
+    const h=105+(Math.abs(i)%5)*30;
+    ctx.fillStyle=i%2?"#262047":"#302251";
+    ctx.beginPath();ctx.moveTo(x-100,cameraY+VIEW_H);
+    ctx.lineTo(x+20,cameraY+VIEW_H-h);
+    ctx.lineTo(x+135,cameraY+VIEW_H);ctx.closePath();ctx.fill();
+  }
+  for(let i=Math.floor(cameraX/240)-3;i<Math.ceil((cameraX+VIEW_W)/240)+3;i++){
+    const x=i*240+55,y=180+(Math.abs(i)%4)*30;
+    ctx.fillStyle=i%2?"rgba(157,119,239,.18)":"rgba(110,240,238,.1)";
+    ctx.beginPath();
+    ctx.moveTo(x,y-55);ctx.lineTo(x+36,y);ctx.lineTo(x,y+55);ctx.lineTo(x-36,y);
+    ctx.closePath();ctx.fill();
+    ctx.strokeStyle="rgba(163,124,255,.26)";ctx.lineWidth=2;ctx.stroke();
+  }
+  for(let i=Math.floor(cameraX/165)-2;i<Math.ceil((cameraX+VIEW_W)/165)+2;i++){
+    const x=i*165+50,gy=groundY(x);
+    if(gy==null)continue;
+    ctx.fillStyle="#392f64";ctx.fillRect(x-5,gy-43,10,42);
+    ctx.fillStyle="#8e70e4";
+    ctx.beginPath();ctx.moveTo(x-24,gy-34);ctx.lineTo(x,gy-81);
+    ctx.lineTo(x+24,gy-34);ctx.closePath();ctx.fill();
+  }
+}
+
+function drawChasms() {
+  for(const [from,to] of STAGES[2].pits){
+    if(to<cameraX-30||from>cameraX+VIEW_W+30)continue;
+    ctx.fillStyle="rgba(7,8,29,.93)";
+    ctx.fillRect(from,Math.max(365,cameraY+350),to-from,600);
+    ctx.strokeStyle="#fd79ad";ctx.lineWidth=3;
+    ctx.beginPath();ctx.moveTo(from,512);ctx.lineTo(to,512);ctx.stroke();
+    ctx.fillStyle="#f7b6cb";ctx.font="bold 12px system-ui";
+    ctx.fillText("ABISMO",from+Math.max(12,(to-from)/2-26),548);
+  }
+}
+
 function drawForest() {
+  if(activeStage===2)return;
   // Procedural shapes repeat without external assets and are culled off-screen.
   const first = Math.floor(cameraX / 235) - 2;
   const last = Math.ceil((cameraX + VIEW_W) / 235) + 2;
@@ -1086,13 +1136,15 @@ function drawTracks() {
   ctx.lineJoin = "round";
   for (const floor of tracks) {
     if (floor.x2 < cameraX - 120 || floor.x1 > cameraX + VIEW_W + 120) continue;
-    ctx.strokeStyle = floor.kind === "boost" ? "#f6ac43" : floor.kind === "finale" ? "#b785ef" : "#38dcd0";
+    ctx.strokeStyle = activeStage===2
+      ? floor.kind==="moving" ? "#ffcf82" : floor.kind==="platform" ? "#bb91ff" : floor.kind==="finish" ? "#a2f5ff" : "#a47df7"
+      : floor.kind==="boost" ? "#f6ac43" : floor.kind==="finale" ? "#b785ef" : "#38dcd0";
     ctx.lineWidth = 19;
     ctx.beginPath();
     ctx.moveTo(floor.x1, floor.y1);
     ctx.lineTo(floor.x2, floor.y2);
     ctx.stroke();
-    ctx.strokeStyle = "#14444d";
+    ctx.strokeStyle = activeStage===2 ? "#43366b" : "#14444d";
     ctx.lineWidth = 8;
     ctx.beginPath();
     ctx.moveTo(floor.x1, floor.y1 + 5);
@@ -1250,12 +1302,32 @@ function drawObjects() {
 
   for (const bad of enemies) {
     if (!bad.alive) continue;
-    ctx.fillStyle = "#ff805c";
-    roundRect(bad.x - bad.w / 2, bad.y - bad.h, bad.w, bad.h, 8);
-    ctx.fill();
-    ctx.fillStyle = "#260d09";
-    ctx.fillRect(bad.x - 11, bad.y - 18, 6, 5);
-    ctx.fillRect(bad.x + 5, bad.y - 18, 6, 5);
+    if(bad.type==="drone"){
+      const bob=Math.sin(visualTime*15+bad.baseX)*3;
+      ctx.fillStyle="rgba(214,137,255,.24)";
+      ctx.beginPath();ctx.ellipse(bad.x,bad.y-12,31,26,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle="#cf94ff";
+      roundRect(bad.x-23,bad.y-bad.h+bob,46,bad.h,11);ctx.fill();
+      ctx.fillStyle="#22183a";ctx.fillRect(bad.x-10,bad.y-17+bob,20,6);
+      ctx.fillStyle="#6dfff4";ctx.fillRect(bad.x-6,bad.y-16+bob,12,3);
+      ctx.strokeStyle="#7affef";ctx.lineWidth=3;
+      ctx.beginPath();ctx.moveTo(bad.x-34,bad.y-25+bob);ctx.lineTo(bad.x-20,bad.y-22+bob);
+      ctx.moveTo(bad.x+20,bad.y-22+bob);ctx.lineTo(bad.x+34,bad.y-25+bob);ctx.stroke();
+    } else if(bad.type==="sentry"){
+      ctx.fillStyle="#6b536f";
+      roundRect(bad.x-bad.w/2,bad.y-bad.h,bad.w,bad.h,5);ctx.fill();
+      ctx.fillStyle="#d5b0ff";
+      roundRect(bad.x-bad.w/2+5,bad.y-bad.h+5,bad.w-10,bad.h-12,4);ctx.fill();
+      ctx.fillStyle="#221438";ctx.fillRect(bad.x-14,bad.y-bad.h+17,28,9);
+      ctx.fillStyle="#ff6e99";ctx.fillRect(bad.x-9,bad.y-bad.h+19,18,4);
+      ctx.strokeStyle="#ffe2a1";ctx.lineWidth=3;
+      ctx.beginPath();ctx.moveTo(bad.x-bad.w/2,bad.y-8);ctx.lineTo(bad.x+bad.w/2,bad.y-8);ctx.stroke();
+    } else {
+      ctx.fillStyle=bad.type==="walker"?"#f1a05e":"#ff805c";
+      roundRect(bad.x-bad.w/2,bad.y-bad.h,bad.w,bad.h,8);ctx.fill();
+      ctx.fillStyle="#260d09";
+      ctx.fillRect(bad.x-11,bad.y-18,6,5);ctx.fillRect(bad.x+5,bad.y-18,6,5);
+    }
   }
 
   ctx.fillStyle = "#ffffff";
@@ -1470,7 +1542,7 @@ function drawHud() {
   ctx.fillStyle = '#fff';
   ctx.font = 'bold 11px system-ui';
   const section = chapters.slice().reverse().find(part => player.x >= part.x);
-  ctx.fillText(section ? section.title : 'PRIMEIRO IMPULSO', 335, 54);
+  ctx.fillText(section ? section.title : (activeStage===2 ? "CÂNION PRISMA" : "PRIMEIRO IMPULSO"), 335, 54);
   ctx.fillText(Math.round(progress * 100) + '%', 704, 54);
   ctx.fillStyle="#f9cb83";ctx.font="bold 13px system-ui";ctx.fillText("Núcleos "+player.cores+"/3",335,80);
   if (paused) {
