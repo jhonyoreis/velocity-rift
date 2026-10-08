@@ -56,3 +56,4 @@ Depois, o projeto pode ser publicado pelo GitHub Pages usando a branch `main`.
 - Adicionar sprites e animacoes reais.
 - Melhorar fisica de rampas e loopings.
 - Publicar no GitHub Pages.
+"# velocity-rift" 
