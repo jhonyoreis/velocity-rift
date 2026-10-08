@@ -3,17 +3,23 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Velocity Rift Prototype</title>
+    <title>Velocity Rift 2.0</title>
     <link rel="stylesheet" href="./src/styles.css" />
   </head>
   <body>
     <main class="shell">
-      <section class="game-panel" aria-label="Velocity Rift Prototype">
+      <section class="game-panel" aria-label="Velocity Rift 2.0">
         <canvas id="game" width="960" height="540"></canvas>
         <div id="overlay" class="overlay">
           <h1>Velocity Rift</h1>
-          <p>Prototype 01</p>
-          <button id="startButton" type="button">Start</button>
+          <p>Floresta Neon · Primeiro Impulso</p>
+          <button id="startButton" type="button">Jogar</button>
+        </div>
+        <div class="touch-controls" aria-label="Controles de toque">
+          <button type="button" data-key="arrowleft" aria-label="Esquerda">◀</button>
+          <button type="button" data-key="arrowright" aria-label="Direita">▶</button>
+          <button type="button" data-key=" " aria-label="Pular">Pular</button>
+          <button type="button" data-key="shift" aria-label="Boost">Boost</button>
         </div>
       </section>
 
@@ -31,8 +37,8 @@
           <span>Shift or J</span>
         </div>
         <div>
-          <strong>Restart</strong>
-          <span>R</span>
+          <strong>Reiniciar / Pausar</strong>
+          <span>R / P</span>
         </div>
       </section>
     </main>

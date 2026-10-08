@@ -33,12 +33,22 @@ com JavaScript, sem precisar migrar a engine.
 
 https://github.com/jhonyoreis/velocity-rift
 
+## Funcionalidades da versão 2.0 (primeira entrega)
+
+- Simulação física em passos fixos de 120 Hz.
+- Pulo com coyote time, jump buffer e altura variável.
+- Dois checkpoints com reaparecimento após quedas.
+- Pausa (P), recorde local no navegador e nota S/A/B/C ao terminar.
+- Câmera suavizada e controles de toque em telas sensíveis ao toque.
+
 ## Controles
 
 - A/D ou setas: mover
 - Space, W ou seta para cima: pular
 - Shift ou J: boost
 - R: reiniciar
+- P: pausar/continuar
+- Em dispositivos de toque: botões de direção, pulo e boost
 
 ## O que ja existe
 
