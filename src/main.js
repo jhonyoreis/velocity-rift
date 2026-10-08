@@ -1795,25 +1795,84 @@ function grantClearAchievements(grade,cores){
   if(stage===2&&guardian.defeated&&!bossDamagedThisRun)
     grantAchievement("untouched");
 }
+// ---------------------- Vertical secret ascent -----------------------
+// A route is a single attempt per stage run. Checkpoints do NOT rearm it.
+function failSecretTrial(trial){
+  if(!trial||!trial.active||trial.failed||trial.completed)return;
+  trial.active=false;
+  trial.failed=true;
+  trial.armed=false;
+  trial.shots.length=0;
+  announce("Desafio perdido","");
+  playSfx("hurt");
+}
+
+function updateSecretTrialEnemies(trial,dt){
+  const now=trial.elapsed;
+  for(const bad of trial.sentinels){
+    const px=bad.baseX+Math.sin(now*(bad.type==="drone"?2:1.25)+bad.phase)*bad.patrol;
+    const py=bad.baseY+(bad.type==="drone"?Math.sin(now*3+bad.phase)*12:0);
+    // The optional enemies are challenge hazards even during boost or DEBUG.
+    if(distance(player.x,player.y,px,py)<PLAYER_RADIUS+(bad.type==="drone"?17:21)){
+      failSecretTrial(trial);
+      return;
+    }
+  }
+  trial.shotTimer-=dt;
+  if(trial.shotTimer<=0){
+    const sentry=trial.sentinels.find(s=>s.type==="sentry");
+    const px=sentry.baseX,py=sentry.baseY;
+    const dx=player.x-px,dy=player.y-py,distanceToPlayer=Math.hypot(dx,dy)||1;
+    // Only shoots within sight of the upper platforms.
+    if(distanceToPlayer<370){
+      trial.shots.push({x:px,y:py,
+        vx:dx/distanceToPlayer*245,vy:dy/distanceToPlayer*245,
+        life:2.4});
+      playSfx("boss-alert");
+    }
+    trial.shotTimer=1.75;
+  }
+  for(const shot of trial.shots){
+    const oldX=shot.x,oldY=shot.y;
+    shot.x+=shot.vx*dt;shot.y+=shot.vy*dt;shot.life-=dt;
+    // Swept collision prevents high-speed projectiles tunneling through Flux.
+    const vx=shot.x-oldX,vy=shot.y-oldY,len2=vx*vx+vy*vy;
+    const t=len2?clamp(((player.x-oldX)*vx+(player.y-oldY)*vy)/len2,0,1):0;
+    if(Math.hypot(player.x-(oldX+vx*t),player.y-(oldY+vy*t))<PLAYER_RADIUS+9){
+      failSecretTrial(trial);
+      return;
+    }
+  }
+  trial.shots=trial.shots.filter(b=>b.life>0).slice(-10);
+}
+
 function updateSecretTrials(dt){
   for(const trial of secretTrials){
-    if(trial.completed)continue;
-    const atStart=distance(player.x,player.y,trial.startX,trial.startY)<34;
-    if(!atStart)trial.armed=true;
-    if(!trial.active&&trial.armed&&atStart){
-      trial.active=true;trial.armed=false;trial.failed=false;trial.elapsed=0;
-      announce("DESAFIO: "+trial.name,trial.limit+"s para alcançar o fragmento!");
+    if(trial.completed||trial.failed)continue;
+    const atStart=distance(player.x,player.y,trial.startX,trial.startY)<31;
+    if(!trial.active){
+      if(!atStart)trial.armed=true;
+      if(!trial.armed||!atStart)continue;
+      // Starting a platforming trial from a speedrunning sprint must be fair.
+      trial.active=true;trial.armed=false;trial.elapsed=0;
+      trial.shots.length=0;trial.shotTimer=1.35;
+      player.vx=clamp(player.vx,-160,160);
+      announce("DESAFIO: "+trial.name,"Suba até o fragmento!");
       playSfx("secret-start");
     }
-    if(!trial.active)continue;
     trial.elapsed+=dt;
-    if(trial.elapsed>=trial.limit){
-      trial.active=false;trial.failed=true;
-      announce("TEMPO ESGOTADO","Volte ao símbolo de início para tentar de novo.");
+    const left=trial.startX-200,right=trial.startX+310;
+    if(trial.elapsed>=trial.limit
+      ||player.y>trial.startY+94
+      ||player.x<left||player.x>right){
+      failSecretTrial(trial);
       continue;
     }
-    if(distance(player.x,player.y,trial.targetX,trial.targetY)<32){
+    updateSecretTrialEnemies(trial,dt);
+    if(trial.failed)continue;
+    if(distance(player.x,player.y,trial.targetX,trial.targetY)<30){
       trial.active=false;trial.completed=true;
+      trial.shots.length=0;
       player.rings+=8;
       player.boost=Math.min(100,player.boost+20);
       emitParticles(trial.targetX,trial.targetY,"#bc9cff",26,165);
@@ -1833,46 +1892,95 @@ function updateSecretTrials(dt){
   }
 }
 function interruptSecretTrials(){
-  for(const trial of secretTrials){
-    if(trial.active){
-      trial.active=false;trial.failed=true;trial.armed=false;trial.elapsed=0;
-    }
-  }
+  for(const trial of secretTrials)
+    if(trial.active)failSecretTrial(trial);
 }
+
+function drawSecretBackdrop(){
+  const trial=secretTrials.find(t=>t.active);
+  if(!trial)return;
+  ctx.save();
+  ctx.fillStyle=activeStage===2?"rgba(30,19,74,.58)":"rgba(8,54,59,.6)";
+  ctx.fillRect(cameraX,cameraY,VIEW_W,VIEW_H);
+  // Vertical rails make the ascent read as a separate tower of platforms.
+  ctx.strokeStyle=activeStage===2?"rgba(188,147,255,.2)":"rgba(95,255,223,.2)";
+  ctx.lineWidth=3;
+  for(const x of [trial.startX-160,trial.startX+280]){
+    ctx.beginPath();ctx.moveTo(x,trial.targetY-110);
+    ctx.lineTo(x,trial.startY+95);ctx.stroke();
+  }
+  for(let y=trial.startY;y>=trial.targetY-65;y-=76){
+    ctx.fillStyle="rgba(188,244,241,.11)";
+    ctx.fillRect(trial.startX-150,y,418,2);
+  }
+  ctx.restore();
+}
+
 function drawSecretTrials(){
   for(const trial of secretTrials){
-    if(trial.startX>=cameraX-90&&trial.startX<=cameraX+VIEW_W+90){
-      ctx.save();ctx.translate(trial.startX,trial.startY);
-      ctx.strokeStyle=trial.completed?"#ffe29a":"#6dffe7";
-      ctx.lineWidth=2.5;
-      ctx.rotate(Math.PI/4);
-      ctx.strokeRect(-13,-13,26,26);
-      ctx.rotate(-Math.PI/4);
-      ctx.fillStyle=trial.completed?"#ffe29a":"#baffef";
-      ctx.beginPath();ctx.arc(0,0,5+Math.sin(visualTime*4)**2*2,0,Math.PI*2);ctx.fill();
-      ctx.font="bold 11px system-ui";ctx.textAlign="center";
-      ctx.fillText(trial.completed?"DESCOBERTO":"DESAFIO",0,-29);
-      ctx.textAlign="left";ctx.restore();
+    const visible=trial.startX>=cameraX-340&&trial.startX<=cameraX+VIEW_W+130;
+    if(!visible)continue;
+    ctx.save();
+    if(trial.failed)ctx.globalAlpha=.28;
+    // Dotted route guide becomes most visible when the timer is running.
+    if(trial.active){
+      ctx.save();ctx.strokeStyle="rgba(122,255,223,.37)";
+      ctx.lineWidth=2;ctx.setLineDash([6,9]);
+      ctx.beginPath();
+      trial.platforms.forEach((p,i)=>{
+        if(i===0)ctx.moveTo(p.x,p.y-20);
+        else ctx.lineTo(p.x,p.y-20);
+      });
+      ctx.stroke();ctx.setLineDash([]);ctx.restore();
     }
-    if(trial.targetX>=cameraX-80&&trial.targetX<=cameraX+VIEW_W+80){
-      ctx.save();ctx.translate(trial.targetX,trial.targetY);
+    ctx.translate(trial.startX,trial.startY);
+    ctx.strokeStyle=trial.completed?"#ffe29a":trial.failed?"#647b80":"#6dffe7";
+    ctx.lineWidth=2.5;ctx.rotate(Math.PI/4);
+    ctx.strokeRect(-13,-13,26,26);ctx.rotate(-Math.PI/4);
+    ctx.fillStyle=trial.completed?"#ffe29a":"#baffef";
+    ctx.beginPath();ctx.arc(0,0,5+Math.sin(visualTime*4)**2*2,0,Math.PI*2);ctx.fill();
+    ctx.font="bold 11px system-ui";ctx.textAlign="center";
+    ctx.fillText(trial.completed?"DESCOBERTO":trial.failed?"": "DESAFIO",0,-29);
+    ctx.textAlign="left";
+    ctx.translate(-trial.startX,-trial.startY);
+    if(!trial.failed&&!trial.completed){
       const spin=visualTime*1.4;
-      const opacity=trial.completed?.25:trial.active?1:.65;
-      ctx.globalAlpha=opacity;
-      ctx.rotate(spin);
+      ctx.save();ctx.translate(trial.targetX,trial.targetY);ctx.rotate(spin);
       ctx.fillStyle="#b99aff";ctx.strokeStyle="#fff1b9";ctx.lineWidth=2.5;
       ctx.beginPath();ctx.moveTo(0,-17);ctx.lineTo(13,0);
       ctx.lineTo(0,17);ctx.lineTo(-13,0);ctx.closePath();
-      ctx.fill();ctx.stroke();
-      ctx.restore();
-      if(trial.active){
-        ctx.textAlign="center";ctx.font="bold 13px system-ui";
-        ctx.fillStyle="#ffe5ab";
-        ctx.fillText(Math.max(0,trial.limit-trial.elapsed).toFixed(1)+"s",
-          trial.targetX,trial.targetY-32);
-        ctx.textAlign="left";
-      }
+      ctx.fill();ctx.stroke();ctx.restore();
     }
+    if(trial.active){
+      for(const b of trial.sentinels){
+        const x=b.baseX+Math.sin(trial.elapsed*(b.type==="drone"?2:1.25)+b.phase)*b.patrol;
+        const y=b.baseY+(b.type==="drone"?Math.sin(trial.elapsed*3+b.phase)*12:0);
+        ctx.save();ctx.translate(x,y);
+        ctx.fillStyle=b.type==="sentry"?"#ab79e4":"#ff9bcb";
+        ctx.strokeStyle="#ffc9ed";ctx.lineWidth=2.5;
+        if(b.type==="drone"){
+          ctx.beginPath();ctx.ellipse(0,0,19,12,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+          ctx.fillStyle="#25214a";ctx.fillRect(-6,-3,12,6);
+          ctx.strokeStyle="#d6fffa";ctx.beginPath();
+          ctx.moveTo(-30,-8);ctx.lineTo(-15,-1);ctx.moveTo(15,-1);ctx.lineTo(30,-8);ctx.stroke();
+        }else{
+          ctx.beginPath();ctx.rect(-18,-18,36,36);ctx.fill();ctx.stroke();
+          ctx.fillStyle="#94fff0";ctx.beginPath();ctx.arc(0,0,7,0,Math.PI*2);ctx.fill();
+          ctx.strokeStyle="#ffb7ed";ctx.beginPath();ctx.moveTo(0,0);
+          ctx.lineTo(Math.cos(trial.elapsed)*26,Math.sin(trial.elapsed)*26);ctx.stroke();
+        }
+        ctx.restore();
+      }
+      for(const b of trial.shots){
+        ctx.fillStyle="#ff92ce";ctx.beginPath();ctx.arc(b.x,b.y,9,0,Math.PI*2);ctx.fill();
+        ctx.strokeStyle="#ffe1fa";ctx.lineWidth=2;ctx.stroke();
+      }
+      ctx.textAlign="center";ctx.fillStyle="#ffe0a2";
+      ctx.font="bold 13px system-ui";
+      ctx.fillText(Math.max(0,trial.limit-trial.elapsed).toFixed(1)+"s",
+        trial.targetX,trial.targetY-38);ctx.textAlign="left";
+    }
+    ctx.restore();
   }
 }
 function refreshAchievementsView(){
@@ -2767,7 +2875,7 @@ function drawHud() {
     ctx.fillStyle="#c5fff5";ctx.font="bold 17px system-ui";
     ctx.fillText(notification.title,VIEW_W/2,468);
     ctx.fillStyle="#ffe0a5";ctx.font="12px system-ui";
-    ctx.fillText(notification.subtitle,VIEW_W/2,490);
+    if(notification.subtitle)ctx.fillText(notification.subtitle,VIEW_W/2,490);
     ctx.textAlign="left";ctx.restore();
   }
   if(debugMode){
