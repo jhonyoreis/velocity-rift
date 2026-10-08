@@ -57,6 +57,7 @@ let visualTime = 0;
 let particles = [];
 let sparkleCooldown = 0;
 let pickupSoundCooldown = 0;
+let sentryShots = [];
 let soundEnabled = true;
 let audioContext = null;
 let musicEnabled = true;
@@ -672,6 +673,7 @@ function resetGame() {
   visualTime = 0;
   sparkleCooldown = 0;
   pickupSoundCooldown = 0;
+  sentryShots = [];
   player.sliding = false;
   player.downhillSliding = false;
   player.boosting = false;
@@ -696,6 +698,7 @@ function resetGame() {
     bad.x = bad.baseX;
     bad.y = bad.yBase;
     bad.phase=0;
+    bad.shotTimer=.55 + (bad.baseX%7)*.12;
   });
   rings.forEach((ring) => {
     ring.active = true;
@@ -893,16 +896,19 @@ function updateGuardian(dt){
       {x:guardian.x-42,y:guardian.y-55,w:84,h:109}))damagePlayer(false);
   }
 }
-function drawGuardian(){
-  if(activeStage!==2)return;
-  if(!guardian.active&&player.x<guardian.arenaLeft-580)return;
-  // Dedicated boss room backdrops, with bold geometry and no normal props.
-  ctx.fillStyle="rgba(31,14,66,.83)";
+function drawGuardianBackdrop(){
+  if(!guardian.active && player.x<guardian.arenaLeft-580)return;
+  ctx.fillStyle="rgba(25,14,62,.92)";
   ctx.fillRect(guardian.arenaLeft,52,guardian.arenaRight-guardian.arenaLeft,357);
-  ctx.strokeStyle="rgba(194,147,255,.12)";ctx.lineWidth=2;
+  ctx.strokeStyle="rgba(194,147,255,.14)";ctx.lineWidth=2;
   for(let x=guardian.arenaLeft+40;x<guardian.arenaRight;x+=105){
     ctx.beginPath();ctx.moveTo(x,110);ctx.lineTo(x+100,403);ctx.stroke();
   }
+}
+
+function drawGuardian(){
+  if(activeStage!==2)return;
+  if(!guardian.active&&player.x<guardian.arenaLeft-580)return;
   for(const p of guardian.pickups){
     if(!p.active||guardian.defeated)continue;
     ctx.fillStyle="rgba(103,249,239,.2)";ctx.beginPath();
@@ -1070,6 +1076,7 @@ function update(dt) {
   resolveWalls();
   updateCheckpoints();
   updateEnemies(dt);
+  updateSentryShots(dt);
   collectItems();
   handleHazards();
   handlePulseGates();
@@ -1192,12 +1199,56 @@ function resolveWalls() {
     }
   }
 }
+function updateSentryShots(dt){
+  for(const shot of sentryShots){
+    shot.x+=shot.vx*dt;
+    shot.y+=shot.vy*dt;
+    shot.life-=dt;
+    if(shot.life<=0)continue;
+    // A fast boost can intercept plasma; debug mode ignores collision.
+    if(distance(shot.x,shot.y,player.x,player.y)<PLAYER_RADIUS+shot.r){
+      shot.life=0;
+      if(player.boosting&&Math.abs(player.vx)>BOOST_SMASH_MIN_SPEED){
+        emitParticles(shot.x,shot.y,"#ff9ccb",6,80);
+      }else damagePlayer(false);
+    }
+  }
+  sentryShots=sentryShots.filter(p=>p.life>0&&p.x>cameraX-240
+    &&p.x<cameraX+VIEW_W+240&&p.y>-80&&p.y<WORLD_H+100);
+}
+function drawSentryShots(){
+  for(const shot of sentryShots){
+    ctx.fillStyle="rgba(255,107,179,.2)";
+    ctx.beginPath();ctx.arc(shot.x,shot.y,shot.r+7,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle="#ff82c5";
+    ctx.beginPath();ctx.arc(shot.x,shot.y,shot.r,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle="#ffe8f6";
+    ctx.beginPath();ctx.arc(shot.x-2,shot.y-2,3,0,Math.PI*2);ctx.fill();
+  }
+}
+
 function updateEnemies(dt) {
   for (const bad of enemies) {
     if (!bad.alive) continue;
     bad.phase += dt*(bad.type==="drone"?2.3:1.8);
     if (bad.patrol>0)bad.x=bad.baseX+Math.sin(bad.phase)*bad.patrol;
     if (bad.type==="drone")bad.y=bad.yBase+Math.sin(bad.phase*1.6)*15;
+    if(bad.type==="sentry"){
+      bad.shotTimer=(bad.shotTimer??(.75+(bad.baseX%4)*.23))-dt;
+      const dist=Math.hypot(bad.x-player.x,(bad.y-27)-player.y);
+      if(bad.shotTimer<=0 && dist<720 && sentryShots.length<36){
+        // Sentries aim once and fire slow, readable plasma bolts.
+        const dx=player.x-bad.x,dy=player.y-(bad.y-24);
+        const len=Math.hypot(dx,dy)||1;
+        sentryShots.push({
+          x:bad.x,y:bad.y-24,
+          vx:dx/len*310,vy:dy/len*310,
+          life:3.8,r:9
+        });
+        bad.shotTimer=2.25;
+        playSfx("boss-alert");
+      }
+    }
 
     const box = { x: bad.x - bad.w / 2, y: bad.y - bad.h, w: bad.w, h: bad.h };
     if (!circleRect(player.x, player.y, PLAYER_RADIUS, box)) continue;
@@ -1377,11 +1428,13 @@ function draw() {
   drawBackground();
   drawForest();
   if(activeStage===2)drawChasms();
+  if(activeStage===2)drawGuardianBackdrop();
   drawTracks();
   drawTunnels();
   drawPulseGates();
   drawSigns();
   drawObjects();
+  drawSentryShots();
   drawGuardian();
   drawMemoryCores();
   drawParticles();
@@ -1692,7 +1745,12 @@ function drawObjects() {
       ctx.fillStyle="#d5b0ff";
       roundRect(bad.x-bad.w/2+5,bad.y-bad.h+5,bad.w-10,bad.h-12,4);ctx.fill();
       ctx.fillStyle="#221438";ctx.fillRect(bad.x-14,bad.y-bad.h+17,28,9);
-      ctx.fillStyle="#ff6e99";ctx.fillRect(bad.x-9,bad.y-bad.h+19,18,4);
+      ctx.fillStyle=bad.shotTimer<.55?"#ffe091":"#ff6e99";
+      ctx.fillRect(bad.x-9,bad.y-bad.h+19,18,4);
+      if(bad.shotTimer<.55){
+        ctx.strokeStyle="#ffe5b4";ctx.lineWidth=2;
+        ctx.beginPath();ctx.arc(bad.x,bad.y-24,25,0,Math.PI*2);ctx.stroke();
+      }
       ctx.strokeStyle="#ffe2a1";ctx.lineWidth=3;
       ctx.beginPath();ctx.moveTo(bad.x-bad.w/2,bad.y-8);ctx.lineTo(bad.x+bad.w/2,bad.y-8);ctx.stroke();
     } else {
