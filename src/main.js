@@ -39,7 +39,7 @@ const player = {
   onGround: false,
   ground: null,
   rings: 0,
-  boost: 100,
+  boost: 0,
   invulnerable: 0,
   trail: [],
   sliding: false,
@@ -821,9 +821,9 @@ function drawPlayer() {
   ctx.arc(player.x + player.facing * 7, player.y - 5, 3, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.fillStyle = "#ff5b8b";
-  ctx.fillRect(player.x - 13, player.y + 13, 12, 5);
-  ctx.fillRect(player.x + 4, player.y + 13, 12, 5);
+  ctx.fillStyle = "#f6ac43";
+  ctx.fillRect(player.x - 15, player.y + 12, 14, 7);
+  ctx.fillRect(player.x + 3, player.y + 12, 14, 7);
 
   ctx.globalAlpha = 1;
 }
