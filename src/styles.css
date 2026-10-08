@@ -125,6 +125,6 @@ button:hover {
   }
 }
 
-.touch-controls { display:none; position:absolute; bottom:12px; left:12px; right:12px; justify-content:space-between; gap:8px; pointer-events:none; }
-.touch-controls button { pointer-events:auto; touch-action:none; user-select:none; padding:12px; min-width:58px; background:rgba(56,220,208,.8); border:1px solid rgba(255,255,255,.35); }
+.touch-controls { display:none; position:absolute; bottom:12px; left:12px; right:12px; justify-content:space-between; gap:6px; pointer-events:none; }
+.touch-controls button { pointer-events:auto; touch-action:none; user-select:none; padding:10px 5px; min-width:0; flex:1; background:rgba(56,220,208,.8); border:1px solid rgba(255,255,255,.35); }
 @media (pointer:coarse) { .touch-controls { display:flex; } }
