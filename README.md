@@ -72,6 +72,24 @@ https://github.com/jhonyoreis/velocity-rift
 - A faixa atual aparece abaixo da identidade do Flux. A tecla **N** liga/desliga a música, **M** silencia o áudio geral, e a pausa/menu interrompem a reprodução.
 - Valores de frequência/duração são validados e erros do sintetizador são isolados do loop do jogo para não travar a física.
 
+## Guardião do Prisma — chefe da fase 2
+
+- Um chefe final próprio da segunda fase, com **três pontos de resistência**, núcleo de energia e indicador de vida.
+- A arena fica depois do último checkpoint. O portal de chegada permanece selado enquanto o chefe estiver vivo.
+- O chefe sinaliza seus ataques antecipadamente e alterna dois tipos: **feixe baixo**, que exige pulo, e **feixe alto**, evitável por slide.
+- Após atacar, o Guardião expõe seu núcleo por alguns segundos. Um boost ativo (velocidade superior a 510) ou um golpe descendente podem atingir o núcleo.
+- Cada golpe faz o chefe recuar e reinicia a aproximação; orbes próximos recarregam o boost sem conceder regeneração passiva.
+- Ao reaparecer depois de uma derrota, o confronto reinicia. Somente após os três golpes a saída é liberada.
+- Alertas, impactos e vitória do chefe têm efeitos sonoros próprios.
+
+## Modo DEBUG temporário
+
+- Botão acessível **DEBUG: OFF / ON** ao lado do contador de cristais no Canvas, ou atalho **F3**.
+- Quando ligado: **boost infinito**, **invencibilidade** e **voo**. Segure `W`, `Espaço` ou `↑` para subir, `S` ou `↓` para descer; `A`/`D` ou setas laterais movem na horizontal. Soltar os comandos de voo mantém a altitude.
+- Pressione **B** durante a fase 2 com DEBUG ativo para teleportar diretamente para a arena do Guardião (com checkpoint preparado).
+- DEBUG permite selecionar a fase 2 sem desbloqueá-la, apenas para testar. Desligar DEBUG volta à física normal.
+- A opção **não é persistida** e qualquer tentativa em que DEBUG foi ativado é considerada **não ranqueada**: não salva recordes, classificações ou desbloqueios, mesmo se for desligada antes da chegada.
+
 ## Fase 2 — Cânion Prisma
 
 - **Fase 2 reformulada: 34.000 unidades de extensão (antes 17.600), nove setores**, com desafios progressivos de precisão, ritmo e domínio das mecânicas.
