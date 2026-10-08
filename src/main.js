@@ -1468,6 +1468,14 @@ function updateCamera(dt) {
     cameraY=0;
     return;
   }
+  // A calm cinematic pan reveals the newly forming rift after the Guardian
+  // falls. Keep the final chamber and exit in frame instead of chasing speed.
+  if(activeStage===2&&guardian.defeated&&riftPortal.opening){
+    const targetX=Math.max(0,WORLD_W-VIEW_W);
+    cameraX=lerp(cameraX,targetX,1-Math.exp(-3.8*dt));
+    cameraY=lerp(cameraY,0,1-Math.exp(-5*dt));
+    return;
+  }
   const targetAnchor = cameraAnchorFor(player.vx, player.facing);
   cameraAnchorX = lerp(cameraAnchorX, targetAnchor, 1 - Math.exp(-4.8 * dt));
   const speed = clamp(Math.abs(player.vx) / SLIDE_DOWNHILL_CAP, 0, 1);
