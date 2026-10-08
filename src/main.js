@@ -13,6 +13,10 @@ const keys = new Set();
 let lastTime = 0;
 let accumulator = 0;
 const FIXED_DT = 1 / 120;
+// A short burst of exponential momentum downhill, bounded for readable gameplay.
+const SLIDE_DOWNHILL_CAP = 870;
+const CAMERA_IDLE_ANCHOR = 0.42;
+const CAMERA_FAST_ANCHOR = 0.19;
 let paused = false;
 let jumpBuffer = 0;
 let coyoteTimer = 0;
@@ -26,6 +30,7 @@ let gameCleared = false;
 let gameTime = 0;
 let cameraX = 0;
 let cameraY = 0;
+let cameraAnchorX = VIEW_W * CAMERA_IDLE_ANCHOR;
 let shakeTime = 0;
 
 const player = {
@@ -43,6 +48,7 @@ const player = {
   invulnerable: 0,
   trail: [],
   sliding: false,
+  downhillSliding: false,
 };
 
 
@@ -186,6 +192,7 @@ function resetGame() {
   player.invulnerable = 0;
   player.trail = [];
   player.sliding = false;
+  player.downhillSliding = false;
   player.boosting = false;
   checkpointIndex = -1;
   jumpBuffer = 0;
@@ -195,6 +202,7 @@ function resetGame() {
   accumulator = 0;
   cameraX = 0;
   cameraY = 0;
+  cameraAnchorX = VIEW_W * CAMERA_IDLE_ANCHOR;
   gameTime = 0;
   gameCleared = false;
   shakeTime = 0;
@@ -288,8 +296,26 @@ function update(dt) {
     player.trail.push({ x: player.x, y: player.y, life: 0.24 });
   }
 
+  // Downhill means velocity follows the track's slope (either direction).
+  // Multiplicative growth is frame-rate independent, thanks to exp(rate * dt).
+  const slope = player.ground ? trackSlope(player.ground) : 0;
+  const downhill = player.sliding && player.onGround && slope * player.vx > 0.001;
+  player.downhillSliding = downhill;
+  if (downhill) {
+    const rate = 0.62 + Math.min(Math.abs(slope), 0.35) * 2.4;
+    player.vx = Math.sign(player.vx) *
+      Math.min(SLIDE_DOWNHILL_CAP, Math.abs(player.vx) * Math.exp(rate * dt));
+  }
   const maxSpeed = boosting ? boostMax : normalMax;
-  player.vx = clamp(player.vx, -maxSpeed, maxSpeed);
+  if (downhill) {
+    player.vx = clamp(player.vx, -SLIDE_DOWNHILL_CAP, SLIDE_DOWNHILL_CAP);
+  } else if (Math.abs(player.vx) > maxSpeed) {
+    // Do not snap from hill speed back to walking speed in a single frame.
+    player.vx = approach(player.vx, Math.sign(player.vx) * maxSpeed,
+      (player.sliding ? 880 : 1800) * dt);
+  } else {
+    player.vx = clamp(player.vx, -maxSpeed, maxSpeed);
+  }
 
   const underTunnel = tunnels.some(t => player.x > t.x && player.x < t.x + t.w);
   if (jumpBuffer > 0 && coyoteTimer > 0 && !underTunnel) {
@@ -339,9 +365,29 @@ function update(dt) {
     gameStarted = false;
   }
 
-  const targetX = clamp(player.x - VIEW_W * 0.38, 0, WORLD_W - VIEW_W);
+  updateCamera(dt);
+}
+
+function trackSlope(floor) {
+  return (floor.y2 - floor.y1) / Math.max(1, floor.x2 - floor.x1);
+}
+
+function cameraAnchorFor(vx, facing) {
+  // Faster runners stay closer to the trailing edge, revealing more hazards ahead.
+  const t = clamp((Math.abs(vx) - 90) / (SLIDE_DOWNHILL_CAP - 90), 0, 1);
+  const eased = t * t * (3 - 2 * t);
+  const inset = lerp(CAMERA_IDLE_ANCHOR, CAMERA_FAST_ANCHOR, eased);
+  const direction = Math.abs(vx) > 35 ? Math.sign(vx) : facing;
+  return (direction >= 0 ? inset : 1 - inset) * VIEW_W;
+}
+
+function updateCamera(dt) {
+  const targetAnchor = cameraAnchorFor(player.vx, player.facing);
+  cameraAnchorX = lerp(cameraAnchorX, targetAnchor, 1 - Math.exp(-4.8 * dt));
+  const speed = clamp(Math.abs(player.vx) / SLIDE_DOWNHILL_CAP, 0, 1);
+  const targetX = clamp(player.x - cameraAnchorX, 0, WORLD_W - VIEW_W);
   const targetY = clamp(player.y - VIEW_H * 0.56, 0, WORLD_H - VIEW_H);
-  cameraX = lerp(cameraX, targetX, 1 - Math.exp(-7 * dt));
+  cameraX = lerp(cameraX, targetX, 1 - Math.exp(-(7 + 3 * speed) * dt));
   cameraY = lerp(cameraY, targetY, 1 - Math.exp(-5 * dt));
 }
 
@@ -373,7 +419,7 @@ function resolveTracks() {
     player.onGround = true;
     player.ground = best.floor;
 
-    const slope = (best.floor.y2 - best.floor.y1) / Math.max(1, best.floor.x2 - best.floor.x1);
+    const slope = trackSlope(best.floor);
     player.vx += clamp(slope * 230, -115, 115) * FIXED_DT;
   } else {
     player.onGround = false;
@@ -519,7 +565,13 @@ function damagePlayer(fall) {
     player.vy = 0;
     player.rings = Math.max(0, Math.floor(player.rings / 2));
     player.boost = 0;
+    player.sliding = false;
+    player.downhillSliding = false;
     boostOrbs.forEach(item => { if (item.x > respawn.x) item.active = true; });
+    // A respawn teleports the camera too; it must not pan across half the level.
+    cameraAnchorX = VIEW_W * CAMERA_IDLE_ANCHOR;
+    cameraX = clamp(player.x - cameraAnchorX, 0, WORLD_W - VIEW_W);
+    cameraY = clamp(player.y - VIEW_H * 0.56, 0, WORLD_H - VIEW_H);
     coyoteTimer = 0;
     jumpBuffer = 0;
     player.invulnerable = 1.3;
@@ -851,7 +903,7 @@ function drawHud() {
   ctx.fill();
   ctx.fillStyle = "#abd8dc";
   ctx.font = "12px Inter, sans-serif";
-  ctx.fillText(player.sliding ? "Deslizando" : "Boost", 136, 47);
+  ctx.fillText(player.downhillSliding ? "Slide + impulso" : player.sliding ? "Deslizando" : "Boost", 136, 47);
 
   ctx.fillStyle = "rgba(5, 9, 11, 0.62)";
   roundRect(VIEW_W - 178, 14, 158, 56, 8);
