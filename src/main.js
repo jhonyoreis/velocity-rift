@@ -11,6 +11,7 @@ const screens = [mainMenu, stageMenu, resultMenu];
 const soundToggle = document.querySelector("#soundToggle");
 const musicToggle = document.querySelector("#musicToggle");
 const trackNowPlaying = document.querySelector("#trackNowPlaying");
+const debugToggle = document.querySelector("#debugToggle");
 
 const VIEW_W = canvas.width;
 const VIEW_H = canvas.height;
@@ -38,6 +39,8 @@ let checkpointIndex = -1;
 const PROGRESS_KEY = "velocity-rift-progress-v1";
 const GRADE_ORDER = ["C", "B", "A", "S"];
 let activeStage = 1;
+let debugMode = false;
+let debugUsedThisRun = false;
 let bestTime = 0;
 try { bestTime = Number(localStorage.getItem("velocity-rift-best-time")) || 0; } catch (_) { /* private storage */ }
 const progress = loadProgress();
@@ -560,7 +563,7 @@ function refreshProgressView() {
     ? "Concluída · Melhor " + (stage.bestGrade || "--") + " · " + formatTime(stage.bestTime)
     : "Disponível para jogar";
   const second=progress.stage2;
-  const unlocked=progress.stage1.completed;
+  const unlocked=progress.stage1.completed || debugMode;
   document.querySelector("#stageTwoProgress").textContent = !unlocked
     ? "Conclua a fase 1 para desbloquear"
     : second.completed ? "Concluída · Melhor "+(second.bestGrade||"--")+" · "+formatTime(second.bestTime)
@@ -574,6 +577,7 @@ function refreshProgressView() {
 function showScreen(target) {
   gameStarted = false;
   paused = false;
+  if(debugToggle)debugToggle.hidden=true;
   syncMusic();
   keys.clear();
   jumpHeld = false;
@@ -591,16 +595,19 @@ function showMainMenu() { showScreen(mainMenu); }
 function showStageMenu() { showScreen(stageMenu); }
 
 function showResults(time, crystals, cores = 0) {
-  const result = recordStageClear(time, crystals, cores);
+  const result = debugUsedThisRun
+    ? {grade:gradeForTime(time,activeStage),improvedTime:false}
+    : recordStageClear(time,crystals,cores);
   document.querySelector("#resultGrade").textContent = result.grade;
   document.querySelector("#resultHeading").textContent = activeStage===2 ? "Cânion Prisma" : "Primeiro Impulso";
   document.querySelector("#resultTime").textContent = formatTime(time);
   document.querySelector("#resultBest").textContent = formatTime(progress["stage"+activeStage].bestTime);
   document.querySelector("#resultCrystals").textContent = String(crystals);
-  document.querySelector("#resultClears").textContent = String(progress.stage1.clears);
-  document.querySelector("#resultMessage").textContent =
-    (result.improvedTime ? "Novo recorde!" : "Missão concluída!") +
-    " Núcleos " + cores + "/3 · Melhor " + progress["stage"+activeStage].bestCores + "/3.";
+  document.querySelector("#resultClears").textContent = String(progress["stage"+activeStage].clears);
+  document.querySelector("#resultMessage").textContent = debugUsedThisRun
+    ? "TESTE DEBUG: conclusão sem salvar recordes ou desbloqueios."
+    : (result.improvedTime ? "Novo recorde!" : "Missão concluída!") +
+      " Núcleos " + cores + "/3 · Melhor " + progress["stage"+activeStage].bestCores + "/3.";
   playSfx("finish");
   showScreen(resultMenu);
 }
@@ -680,6 +687,8 @@ function resetGame() {
 
 function startGame(stage=activeStage) {
   unlockAudio();
+  debugUsedThisRun = debugMode;
+  if(debugToggle)debugToggle.hidden=false;
   activateStage(stage);
   resetGame();
   gameStarted = true;
@@ -836,7 +845,7 @@ function update(dt) {
   const wasDownhillSliding = player.downhillSliding;
   player.prevX = player.x;
   player.prevY = player.y;
-  player.invulnerable = Math.max(0, player.invulnerable - dt);
+  player.invulnerable = debugMode ? 0 : Math.max(0, player.invulnerable - dt);
   shakeTime = Math.max(0, shakeTime - dt);
 
   const left = keys.has("arrowleft") || keys.has("a");
@@ -867,12 +876,13 @@ function update(dt) {
     player.vx = approach(player.vx, 0, friction * dt);
   }
 
+  if(debugMode)player.boost=100;
   const boosting = boost && player.boost > 0 && Math.abs(player.vx) > 50;
   player.boosting = boosting;
   if (boosting && !wasBoosting) playSfx("boost");
   if (boosting) {
     player.vx += player.facing * BOOST_ACCELERATION * dt;
-    player.boost = Math.max(0, player.boost - 34 * dt);
+    player.boost = debugMode?100:Math.max(0, player.boost - 34 * dt);
     player.trail.push({ x: player.x, y: player.y, life: 0.24 });
   }
 
@@ -913,20 +923,30 @@ function update(dt) {
     playSfx("jump");
   }
 
-  if (!jump && player.vy < -160) player.vy += 1450 * dt;
-  player.vy += 1850 * dt;
-  player.vy = Math.min(player.vy, 1250);
-  player.x += player.vx * dt;
-  player.y += player.vy * dt;
-
+  if(debugMode){
+    // Free flight: Space/W/Up ascends, S/Down descends, release to hover.
+    const up=keys.has(" ")||keys.has("w")||keys.has("arrowup")||keys.has("k");
+    const down=keys.has("s")||keys.has("arrowdown");
+    player.vy=(Number(down)-Number(up))*490;
+    player.y=clamp(player.y+player.vy*dt,55,645);
+    player.x+=player.vx*dt;
+    player.onGround=false;player.ground=null;player.sliding=false;
+    player.downhillSliding=false;
+  }else{
+    if(!jump&&player.vy<-160)player.vy+=1450*dt;
+    player.vy+=1850*dt;
+    player.vy=Math.min(player.vy,1250);
+    player.x+=player.vx*dt;
+    player.y+=player.vy*dt;
+  }
   updateMovingPlatforms(dt);
-  resolveTracks();
-  if (player.onGround && slide) player.sliding = true;
+  if(!debugMode)resolveTracks();
+  if(player.onGround && slide)player.sliding=true;
   if (!wasOnGround && player.onGround && previousVerticalSpeed > 130) {
     emitParticles(player.x, player.y + PLAYER_RADIUS, "#67c8c3", 8, 100);
     playSfx("land");
   }
-  resolveTunnels();
+  if(!debugMode)resolveTunnels();
   resolveWalls();
   updateCheckpoints();
   updateEnemies(dt);
@@ -949,9 +969,7 @@ function update(dt) {
     player.x=guardian.arenaRight;player.vx=Math.min(0,player.vx);
   }
 
-  if (player.y > 720) {
-    damagePlayer(true);
-  }
+  if(!debugMode&&player.y>720){damagePlayer(true);}
 
   if (circleRect(player.x, player.y, PLAYER_RADIUS, goal) && !gameCleared
     && (activeStage!==2 || guardian.defeated)) {
@@ -1169,7 +1187,7 @@ function updateCheckpoints() {
   });
 }
 function damagePlayer(fall) {
-  if (player.invulnerable > 0 && !fall) return;
+  if (debugMode || (player.invulnerable > 0 && !fall)) return;
   if (fall) player.falls += 1;
   shakeTime = 0.22;
   emitParticles(player.x, player.y, "#ff896d", 13, 155);
@@ -1763,6 +1781,11 @@ function drawHud() {
   ctx.fillText(Math.round(progress * 100) + '%', 704, 54);
   ctx.fillStyle="#f9cb83";ctx.font="bold 13px system-ui";ctx.fillText("Núcleos "+player.cores+"/3",335,80);
   if(activeStage===2){ctx.fillStyle="#ffa2be";ctx.fillText("Quedas "+player.falls,610,80);}
+  if(debugMode){
+    ctx.fillStyle="#ffd79d";ctx.font="bold 12px system-ui";
+    ctx.fillText("DEBUG: BOOST ∞ · VOO · INVENCÍVEL",20,119);
+    ctx.fillText("F3: alternar · B: ir ao chefe",20,135);
+  }
   if(activeStage===2&&guardian.active&&!guardian.defeated){
     ctx.fillStyle="rgba(15,8,35,.86)";roundRect(310,102,355,68,9);ctx.fill();
     ctx.fillStyle="#e7ceff";ctx.font="bold 15px system-ui";
@@ -2102,10 +2125,48 @@ syncMusicButton();
 syncTrackLabel();
 
 
+// DEBUG is deliberately session-only. Runs that ever used cheats are unranked.
+function setDebugMode(enabled){
+  debugMode=Boolean(enabled);
+  if(debugMode){
+    player.boost=100;
+    if(gameStarted)debugUsedThisRun=true;
+  }else{
+    player.vy=0;player.onGround=false;player.ground=null;
+    player.sliding=false;
+  }
+  if(debugToggle){
+    debugToggle.textContent=debugMode?"DEBUG: ON":"DEBUG: OFF";
+    debugToggle.setAttribute("aria-pressed",String(debugMode));
+    debugToggle.title=debugMode?"Desligar boost infinito, voo e invencibilidade":
+      "Ligar modo de teste (F3)";
+  }
+  if(!gameStarted)refreshProgressView();
+}
+function toggleDebugMode(){setDebugMode(!debugMode);}
+function warpToGuardian(){
+  if(!debugMode||!gameStarted||activeStage!==2||gameCleared)return;
+  player.x=32900;
+  player.y=groundY(player.x)-PLAYER_RADIUS;
+  player.prevX=player.x;player.prevY=player.y;
+  player.vx=0;player.vy=0;
+  player.boost=100;player.onGround=false;player.ground=null;
+  checkpointIndex=checkpoints.length-1;
+  checkpoints.forEach((point,i)=>{point.active=i<=checkpointIndex;});
+  resetGuardian();
+  cameraAnchorX=VIEW_W*CAMERA_IDLE_ANCHOR;
+  cameraX=clamp(player.x-cameraAnchorX,0,WORLD_W-VIEW_W);
+  cameraY=clamp(player.y-VIEW_H*.56,0,WORLD_H-VIEW_H);
+  debugUsedThisRun=true;
+}
+if(debugToggle)debugToggle.addEventListener("click",toggleDebugMode);
+
 window.addEventListener("keydown", (event) => {
   const key = event.key.toLowerCase();
   if (key === "m" && !event.repeat) toggleSound();
-  if (key === "n" && !event.repeat) toggleMusic();
+  if(key==="n"&&!event.repeat)toggleMusic();
+  if(key==="f3"&&!event.repeat){toggleDebugMode();event.preventDefault();}
+  if(key==="b"&&!event.repeat&&debugMode)warpToGuardian();
   if (gameStarted && soundEnabled) unlockAudio();
   keys.add(key);
   if ([' ', 'arrowup', 'w', 'k'].includes(key) && !jumpHeld) {
@@ -2130,7 +2191,7 @@ window.addEventListener('blur', () => { keys.clear(); jumpHeld = false; if (game
 startButton.addEventListener("click", ()=>startGame(1));
 document.querySelector("#selectStagesButton").addEventListener("click", showStageMenu);
 document.querySelector("#stageOneButton").addEventListener("click", ()=>startGame(1));
-document.querySelector("#stageTwoButton").addEventListener("click", ()=>{if(progress.stage1.completed)startGame(2)});
+document.querySelector("#stageTwoButton").addEventListener("click", ()=>{if(progress.stage1.completed||debugMode)startGame(2)});
 document.querySelector("#backToMainButton").addEventListener("click", showMainMenu);
 document.querySelector("#retryButton").addEventListener("click", ()=>startGame(activeStage));
 document.querySelector("#resultsStagesButton").addEventListener("click", showStageMenu);
