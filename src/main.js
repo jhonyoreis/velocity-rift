@@ -49,19 +49,19 @@ const player = {
 const spawn = { x: 90, y: 402 };
 // One continuous route with deliberate jumps between the two ground gaps.
 const tracks = [
-  track(0,1200,420,420,"intro"),track(1200,1800,420,455,"descent"),
-  track(1800,2600,455,455,"intro"),track(2600,3500,455,420,"rise"),
-  track(3500,4650,420,420,"rhythm"),track(4790,5400,440,440,"rhythm"),
-  track(5400,6100,440,350,"rise"),track(6100,6750,350,350,"rhythm"),
-  track(6750,7000,350,430,"descent"),track(7000,8000,430,430,"slide"),
-  track(8000,8600,430,460,"descent"),track(8600,9900,460,460,"slide"),
-  track(9900,10700,460,420,"rise"),track(10700,12100,420,420,"boost"),
-  track(12100,13000,420,470,"descent"),track(13000,14500,470,470,"boost"),
-  track(14500,15200,470,470,"mastery"),track(15200,15900,470,370,"rise"),
-  track(15900,17000,370,370,"mastery"),track(17150,18000,410,410,"mastery"),
-  track(18000,19000,410,450,"descent"),track(19000,19800,450,450,"finale"),
-  track(19800,20600,450,350,"rise"),track(20600,21300,350,350,"finale"),
-  track(21300,21900,350,420,"descent"),track(21900,22700,420,420,"finale"),
+  track(0,420,1200,420,"intro"),track(1200,420,1800,455,"descent"),
+  track(1800,455,2600,455,"intro"),track(2600,455,3500,420,"rise"),
+  track(3500,420,4650,420,"rhythm"),track(4790,440,5400,440,"rhythm"),
+  track(5400,440,6100,350,"rise"),track(6100,350,6750,350,"rhythm"),
+  track(6750,350,7000,430,"descent"),track(7000,430,8000,430,"slide"),
+  track(8000,430,8600,460,"descent"),track(8600,460,9900,460,"slide"),
+  track(9900,460,10700,420,"rise"),track(10700,420,12100,420,"boost"),
+  track(12100,420,13000,470,"descent"),track(13000,470,14500,470,"boost"),
+  track(14500,470,15200,470,"mastery"),track(15200,470,15900,370,"rise"),
+  track(15900,370,17000,370,"mastery"),track(17150,410,18000,410,"mastery"),
+  track(18000,410,19000,450,"descent"),track(19000,450,19800,450,"finale"),
+  track(19800,450,20600,350,"rise"),track(20600,350,21300,350,"finale"),
+  track(21300,350,21900,420,"descent"),track(21900,420,22700,420,"finale"),
 ];
 const chapters = [
   {x:0,title:"01 / PRIMEIROS PASSOS"},{x:3500,title:"02 / RITMO E SALTOS"},
