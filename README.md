@@ -1,4 +1,4 @@
-# Velocity Rift Prototype
+# Velocity Rift — rumo à versão 2.0
 
 Um prototipo web 2D inspirado em jogos de plataforma de alta velocidade. Ele usa
 HTML, CSS e Canvas, sem assets oficiais e sem dependencias externas.
@@ -47,6 +47,15 @@ Depois, o projeto pode ser publicado pelo GitHub Pages usando a branch `main`.
 - Portoes que exigem boost/velocidade.
 - Fase com rota baixa, media e alta.
 - Camera seguindo o jogador.
+
+## Plano da versão 2.0
+
+A implementação será feita nesta branch de desenvolvimento, preservando `main`.
+
+1. Física consistente e controle de salto (coyote time, jump buffer e altura variável).
+2. Checkpoints, pausa, recorde local e classificação da fase.
+3. Controles de toque e interface adaptada a celulares.
+4. Melhorias de câmera, colisões, efeitos e identidade visual original.
 
 ## Proximas melhorias
 
