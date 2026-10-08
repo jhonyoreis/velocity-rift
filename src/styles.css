@@ -163,3 +163,76 @@ button:hover {
   .hero-identity small { font-size: 0.68rem; }
   .sound-toggle { width: 100%; }
 }
+
+/* Game menu & stage selection */
+[hidden] { display: none !important; }
+.overlay {
+  z-index: 5;
+  padding: clamp(12px, 3.2vw, 32px);
+  overflow-y: auto;
+  background:
+    radial-gradient(circle at 72% 15%, rgba(50, 229, 205, 0.14), transparent 46%),
+    linear-gradient(140deg, rgba(5, 18, 34, 0.97), rgba(7, 32, 42, 0.93));
+}
+.menu-screen { width: min(100%, 675px); text-align: center; display: grid; justify-items: center; gap: 11px; }
+.menu-eyebrow { font-size: 0.72rem; font-weight: 800; color: #69f4d9; letter-spacing: 0.27em; }
+.menu-screen h1 { margin: 0; font-size: clamp(2rem, 5.6vw, 4.4rem); line-height: 1; letter-spacing: -0.045em; text-shadow: 0 8px 36px #071522; }
+.menu-screen h1 span { color: #67f6db; }
+.menu-screen h2 { margin: 0; font-size: clamp(1.6rem, 3.6vw, 2.7rem); letter-spacing: -0.04em; }
+.menu-subtitle { margin: 0; color: #d2e6ed; font-size: clamp(0.78rem, 1.65vw, 1rem); }
+.menu-subtitle span { color: #f5be76; }
+.menu-mark { font-size: 0.67rem; color: #c0d8df; letter-spacing: 0.14em; }
+.menu-mark span { color: #ffc675; font-weight: 900; font-size: 1rem; }
+.menu-stat-grid, .result-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  width: min(100%, 510px);
+  gap: 9px;
+}
+.menu-stat-grid > div, .result-stats > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+  padding: 11px 7px;
+  background: rgba(57, 144, 151, 0.13);
+  border: 1px solid rgba(115, 238, 221, 0.23);
+  border-radius: 9px;
+}
+.menu-stat-grid small, .result-stats small { color: #abd0d8; font-size: 0.7rem; }
+.menu-stat-grid strong, .result-stats strong { color: #f2fffb; font-size: clamp(0.86rem, 1.9vw, 1.08rem); }
+.menu-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; width: 100%; }
+.menu-actions button { min-height: 42px; font-size: 0.87rem; padding: 10px 19px; }
+.menu-actions .primary-action { color: #052a32; background: #5cf4d5; box-shadow: 0 8px 26px rgba(47, 228, 199, .19); }
+.menu-actions .secondary-action { color: #d8f7f3; background: rgba(29, 83, 99, .85); border: 1px solid rgba(100, 226, 215, .3); }
+.menu-actions button:hover, .stage-play:hover { filter: brightness(1.12); }
+.menu-help { font-size: 0.7rem; color: #b0cbd0; margin: 0; }
+.stage-list { width: min(100%, 615px); display: grid; gap: 8px; }
+.stage-card { display: flex; align-items: center; text-align: left; gap: 12px; padding: 10px 13px; border-radius: 10px; background: rgba(19, 62, 78, .91); border: 1px solid rgba(100, 228, 214, .24); }
+.stage-card-active { border-color: rgba(98, 246, 216, .75); background: linear-gradient(90deg, rgba(38, 127, 119, .40), rgba(20, 57, 75, .94)); }
+.stage-number { color: #81f7e4; font-size: 1.4rem; font-weight: 900; letter-spacing: -0.04em; }
+.stage-copy { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.stage-copy strong { font-size: 0.9rem; }
+.stage-copy small { color: #bcdbe0; font-size: 0.7rem; }
+.stage-copy span { font-size: 0.72rem; color: #f9cf8a; }
+.stage-card-locked { opacity: 0.67; }
+.stage-lock { font-size: 1.05rem; }
+.stage-play { background: #64f4d9; padding: 10px 16px; font-size: 0.8rem; }
+.result-grade { color: #fcd084; font-weight: 900; font-size: clamp(3.3rem, 7vw, 5rem); line-height: 1; text-shadow: 0 0 32px rgba(250, 182, 89, .35); }
+.result-stats { grid-template-columns: repeat(4, 1fr); width: min(100%, 565px); }
+.toolbar-actions { display: flex; flex-wrap: wrap; gap: 7px; }
+.game-toolbar .sound-toggle { width: auto; }
+.touch-controls { z-index: 1; }
+@media (max-width: 600px) {
+  .overlay { padding: 12px; }
+  .menu-screen { gap: 7px; }
+  .menu-screen h1 { font-size: 2rem; }
+  .menu-stat-grid > div, .result-stats > div { padding: 7px 3px; }
+  .menu-stat-grid small, .result-stats small { font-size: 0.57rem; }
+  .result-stats strong, .menu-stat-grid strong { font-size: 0.75rem; }
+  .menu-actions button { padding: 7px 11px; min-height: 34px; font-size: 0.75rem; }
+  .stage-card { padding: 7px; gap: 7px; }
+  .stage-copy span, .stage-copy small { font-size: 0.61rem; }
+  .stage-play { padding: 8px 10px; }
+  .toolbar-actions { width: 100%; }
+  .game-toolbar .sound-toggle { flex: 1; }
+}
