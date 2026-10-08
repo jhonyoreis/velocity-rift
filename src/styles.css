@@ -267,3 +267,19 @@ button:hover {
 }
 .stage-play:disabled:hover { filter: none; }
 #stageTwoLock[hidden] { display:none; }
+
+/* Test control placed next to the crystal counter, scaled with the canvas. */
+.game-panel .debug-toggle {
+  position:absolute;z-index:3;left:17.7%;top:4.75%;
+  width:12.3%;height:5%;min-height:20px;
+  padding:0 1px;border:1px solid #efc97d;border-radius:5px;
+  background:rgba(29,38,59,.94);color:#ffe1ab;
+  font:800 clamp(8px,1.2vw,11px) system-ui,sans-serif;
+  white-space:nowrap;line-height:1.05;
+}
+.game-panel .debug-toggle[aria-pressed="true"]{
+  background:#ffd47d;color:#2d2031;box-shadow:0 0 12px #ffd47d66;
+}
+.game-panel .debug-toggle:focus-visible{outline:3px solid #6df5e2;outline-offset:2px;}
+.game-panel.menu-active .debug-toggle{display:none;}
+@media(max-width:600px){.game-panel .debug-toggle{min-height:16px;font-size:8px;}}
