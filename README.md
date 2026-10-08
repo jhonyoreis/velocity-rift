@@ -65,14 +65,16 @@ https://github.com/jhonyoreis/velocity-rift
 
 ## Fase 2 — Cânion Prisma
 
-- Fase nova, com 17.600 unidades de extensão, cenário violeta/azul de cânion tecnológico e seis seções.
+- **Fase 2 reformulada: 34.000 unidades de extensão (antes 17.600), nove setores**, com desafios progressivos de precisão, ritmo e domínio das mecânicas.
 - Disponível na seleção de fases após concluir **Primeiro Impulso**; a fase 3 continua planejada e indisponível.
-- Sete abismos perigosos: cair provoca queda fatal, reiniciando no começo ou no último checkpoint.
-- Plataformas elevadas e três plataformas que se deslocam horizontalmente, oferecendo trajetórias alternativas sobre os abismos.
-- Novos inimigos: **drones aéreos** que oscilam e patrulham, **sentinelas blindadas** que exigem desvio ou boost e robôs patrulheiros terrestres.
-- Cinco checkpoints, dois portões de boost, dois túneis baixos, eletropulsos, oito áreas de espinhos, molas, orbes de energia, cristais e três núcleos opcionais.
+- **14 abismos reais** (antes sete): quedas causam respawn no início ou no último checkpoint. Saltos e trechos de pouso foram revistos para garantir continuidade.
+- **16 plataformas elevadas e sete plataformas móveis** (antes oito e três), com rotas opcionais de risco/recompensa e movimentos estáveis desde o primeiro frame.
+- Encontros mais exigentes com **drones aéreos**, **sentinelas blindadas** e robôs terrestres, incluindo um setor de gauntlet e inimigos em sequências de aproximação/pouso.
+- **Nove checkpoints, três portões de boost, cinco túneis baixos**, eletropulsos, novas áreas de espinhos, molas, orbes de energia, cristais e três núcleos opcionais.
 - HUD específico com contador de quedas, progresso da fase e núcleos; a pontuação, o melhor tempo e as conclusões ficam salvos separadamente da fase 1.
-- As regras de movimento, a velocidade normal, o boost enfraquecido e a aceleração do slide continuam iguais à primeira fase.
+- **Slide corrigido:** pose compacta alinhada ao ângulo do chão; brilho também fica acima da superfície. Colisão de pista e plataformas ajustada para evitar encaixes indevidos.
+- As regras de movimento, o boost equilibrado e a aceleração do slide continuam iguais à fase 1.
+- A fase 1 permanece com 22.700 unidades e funciona como introdução; a fase 2 foi projetada como o primeiro grande desafio.
 
 ## Circuito Eletro-Neon e trilha original
 
