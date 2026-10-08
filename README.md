@@ -84,6 +84,16 @@ https://github.com/jhonyoreis/velocity-rift
 - A faixa atual aparece abaixo da identidade do Flux. A tecla **N** liga/desliga a música, **M** silencia o áudio geral, e a pausa/menu interrompem a reprodução.
 - Valores de frequência/duração são validados e erros do sintetizador são isolados do loop do jogo para não travar a física.
 
+## Portal da Fenda — conclusão da fase 2
+
+- A porta branca **GO** permanece na fase 1, mas foi completamente removida do Cânion Prisma.
+- Na segunda fase, não existe saída visível antes de derrotar o Guardião; o local final permanece desativado e não encerra a tentativa.
+- Depois do colapso cinematográfico do chefe, um **portal dimensional** se materializa ao lado da arena. A abertura leva aproximadamente **1,45 segundo**, com anéis violeta e turquesa girando em direções opostas, centro de energia, cristais orbitais, partículas e pulso luminoso.
+- **Som próprio de materialização** e som de travessia, gerados pelo Web Audio existente sem depender de arquivos externos.
+- O HUD passa de **“PORTAL DA FENDA SE MATERIALIZANDO...”** para **“PORTAL DA FENDA ABERTO · ENTRE NA FENDA”**.
+- Somente entrar no portal **totalmente aberto** conclui a fase 2. A nota, os recordes, o DEBUG e o salvamento de progresso permanecem como antes.
+- Reiniciar a fase ou ser derrotado durante a luta restaura o portal ao estado invisível; depois de vencer o chefe, o portal continua aberto caso o Flux sofra uma queda antes de atravessá-lo.
+
 ## Polimento cinematográfico do Guardião — atualização visual
 
 - **Entrada cinematográfica:** ao entrar na arena, o Guardião surge do alto com um pulso violeta, avisos no HUD e uma faixa breve de apresentação (1,85 s). O laser não causa dano durante a apresentação e os controles permanecem disponíveis.
