@@ -970,6 +970,115 @@ function drawGuardianBackdrop(){
   }
 }
 
+// Bounded cinematic effects; no collision, camera or movement side effects.
+function pushGuardianRing(x,y,color,size=70,ellipse=1){
+  if(guardianFx.rings.length>=12)guardianFx.rings.shift();
+  guardianFx.rings.push({x,y,color,size,ellipse,life:.7,maxLife:.7});
+}
+function spawnGuardianShards(x,y,count=24,power=160){
+  for(let i=0;i<count&&guardianFx.shards.length<GUARDIAN_SHARD_LIMIT;i++){
+    const angle=(i/count)*Math.PI*2+(Math.random()-.5)*.4;
+    const velocity=power*(.3+Math.random()*.7);
+    const life=.65+Math.random()*.7;
+    guardianFx.shards.push({
+      x,y,vx:Math.cos(angle)*velocity,vy:Math.sin(angle)*velocity-40,
+      angle,spin:(Math.random()-.5)*8,
+      size:2.5+Math.random()*6,
+      life,maxLife:life,
+      color:i%3===0?"#ffe4a5":i%2===0?"#86fff0":"#bd9cff"
+    });
+  }
+}
+function updateGuardianVisuals(dt){
+  if(activeStage!==2)return;
+  guardianFx.flash=Math.max(0,guardianFx.flash-dt*2.5);
+  guardianFx.impact=Math.max(0,guardianFx.impact-dt*1.65);
+  guardianFx.entry=Math.max(0,guardianFx.entry-dt*.9);
+  if(guardian.active&&guardian.state==="collapse"){
+    // Intermittent glows and disintegration rather than an abrupt disappearance.
+    const now=guardian.timer;
+    if(Math.floor((now-dt)*8)!==Math.floor(now*8)){
+      spawnGuardianShards(guardian.x+(Math.random()-.5)*85,
+        guardian.y+(Math.random()-.5)*120,9,155+now*30);
+      pushGuardianRing(guardian.x,guardian.y,
+        now<1.5?"#ffcaee":"#8dfff1",75+now*18,1);
+    }
+  }
+  for(const shard of guardianFx.shards){
+    shard.x+=shard.vx*dt;
+    shard.y+=shard.vy*dt;
+    shard.vy+=105*dt;
+    shard.angle+=shard.spin*dt;
+    shard.life-=dt;
+  }
+  guardianFx.shards=guardianFx.shards.filter(x=>x.life>0).slice(-GUARDIAN_SHARD_LIMIT);
+  for(const ring of guardianFx.rings)ring.life-=dt;
+  guardianFx.rings=guardianFx.rings.filter(x=>x.life>0).slice(-12);
+}
+function drawGuardianVisuals(){
+  if(activeStage!==2||!guardian.active)return;
+  for(const ring of guardianFx.rings){
+    const v=1-ring.life/ring.maxLife;
+    ctx.save();
+    ctx.globalAlpha=(1-v)*.9;
+    ctx.strokeStyle=ring.color;
+    ctx.lineWidth=5*(1-v)+1;
+    ctx.beginPath();
+    ctx.ellipse(ring.x,ring.y,ring.size*(.25+v),
+      ring.size*ring.ellipse*(.25+v),0,0,Math.PI*2);
+    ctx.stroke();ctx.restore();
+  }
+  for(const shard of guardianFx.shards){
+    if(shard.x<cameraX-30||shard.x>cameraX+VIEW_W+30)continue;
+    ctx.save();ctx.globalAlpha=clamp(shard.life/shard.maxLife,0,1);
+    ctx.translate(shard.x,shard.y);ctx.rotate(shard.angle);
+    ctx.fillStyle=shard.color;
+    ctx.beginPath();ctx.moveTo(0,-shard.size*1.6);
+    ctx.lineTo(shard.size*.8,shard.size*.7);
+    ctx.lineTo(-shard.size*.8,shard.size*.7);
+    ctx.closePath();ctx.fill();ctx.restore();
+  }
+  if(guardianFx.flash>.01){
+    // World-space localized flash; capped alpha avoids full-screen strobing.
+    ctx.save();ctx.globalAlpha=Math.min(.32,guardianFx.flash*.34);
+    ctx.fillStyle=guardian.hp===0?"#fff0c6":"#befaff";
+    ctx.beginPath();ctx.arc(guardian.x,guardian.y,145+guardianFx.flash*45,0,Math.PI*2);
+    ctx.fill();ctx.restore();
+  }
+}
+function drawGuardianCinematic(){
+  if(activeStage!==2||!guardian.active)return;
+  const arriving=guardian.state==="intro";
+  const collapsing=guardian.state==="collapse";
+  if(!arriving&&!collapsing)return;
+  const time=guardian.timer;
+  const duration=arriving?GUARDIAN_INTRO_SECONDS:GUARDIAN_COLLAPSE_SECONDS;
+  const progress=clamp(time/duration,0,1);
+  // Fade in, then fade out to restore visibility before gameplay resumes.
+  const alpha=arriving?Math.min(1,time/.30,(duration-time)/.34):
+    Math.min(1,time/.24,(duration-time)/.50);
+  if(alpha<=0)return;
+  ctx.save();
+  ctx.globalAlpha=Math.max(0,alpha);
+  ctx.fillStyle="rgba(10,8,30,.86)";
+  roundRect(178,193,604,100,12);ctx.fill();
+  ctx.strokeStyle=arriving?"#c29bff":"#93ffe8";
+  ctx.lineWidth=2;ctx.stroke();
+  ctx.textAlign="center";
+  ctx.fillStyle=arriving?"#f1dcff":"#caffef";
+  ctx.font="bold 28px system-ui";
+  ctx.fillText(arriving?"GUARDIÃO DO PRISMA":"NÚCLEO DESTRUÍDO",VIEW_W/2,236);
+  ctx.font="bold 13px system-ui";
+  ctx.fillStyle="#ffddb5";
+  ctx.fillText(arriving?"TRÊS NÚCLEOS · UMA ÚNICA SAÍDA":
+    "ESTABILIZANDO A FENDA · PORTAL REABRINDO",VIEW_W/2,259);
+  ctx.fillStyle="#30294e";ctx.fillRect(237,273,486,5);
+  ctx.fillStyle=arriving?"#c89fff":"#9cffe6";
+  ctx.fillRect(237,273,486*progress,5);
+  ctx.textAlign="left";
+  ctx.restore();
+}
+
 function drawGuardian(){
   if(activeStage!==2)return;
   if(!guardian.active&&player.x<guardian.arenaLeft-580)return;
@@ -992,7 +1101,22 @@ function drawGuardian(){
   }
   // Angular guardian body and expressive repositioning crystal.
   ctx.save();ctx.translate(guardian.x,guardian.y+Math.sin(visualTime*3)*4);
-  if(guardian.defeated){ctx.globalAlpha=.28;ctx.rotate(.48);}
+  if(guardian.state==="intro"){
+    const phase=clamp(guardian.timer/GUARDIAN_INTRO_SECONDS,0,1);
+    const smooth=1-Math.pow(1-phase,3);
+    ctx.translate(0,-(1-smooth)*220);
+    ctx.rotate((1-smooth)*-.24);
+  }
+  if(guardian.state==="collapse"){
+    const progress=clamp(guardian.timer/GUARDIAN_COLLAPSE_SECONDS,0,1);
+    ctx.translate(Math.sin(guardian.timer*34)*progress*11,
+      Math.cos(guardian.timer*26)*progress*7);
+    ctx.rotate(Math.sin(guardian.timer*7)*progress*.3);
+    ctx.globalAlpha=1-progress*.88;
+  }else if(guardian.defeated){ctx.globalAlpha=.25;ctx.rotate(.48);}
+  if(guardianFx.impact>0 && guardian.state!=="collapse"){
+    ctx.translate(Math.sin(visualTime*43)*guardianFx.impact*8,0);
+  }
   ctx.fillStyle="rgba(180,107,246,.14)";
   ctx.beginPath();ctx.ellipse(0,0,94,87,0,0,Math.PI*2);ctx.fill();
   ctx.fillStyle="#362351";ctx.beginPath();
@@ -1004,9 +1128,24 @@ function drawGuardian(){
   ctx.beginPath();ctx.moveTo(45,-38);ctx.lineTo(72,-62);ctx.lineTo(78,22);ctx.lineTo(49,41);ctx.fill();
   ctx.fillStyle="#271342";ctx.fillRect(-20,-33,40,9);
   ctx.fillStyle="#dcc0ff";ctx.fillRect(-13,-31,26,5);
+  // Visible damage progression: one glowing fracture per successful hit.
+  const cracks=guardian.maxHp-guardian.hp;
+  ctx.lineWidth=2.8;ctx.strokeStyle="#b9ffed";
+  if(cracks>=1){
+    ctx.beginPath();ctx.moveTo(-18,-41);ctx.lineTo(-3,-17);
+    ctx.lineTo(-14,4);ctx.stroke();
+  }
+  if(cracks>=2){
+    ctx.beginPath();ctx.moveTo(24,-44);ctx.lineTo(9,-16);
+    ctx.lineTo(25,17);ctx.stroke();
+  }
+  if(cracks>=3){
+    ctx.beginPath();ctx.moveTo(-26,29);ctx.lineTo(0,10);
+    ctx.lineTo(30,36);ctx.stroke();
+  }
   ctx.restore();
   const core=guardianCorePosition();
-  if(guardian.active&&!guardian.defeated){
+  if(guardian.active&&!guardian.defeated&&guardian.state!=="collapse"){
     ctx.fillStyle=guardian.state==="exposed"?"rgba(110,255,220,.2)":"rgba(255,117,195,.1)";
     ctx.beginPath();ctx.arc(core.x,core.y,36,0,Math.PI*2);ctx.fill();
     ctx.fillStyle=guardian.state==="exposed"?"#83ffe1":"#e0a8ff";
@@ -1508,6 +1647,7 @@ function draw() {
   drawObjects();
   drawSentryShots();
   drawGuardian();
+  drawGuardianVisuals();
   drawMemoryCores();
   drawFluxWaves();
   drawParticles();
@@ -2191,6 +2331,7 @@ function drawHud() {
     ctx.fillStyle="#adffd8";ctx.font="bold 15px system-ui";
     ctx.fillText("GUARDIÃO DERROTADO · PORTAL LIBERADO",329,115);
   }
+  drawGuardianCinematic();
   if (paused) {
     ctx.fillStyle = 'rgba(5, 9, 20, .75)';
     ctx.fillRect(0, 0, VIEW_W, VIEW_H);
