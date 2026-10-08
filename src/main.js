@@ -11,6 +11,15 @@ const PLAYER_RADIUS = 18;
 
 const keys = new Set();
 let lastTime = 0;
+let accumulator = 0;
+const FIXED_DT = 1 / 120;
+let paused = false;
+let jumpBuffer = 0;
+let coyoteTimer = 0;
+let jumpHeld = false;
+let checkpointIndex = -1;
+let bestTime = 0;
+try { bestTime = Number(localStorage.getItem('velocity-rift-best-time')) || 0; } catch (_) { /* private storage */ }
 let loopRunning = false;
 let gameStarted = false;
 let gameCleared = false;
@@ -36,6 +45,7 @@ const player = {
 };
 
 const spawn = { x: 90, y: 370 };
+const checkpoints = [{ x: 1630, y: 402 }, { x: 3030, y: 452 }];
 
 const tracks = [
   track(0, 420, 560, 420, "start"),
@@ -182,6 +192,14 @@ function resetGame() {
   player.boost = 100;
   player.invulnerable = 0;
   player.trail = [];
+  checkpointIndex = -1;
+  jumpBuffer = 0;
+  coyoteTimer = 0;
+  jumpHeld = false;
+  paused = false;
+  accumulator = 0;
+  cameraX = 0;
+  cameraY = 0;
   gameTime = 0;
   gameCleared = false;
   shakeTime = 0;
@@ -216,11 +234,17 @@ function ensureLoop() {
 }
 
 function loop(now) {
-  const dt = Math.min(0.033, (now - lastTime) / 1000 || 0.016);
+  const dt = Math.min(0.05, Math.max(0, (now - lastTime) / 1000));
   lastTime = now;
 
-  if (gameStarted && !gameCleared) {
-    update(dt);
+  if (gameStarted && !gameCleared && !paused) {
+    accumulator += dt;
+    while (accumulator >= FIXED_DT) {
+      update(FIXED_DT);
+      accumulator -= FIXED_DT;
+    }
+  } else {
+    accumulator = 0;
   }
 
   draw();
@@ -238,6 +262,8 @@ function update(dt) {
   const right = keys.has("arrowright") || keys.has("d");
   const jump = keys.has(" ") || keys.has("arrowup") || keys.has("w") || keys.has("k");
   const boost = keys.has("shift") || keys.has("j");
+  jumpBuffer = Math.max(0, jumpBuffer - dt);
+  coyoteTimer = player.onGround ? 0.11 : Math.max(0, coyoteTimer - dt);
 
   const accel = player.onGround ? 2050 : 880;
   const friction = player.onGround ? 1550 : 130;
@@ -268,12 +294,15 @@ function update(dt) {
   const maxSpeed = boosting ? boostMax : normalMax;
   player.vx = clamp(player.vx, -maxSpeed, maxSpeed);
 
-  if (jump && player.onGround) {
+  if (jumpBuffer > 0 && coyoteTimer > 0) {
     player.vy = -710 - Math.min(170, Math.abs(player.vx) * 0.14);
     player.onGround = false;
     player.ground = null;
+    jumpBuffer = 0;
+    coyoteTimer = 0;
   }
 
+  if (!jump && player.vy < -160) player.vy += 1450 * dt;
   player.vy += 2100 * dt;
   player.vy = Math.min(player.vy, 1500);
   player.x += player.vx * dt;
@@ -281,6 +310,7 @@ function update(dt) {
 
   resolveTracks();
   resolveWalls();
+  updateCheckpoints();
   updateEnemies(dt);
   collectItems();
   handleHazards();
@@ -296,9 +326,14 @@ function update(dt) {
 
   if (circleRect(player.x, player.y, PLAYER_RADIUS, goal)) {
     gameCleared = true;
-    overlay.querySelector("h1").textContent = "Stage Clear";
+    if (!bestTime || gameTime < bestTime) {
+      bestTime = gameTime;
+      try { localStorage.setItem('velocity-rift-best-time', String(bestTime)); } catch (_) { /* storage may be disabled */ }
+    }
+    const grade = gameTime < 35 ? 'S' : gameTime < 50 ? 'A' : gameTime < 75 ? 'B' : 'C';
+    overlay.querySelector("h1").textContent = `Stage Clear · ${grade}`;
     overlay.querySelector("p").textContent =
-      `Time ${gameTime.toFixed(2)}s | Rings ${player.rings}`;
+      `Tempo ${gameTime.toFixed(2)}s | Recorde ${bestTime.toFixed(2)}s | Coletáveis ${player.rings}`;
     startButton.textContent = "Play again";
     overlay.classList.remove("is-hidden");
     gameStarted = false;
@@ -306,8 +341,8 @@ function update(dt) {
 
   const targetX = clamp(player.x - VIEW_W * 0.38, 0, WORLD_W - VIEW_W);
   const targetY = clamp(player.y - VIEW_H * 0.56, 0, WORLD_H - VIEW_H);
-  cameraX = lerp(cameraX, targetX, 0.1);
-  cameraY = lerp(cameraY, targetY, 0.08);
+  cameraX = lerp(cameraX, targetX, 1 - Math.exp(-7 * dt));
+  cameraY = lerp(cameraY, targetY, 1 - Math.exp(-5 * dt));
 }
 
 function resolveTracks() {
@@ -339,7 +374,7 @@ function resolveTracks() {
     player.ground = best.floor;
 
     const slope = (best.floor.y2 - best.floor.y1) / Math.max(1, best.floor.x2 - best.floor.x1);
-    player.vx += clamp(slope * 320, -170, 170) * (1 / 60);
+    player.vx += clamp(slope * 320, -170, 170) * FIXED_DT;
   } else {
     player.onGround = false;
     player.ground = null;
@@ -447,17 +482,30 @@ function handleSprings() {
   }
 }
 
+function updateCheckpoints() {
+  checkpoints.forEach((point, index) => {
+    if (index > checkpointIndex && player.x >= point.x && Math.abs(player.y - point.y) < 110) checkpointIndex = index;
+  });
+}
+
 function damagePlayer(fall) {
   if (player.invulnerable > 0) return;
   shakeTime = 0.22;
 
   if (fall || player.rings <= 0) {
-    player.x = spawn.x;
-    player.y = spawn.y;
+    const respawn = checkpointIndex >= 0 ? checkpoints[checkpointIndex] : spawn;
+    player.x = respawn.x;
+    player.y = respawn.y;
+    player.prevX = respawn.x;
+    player.prevY = respawn.y;
+    player.onGround = false;
+    player.ground = null;
     player.vx = 0;
     player.vy = 0;
     player.rings = Math.max(0, Math.floor(player.rings / 2));
     player.boost = 70;
+    coyoteTimer = 0;
+    jumpBuffer = 0;
     player.invulnerable = 1.3;
     return;
   }
@@ -559,6 +607,16 @@ function drawTracks() {
 }
 
 function drawObjects() {
+  checkpoints.forEach((point, index) => {
+    ctx.fillStyle = index <= checkpointIndex ? '#38dcd0' : '#f6ac43';
+    ctx.fillRect(point.x, point.y - 64, 5, 64);
+    ctx.beginPath();
+    ctx.moveTo(point.x + 5, point.y - 64);
+    ctx.lineTo(point.x + 35, point.y - 52);
+    ctx.lineTo(point.x + 5, point.y - 40);
+    ctx.closePath();
+    ctx.fill();
+  });
   for (const pad of boostPads) {
     ctx.fillStyle = "#22d6ef";
     roundRect(pad.x, pad.y, pad.w, pad.h, 7);
@@ -706,7 +764,18 @@ function drawHud() {
   ctx.fillText(`${gameTime.toFixed(2)}s`, VIEW_W - 158, 38);
   ctx.font = "12px Inter, sans-serif";
   ctx.fillStyle = "#abd8dc";
-  ctx.fillText("3 routes + boost gates", VIEW_W - 158, 58);
+  ctx.fillText(`Recorde ${bestTime ? bestTime.toFixed(2) + 's' : '--'}`, VIEW_W - 158, 58);
+  if (paused) {
+    ctx.fillStyle = 'rgba(5, 9, 20, .75)';
+    ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 42px Inter, sans-serif';
+    ctx.fillText('PAUSADO', VIEW_W / 2, VIEW_H / 2);
+    ctx.font = '20px Inter, sans-serif';
+    ctx.fillText('Pressione P para continuar', VIEW_W / 2, VIEW_H / 2 + 40);
+    ctx.textAlign = 'left';
+  }
 }
 
 function yOnTrack(floor, x) {
@@ -754,7 +823,16 @@ function roundRect(x, y, w, h, radius) {
 }
 
 window.addEventListener("keydown", (event) => {
-  keys.add(event.key.toLowerCase());
+  const key = event.key.toLowerCase();
+  keys.add(key);
+  if ([' ', 'arrowup', 'w', 'k'].includes(key) && !jumpHeld) {
+    jumpBuffer = 0.13;
+    jumpHeld = true;
+  }
+  if (key === 'p' && gameStarted && !gameCleared && !event.repeat) {
+    paused = !paused;
+    accumulator = 0;
+  }
   if (event.key.toLowerCase() === "r") {
     resetGame();
     if (!gameStarted) {
@@ -769,9 +847,27 @@ window.addEventListener("keydown", (event) => {
 });
 
 window.addEventListener("keyup", (event) => {
-  keys.delete(event.key.toLowerCase());
+  const key = event.key.toLowerCase();
+  keys.delete(key);
+  if ([' ', 'arrowup', 'w', 'k'].includes(key)) jumpHeld = false;
 });
 
+window.addEventListener('blur', () => { keys.clear(); jumpHeld = false; if (gameStarted) paused = true; });
 startButton.addEventListener("click", startGame);
+
+// Touch input uses the same controls as the keyboard.
+document.querySelectorAll('[data-key]').forEach(button => {
+  const key = button.dataset.key;
+  const release = event => { event.preventDefault(); keys.delete(key); if (key === ' ') jumpHeld = false; };
+  button.addEventListener('pointerdown', event => {
+    event.preventDefault();
+    button.setPointerCapture(event.pointerId);
+    keys.add(key);
+    if (key === ' ' && !jumpHeld) { jumpBuffer = 0.13; jumpHeld = true; }
+  });
+  button.addEventListener('pointerup', release);
+  button.addEventListener('pointercancel', release);
+  button.addEventListener('lostpointercapture', release);
+});
 
 draw();
