@@ -15,7 +15,7 @@
             <div class="menu-eyebrow">FLUX // MISSÃO 01</div>
             <h1 id="menuHeading">VELOCITY <span>RIFT</span></h1>
             <p class="menu-subtitle">Primeiro Impulso <span>· Floresta Neon</span></p>
-            <div class="menu-mark"><span>01</span> UMA FASE · INFINITAS TENTATIVAS</div>
+            <div class="menu-mark"><span>02</span> FASES · NOVOS DESAFIOS</div>
             <div class="menu-stat-grid" aria-label="Seu progresso">
               <div><small>Status</small><strong id="menuProgress">Não concluída</strong></div>
               <div><small>Melhor tempo</small><strong id="menuBest">--</strong></div>
@@ -30,7 +30,7 @@
           <section id="stageMenu" class="menu-screen" aria-labelledby="stageHeading" hidden>
             <div class="menu-eyebrow">MAPA DE MISSÕES</div>
             <h2 id="stageHeading">Escolher fase</h2>
-            <p class="menu-subtitle">Complete fases e supere seus próprios recordes.</p>
+            <p class="menu-subtitle">Conclua Primeiro Impulso para abrir o Cânion Prisma.</p>
             <div class="stage-list">
               <div class="stage-card stage-card-active">
                 <div class="stage-number">01</div>
@@ -41,13 +41,15 @@
                 </div>
                 <button id="stageOneButton" type="button" class="stage-play" aria-label="Jogar Primeiro Impulso">Jogar</button>
               </div>
-              <div class="stage-card stage-card-locked" aria-label="Fase 2 em desenvolvimento">
+              <div id="stageTwoCard" class="stage-card stage-card-locked">
                 <div class="stage-number">02</div>
                 <div class="stage-copy">
-                  <strong>Fase 2</strong><small>Em desenvolvimento</small>
-                  <span>Indisponível por enquanto</span>
+                  <strong>Cânion Prisma</strong>
+                  <small>Abismos, plataformas e sentinelas</small>
+                  <span id="stageTwoProgress">Conclua a fase 1 para desbloquear</span>
                 </div>
-                <span class="stage-lock" aria-hidden="true">🔒</span>
+                <button id="stageTwoButton" class="stage-play" type="button" disabled aria-label="Jogar Cânion Prisma">Jogar</button>
+                <span id="stageTwoLock" class="stage-lock" aria-label="Bloqueada">🔒</span>
               </div>
               <div class="stage-card stage-card-locked" aria-label="Fase 3 em desenvolvimento">
                 <div class="stage-number">03</div>
