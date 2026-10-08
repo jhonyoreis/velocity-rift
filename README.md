@@ -33,21 +33,31 @@ com JavaScript, sem precisar migrar a engine.
 
 https://github.com/jhonyoreis/velocity-rift
 
+## Fase 1 — Primeiro Impulso (estendida)
+
+- Uma única rota, com 22.700 unidades de cenário (antes 4.850) e seis trechos: introdução, ritmo e saltos, slide, boost, domínio das mecânicas e final.
+- Velocidade reduzida: limite de 480 na corrida e 790 durante o boost; aceleração, impulso e gravidade ajustados.
+- Energia começa vazia e **somente orbes de boost** recarregam o medidor (+55 por coleta). Não há regeneração passiva; cristais e inimigos não recarregam boost.
+- Dois portões que precisam de boost ativo, três túneis baixos para slide, saltos, molas, inimigos, cristais e obstáculos.
+- Cinco checkpoints, orientação visual com placas e HUD com progresso por trecho.
+- Floresta Neon com novas cores, vegetação e parallax no cenário.
+
 ## Funcionalidades da versão 2.0 (primeira entrega)
 
 - Simulação física em passos fixos de 120 Hz.
 - Pulo com coyote time, jump buffer e altura variável.
-- Dois checkpoints com reaparecimento após quedas.
+- Cinco checkpoints com reaparecimento após quedas.
 - Pausa (P), recorde local no navegador e nota S/A/B/C ao terminar.
 - Câmera suavizada e controles de toque em telas sensíveis ao toque.
-- Slide com menor atrito no solo, efeito de derrapagem e botão de toque.
+- Slide com menor atrito no solo, efeito de derrapagem, botão de toque e túneis de passagem baixa.
 - Cenário Floresta Neon com montanhas e camadas adicionais de parallax.
 
 ## Controles
 
 - A/D ou setas: mover
 - Space, W ou seta para cima: pular
-- Shift ou J: boost
+- Shift ou J: boost (consome energia; recarrega somente com orbes)
+- S ou seta para baixo: deslizar sob túneis
 - S ou seta para baixo: deslizar enquanto corre
 - R: reiniciar
 - P: pausar/continuar
