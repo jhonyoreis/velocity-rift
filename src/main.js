@@ -225,7 +225,9 @@ function createStageTwoWorld() {
     {x:13390,y:294,width:185,swing:86,speed:1,phase:2.3},
   ].map(obj=>{
     const p=track(obj.x,obj.y,obj.x+obj.width,obj.y,"moving");
-    p.originX=obj.x;p.swing=obj.swing;p.speed=obj.speed;p.phase=obj.phase;
+    // Match the starting position so moving ledges never teleport on frame one.
+    p.originX=obj.x-Math.sin(obj.phase)*obj.swing;
+    p.swing=obj.swing;p.speed=obj.speed;p.phase=obj.phase;
     return p;
   });
   const stageTracks=[...base,...ledges,...moving];
