@@ -88,7 +88,7 @@ https://github.com/jhonyoreis/velocity-rift
 
 - A porta branca **GO** permanece na fase 1, mas foi completamente removida do Cânion Prisma.
 - Na segunda fase, não existe saída visível antes de derrotar o Guardião; o local final permanece desativado e não encerra a tentativa.
-- Depois do colapso cinematográfico do chefe, um **portal dimensional** se materializa ao lado da arena. A abertura leva aproximadamente **1,45 segundo**, com anéis violeta e turquesa girando em direções opostas, centro de energia, cristais orbitais, partículas e pulso luminoso.
+- Depois do colapso cinematográfico do chefe, a câmera faz uma **panorâmica suave até a saída**, revelando um **portal dimensional** que se materializa ao lado da arena. A abertura leva aproximadamente **1,45 segundo**, com anéis violeta e turquesa girando em direções opostas, centro de energia, cristais orbitais, partículas e pulso luminoso.
 - **Som próprio de materialização** e som de travessia, gerados pelo Web Audio existente sem depender de arquivos externos.
 - O HUD passa de **“PORTAL DA FENDA SE MATERIALIZANDO...”** para **“PORTAL DA FENDA ABERTO · ENTRE NA FENDA”**.
 - Somente entrar no portal **totalmente aberto** conclui a fase 2. A nota, os recordes, o DEBUG e o salvamento de progresso permanecem como antes.
