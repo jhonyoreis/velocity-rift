@@ -39,18 +39,22 @@ let jumpHeld = false;
 let checkpointIndex = -1;
 const PROGRESS_KEY = "velocity-rift-progress-v1";
 const GRADE_ORDER=["C","B","A","S"];
+// Nine stepping stones per secret ascent: ~600 units above the normal road.
 const SECRET_DEFS={
   1:[
-    {id:"canopy",name:"Copa Esmeralda",lower:[2020,350,2260],upper:[2170,255,2390],startX:2110,targetX:2270,limit:9},
-    {id:"lumen",name:"Ninho Luminoso",lower:[9530,353,9860],upper:[9710,259,9960],startX:9660,targetX:9840,limit:8.5},
-    {id:"horizon",name:"Horizonte Neon",lower:[20520,259,20950],upper:[20710,170,21050],startX:20630,targetX:20910,limit:8}
+    {id:"canopy",name:"Copa Esmeralda",x:2110,y:350,limit:29},
+    {id:"lumen",name:"Ninho Luminoso",x:9660,y:353,limit:28},
+    {id:"horizon",name:"Horizonte Neon",x:20630,y:259,limit:27}
   ],
   2:[
-    {id:"echo",name:"Eco Suspenso",lower:[3150,331,3500],upper:[3300,237,3570],startX:3260,targetX:3440,limit:8.5},
-    {id:"prism",name:"Arco Prismático",lower:[10230,306,10710],upper:[10440,214,10800],startX:10330,targetX:10600,limit:8},
-    {id:"zenith",name:"Zênite Violeta",lower:[24580,259,24940],upper:[24780,168,25140],startX:24700,targetX:24970,limit:8}
+    {id:"echo",name:"Eco Suspenso",x:3260,y:331,limit:27},
+    {id:"prism",name:"Arco Prismático",x:10330,y:306,limit:26},
+    {id:"zenith",name:"Zênite Violeta",x:24700,y:259,limit:25}
   ]
 };
+const SECRET_STEPS_X=[0,92,174,90,10,-74,14,110,195];
+const SECRET_STEP_RISE=76;
+const SECRET_PAD_WIDTH=118;
 const ACHIEVEMENTS=[
   {id:"first",title:"Primeiro Impulso",description:"Conclua a fase 1."},
   {id:"canyon",title:"Através do Cânion",description:"Conclua a fase 2."},
@@ -480,14 +484,43 @@ function createStageTwoWorld() {
 const STAGES={1:stageOneWorld,2:createStageTwoWorld()};
 function installSecretRoutes(world,stage){
   world.secretTrials=SECRET_DEFS[stage].map(def=>{
-    const [x1,y1,x2]=def.lower,[u1,uY,u2]=def.upper;
-    world.tracks.push(track(x1,y1,x2,y1,"secret"),
-      track(u1,uY,u2,uY,"secret"));
-    return {id:def.id,name:def.name,startX:def.startX,startY:y1-PLAYER_RADIUS,
-      targetX:def.targetX,targetY:uY-PLAYER_RADIUS,limit:def.limit,
-      active:false,completed:false,elapsed:0,armed:true,failed:false};
+    const platforms=SECRET_STEPS_X.map((offset,step)=>{
+      const x=def.x+offset,y=def.y-step*SECRET_STEP_RISE;
+      const moving=step===4 || (stage===2 && step===7);
+      const floor=track(x-SECRET_PAD_WIDTH/2,y,
+        x+SECRET_PAD_WIDTH/2,y,moving?"secret-moving":"secret");
+      floor.secretId=def.id;
+      floor.step=step;
+      if(moving){
+        floor.originX=floor.x1;
+        floor.originX2=floor.x2;
+        floor.swing=step===4?33:25;
+        floor.speed=step===4?1.1:1.4;
+        floor.phase=stage+step;
+      }
+      world.tracks.push(floor);
+      return {x,y,step,moving};
+    });
+    const sentinels=[
+      {type:"drone",step:2,baseX:platforms[2].x+32,
+        baseY:platforms[2].y-42,patrol:38,phase:1.2},
+      {type:"drone",step:4,baseX:platforms[4].x+26,
+        baseY:platforms[4].y-44,patrol:43,phase:2.3},
+      {type:"sentry",step:6,baseX:platforms[6].x-16,
+        baseY:platforms[6].y-33,patrol:0,phase:0},
+      {type:"drone",step:7,baseX:platforms[7].x-35,
+        baseY:platforms[7].y-49,patrol:28,phase:.8}
+    ];
+    return {id:def.id,name:def.name,startX:platforms[0].x,
+      startY:platforms[0].y-PLAYER_RADIUS,
+      targetX:platforms[8].x,
+      targetY:platforms[8].y-PLAYER_RADIUS,
+      limit:def.limit,platforms,sentinels,
+      shots:[],shotTimer:1.35,active:false,completed:false,elapsed:0,
+      armed:true,failed:false};
   });
 }
+
 installSecretRoutes(STAGES[1],1);
 installSecretRoutes(STAGES[2],2);
 
@@ -507,14 +540,30 @@ function activateStage(stage=1) {
   }
   Object.assign(goal,data.goal);Object.assign(spawn,data.spawn);
   bestTime=progress["stage"+stage].bestTime;
-  secretTrials.splice(0,secretTrials.length,...data.secretTrials.map(t=>({...t})));
+  secretTrials.splice(0,secretTrials.length,...data.secretTrials.map(t=>({
+    ...t,
+    platforms:t.platforms.map(p=>({...p})),
+    sentinels:t.sentinels.map(b=>({...b})),
+    shots:[]
+  })));
   resetGuardian();
 }
 
 function updateMovingPlatforms(dt) {
-  if(activeStage!==2)return;
   for(const floor of tracks){
-    if(floor.kind!=="moving")continue;
+    if(floor.kind==="secret-moving"){
+      const trial=secretTrials.find(t=>t.id===floor.secretId);
+      // Moving stones animate only when the optional ascent is active.
+      const motion=trial?.active?
+        Math.sin(trial.elapsed*floor.speed+floor.phase)*floor.swing:0;
+      const newX=floor.originX+motion,dx=newX-floor.x1;
+      floor.x1=newX;floor.x2=floor.originX2+motion;
+      if(player.ground===floor&&player.onGround){
+        player.x+=dx;player.prevX+=dx;
+      }
+      continue;
+    }
+    if(activeStage!==2 || floor.kind!=="moving")continue;
     const newX=floor.originX+Math.sin(gameTime*floor.speed+floor.phase)*floor.swing;
     const dx=newX-floor.x1;
     floor.x1=newX;floor.x2+=dx;
@@ -802,7 +851,7 @@ function resetGame() {
   });
   memoryCores.forEach(core=>{core.active=true});
   secretTrials.forEach(t=>Object.assign(t,{active:false,completed:false,
-    elapsed:0,armed:true,failed:false}));
+    elapsed:0,armed:true,failed:false,shotTimer:1.35,shots:[]}));
   runDamageCount=0;
   bossDamagedThisRun=false;
   notification.timer=0;
@@ -1469,7 +1518,7 @@ function update(dt) {
     const up=keys.has(" ")||keys.has("w")||keys.has("arrowup")||keys.has("k");
     const down=keys.has("s")||keys.has("arrowdown");
     player.vy=(Number(down)-Number(up))*490;
-    player.y=clamp(player.y+player.vy*dt,55,645);
+    player.y=clamp(player.y+player.vy*dt,secretTrials.some(t=>t.active)?-420:55,645);
     player.x+=player.vx*dt;
     player.onGround=false;player.ground=null;player.sliding=false;
     player.downhillSliding=false;
@@ -1561,6 +1610,17 @@ function updateCamera(dt) {
     const targetX=Math.max(0,WORLD_W-VIEW_W);
     cameraX=lerp(cameraX,targetX,1-Math.exp(-3.8*dt));
     cameraY=lerp(cameraY,0,1-Math.exp(-5*dt));
+    return;
+  }
+  const secret=secretTrials.find(t=>t.active);
+  if(secret){
+    // Lock horizontal framing and track the climb vertically, including
+    // negative world heights that normal level cameras never expose.
+    const targetX=clamp(secret.startX+60-VIEW_W*.5,0,WORLD_W-VIEW_W);
+    const targetY=clamp(player.y-VIEW_H*.59,
+      secret.targetY-225,secret.startY-145);
+    cameraX=lerp(cameraX,targetX,1-Math.exp(-8*dt));
+    cameraY=lerp(cameraY,targetY,1-Math.exp(-8*dt));
     return;
   }
   const targetAnchor = cameraAnchorFor(player.vx, player.facing);
@@ -2008,6 +2068,7 @@ function draw() {
 
   drawSky();
   drawBackground();
+  drawSecretBackdrop();
   drawForest();
   if(activeStage===2)drawChasms();
   if(activeStage===2)drawGuardianBackdrop();
@@ -2197,6 +2258,9 @@ function drawSigns() {
   for (const sign of signs) {
     if (sign.x < cameraX - 220 || sign.x > cameraX + VIEW_W + 100) continue;
     const ground = groundY(sign.x);
+    // Keep the vertical secret ascent readable instead of covering it with
+    // old rectangular hint boards.
+    if(secretTrials.some(t=>Math.abs(t.startX-sign.x)<215))continue;
     if (ground == null) continue;
     ctx.fillStyle = "rgba(16, 28, 54, 0.94)";
     roundRect(sign.x, ground - 117, 210, 66, 8);
