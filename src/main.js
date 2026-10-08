@@ -279,6 +279,7 @@ function showScreen(target) {
   jumpHeld = false;
   screens.forEach(screen => { screen.hidden = screen !== target; });
   overlay.classList.remove("is-hidden");
+  document.querySelector(".game-panel").classList.add("menu-active");
   pauseButton.hidden = true;
   refreshProgressView();
   if (target === mainMenu || target === stageMenu) {
@@ -374,6 +375,7 @@ function startGame() {
   resetGame();
   gameStarted = true;
   screens.forEach(screen => { screen.hidden = true; });
+  document.querySelector(".game-panel").classList.remove("menu-active");
   overlay.classList.add("is-hidden");
   syncPauseButton();
   ensureLoop();
