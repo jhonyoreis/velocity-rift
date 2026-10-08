@@ -291,7 +291,8 @@ function update(dt) {
   const maxSpeed = boosting ? boostMax : normalMax;
   player.vx = clamp(player.vx, -maxSpeed, maxSpeed);
 
-  if (jumpBuffer > 0 && coyoteTimer > 0) {
+  const underTunnel = tunnels.some(t => player.x > t.x && player.x < t.x + t.w);
+  if (jumpBuffer > 0 && coyoteTimer > 0 && !underTunnel) {
     player.sliding = false;
     player.vy = -660 - Math.min(90, Math.abs(player.vx) * 0.09);
     player.onGround = false;
@@ -381,12 +382,15 @@ function resolveTracks() {
 }
 
 function resolveTunnels() {
-  if (!player.onGround || player.sliding) return;
   for (const tunnel of tunnels) {
     if (player.x + PLAYER_RADIUS < tunnel.x || player.x - PLAYER_RADIUS > tunnel.x + tunnel.w) continue;
-    if (Math.abs(player.y + PLAYER_RADIUS - tunnel.ground) > 12) continue;
-    // A standing player is too tall; hold slide to pass under the ceiling.
-    const fromLeft = player.prevX < tunnel.x + tunnel.w / 2;
+    if (player.onGround && player.sliding) continue;
+    // The solid roof also prevents jumping or flying through the tunnel.
+    const ceiling = { x: tunnel.x, y: tunnel.ground - 165, w: tunnel.w, h: 139 };
+    if (!circleRect(player.x, player.y, PLAYER_RADIUS, ceiling)) continue;
+    const fromLeft = player.prevX <= tunnel.x ? true :
+      player.prevX >= tunnel.x + tunnel.w ? false :
+      player.x < tunnel.x + tunnel.w / 2;
     player.x = fromLeft ? tunnel.x - PLAYER_RADIUS : tunnel.x + tunnel.w + PLAYER_RADIUS;
     player.vx = 0;
     break;
@@ -653,7 +657,7 @@ function drawTunnels() {
   for (const tunnel of tunnels) {
     if (tunnel.x > cameraX + VIEW_W + 80 || tunnel.x + tunnel.w < cameraX - 80) continue;
     ctx.fillStyle = "#1a384e";
-    roundRect(tunnel.x, tunnel.ground - 102, tunnel.w, 76, 9);
+    roundRect(tunnel.x, tunnel.ground - 165, tunnel.w, 139, 9);
     ctx.fill();
     ctx.strokeStyle = "#f6ac43";
     ctx.lineWidth = 5;
