@@ -1,34 +1,37 @@
 # Velocity Rift — rumo à versão 2.0
 
 Um prototipo web 2D inspirado em jogos de plataforma de alta velocidade. Ele usa
-HTML, CSS e Canvas, sem assets oficiais e sem dependencias externas.
+HTML, CSS e Canvas, sem assets oficiais. O Vite é uma dependência de desenvolvimento.
 
-## Como rodar
+## Requisitos
 
-Na pasta do projeto:
+- Node.js 20.19+ ou 22.12+ e npm (compatíveis com Vite 7).
 
-```bash
-python3 -m http.server 5173
-```
+## Desenvolvimento local
 
-Depois abra:
-
-```text
-http://localhost:5173
-```
-
-## Como virar repositorio GitHub
+Na pasta do projeto, execute:
 
 ```bash
-git init
-git add .
-git commit -m "Create Velocity Rift prototype"
-git branch -M main
-git remote add origin https://github.com/SEU_USUARIO/velocity-rift-prototype.git
-git push -u origin main
+npm install
+npm run dev
 ```
 
-Depois, o projeto pode ser publicado pelo GitHub Pages usando a branch `main`.
+Abra o endereço exibido pelo Vite no terminal (normalmente http://localhost:5173).
+O servidor permanece rodando até você pressionar Ctrl+C.
+
+Para gerar e testar a versão de produção:
+
+```bash
+npm run build
+npm run preview
+```
+
+O build é gerado em `dist/`. O projeto continua usando HTML, CSS e Canvas
+com JavaScript, sem precisar migrar a engine.
+
+## Repositório
+
+https://github.com/jhonyoreis/velocity-rift
 
 ## Controles
 
@@ -59,10 +62,9 @@ A implementação será feita nesta branch de desenvolvimento, preservando `main
 
 ## Proximas melhorias
 
-- Migrar para TypeScript com Vite.
+- Avaliar migração para TypeScript futuramente (Vite já configurado).
 - Separar entidades em arquivos.
 - Criar editor simples de fase.
 - Adicionar sprites e animacoes reais.
 - Melhorar fisica de rampas e loopings.
 - Publicar no GitHub Pages.
-"# velocity-rift" 
