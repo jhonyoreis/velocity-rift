@@ -2,6 +2,7 @@ const canvas = document.querySelector("#game");
 const ctx = canvas.getContext("2d");
 const overlay = document.querySelector("#overlay");
 const startButton = document.querySelector("#startButton");
+const soundToggle = document.querySelector("#soundToggle");
 
 const VIEW_W = canvas.width;
 const VIEW_H = canvas.height;
@@ -36,6 +37,13 @@ let cameraX = 0;
 let cameraY = 0;
 let cameraAnchorX = VIEW_W * CAMERA_IDLE_ANCHOR;
 let shakeTime = 0;
+let visualTime = 0;
+let particles = [];
+let sparkleCooldown = 0;
+let pickupSoundCooldown = 0;
+let soundEnabled = true;
+let audioContext = null;
+try { soundEnabled = localStorage.getItem("velocity-rift-sound") !== "off"; } catch (_) { /* unavailable storage */ }
 
 const player = {
   x: 90,
@@ -53,6 +61,7 @@ const player = {
   trail: [],
   sliding: false,
   downhillSliding: false,
+  animationPhase: 0,
 };
 
 
@@ -195,6 +204,11 @@ function resetGame() {
   player.boost = 0;
   player.invulnerable = 0;
   player.trail = [];
+  player.animationPhase = 0;
+  particles = [];
+  visualTime = 0;
+  sparkleCooldown = 0;
+  pickupSoundCooldown = 0;
   player.sliding = false;
   player.downhillSliding = false;
   player.boosting = false;
@@ -228,6 +242,7 @@ function resetGame() {
 }
 
 function startGame() {
+  unlockAudio();
   gameStarted = true;
   overlay.classList.add("is-hidden");
   resetGame();
@@ -261,6 +276,13 @@ function loop(now) {
 
 function update(dt) {
   gameTime += dt;
+  visualTime += dt;
+  sparkleCooldown = Math.max(0, sparkleCooldown - dt);
+  pickupSoundCooldown = Math.max(0, pickupSoundCooldown - dt);
+  const wasOnGround = player.onGround;
+  const previousVerticalSpeed = player.vy;
+  const wasBoosting = player.boosting;
+  const wasDownhillSliding = player.downhillSliding;
   player.prevX = player.x;
   player.prevY = player.y;
   player.invulnerable = Math.max(0, player.invulnerable - dt);
@@ -275,6 +297,7 @@ function update(dt) {
   coyoteTimer = player.onGround ? 0.11 : Math.max(0, coyoteTimer - dt);
 
   player.sliding = slide && player.onGround;
+  player.animationPhase += Math.abs(player.vx) * dt * 0.049;
   const accel = player.onGround ? (player.sliding ? 390 : 1280) : 660;
   const friction = player.onGround ? (player.sliding ? 180 : 1050) : 110;
   const normalMax = 480;
@@ -295,6 +318,7 @@ function update(dt) {
 
   const boosting = boost && player.boost > 0 && Math.abs(player.vx) > 50;
   player.boosting = boosting;
+  if (boosting && !wasBoosting) playSfx("boost");
   if (boosting) {
     player.vx += player.facing * BOOST_ACCELERATION * dt;
     player.boost = Math.max(0, player.boost - 34 * dt);
@@ -306,6 +330,7 @@ function update(dt) {
   const slope = player.ground ? trackSlope(player.ground) : 0;
   const downhill = player.sliding && player.onGround && slope * player.vx > 0.001;
   player.downhillSliding = downhill;
+  if (downhill && !wasDownhillSliding) playSfx("slide");
   if (downhill) {
     const rate = 0.62 + Math.min(Math.abs(slope), 0.35) * 2.4;
     player.vx = Math.sign(player.vx) *
@@ -333,6 +358,8 @@ function update(dt) {
     player.ground = null;
     jumpBuffer = 0;
     coyoteTimer = 0;
+    emitParticles(player.x, player.y + 18, "#d4ffff", 7, 90);
+    playSfx("jump");
   }
 
   if (!jump && player.vy < -160) player.vy += 1450 * dt;
@@ -342,6 +369,10 @@ function update(dt) {
   player.y += player.vy * dt;
 
   resolveTracks();
+  if (!wasOnGround && player.onGround && previousVerticalSpeed > 130) {
+    emitParticles(player.x, player.y + PLAYER_RADIUS, "#67c8c3", 8, 100);
+    playSfx("land");
+  }
   resolveTunnels();
   resolveWalls();
   updateCheckpoints();
@@ -351,6 +382,12 @@ function update(dt) {
   handleBoostPads();
   handleSprings();
   updateTrail(dt);
+  updateParticles(dt);
+  if ((player.boosting || (player.sliding && Math.abs(player.vx) > 140)) && sparkleCooldown === 0) {
+    const color = player.boosting ? "#65f8ff" : "#fbc66d";
+    emitParticles(player.x - player.facing * 13, player.y + 14, color, 2, 68);
+    sparkleCooldown = player.boosting ? 0.045 : 0.075;
+  }
 
   player.x = clamp(player.x, PLAYER_RADIUS, WORLD_W - PLAYER_RADIUS);
 
@@ -359,6 +396,8 @@ function update(dt) {
   }
 
   if (circleRect(player.x, player.y, PLAYER_RADIUS, goal)) {
+    playSfx("finish");
+    emitParticles(player.x, player.y, "#fbc66d", 45, 240);
     gameCleared = true;
     if (!bestTime || gameTime < bestTime) {
       bestTime = gameTime;
@@ -456,6 +495,8 @@ function resolveWalls() {
     if (wall.kind === "break-gate") {
       if (player.boosting && Math.abs(player.vx) > BOOST_GATE_MIN_SPEED) {
         wall.active = false;
+        emitParticles(wall.x + wall.w / 2, wall.y + wall.h / 2, "#ffa55c", 30, 195);
+        playSfx("gate");
         player.vx += player.facing * 60;
         shakeTime = 0.13;
       } else {
@@ -488,6 +529,8 @@ function updateEnemies(dt) {
 
     if (stomp || smash) {
       bad.alive = false;
+      emitParticles(bad.x, bad.y - 12, "#ff956f", 12, 145);
+      playSfx("hit");
       player.vy = stomp ? -520 : player.vy;
       player.vx += player.facing * 80;
       // Enemies do not refill boost.
@@ -503,6 +546,11 @@ function collectItems() {
     if (distance(player.x, player.y, ring.x, ring.y) < PLAYER_RADIUS + ring.r) {
       ring.active = false;
       player.rings += 1;
+      emitParticles(ring.x, ring.y, "#ffe089", 4, 70);
+      if (pickupSoundCooldown === 0) {
+        playSfx("crystal");
+        pickupSoundCooldown = 0.075;
+      }
       // Crystals grant score only.
     }
   }
@@ -512,6 +560,8 @@ function collectItems() {
     if (distance(player.x, player.y, boostOrb.x, boostOrb.y) < PLAYER_RADIUS + boostOrb.r) {
       boostOrb.active = false;
       player.boost = Math.min(100, player.boost + 55);
+      emitParticles(boostOrb.x, boostOrb.y, "#61eefa", 16, 155);
+      playSfx("orb");
       // Orb grants energy, not speed.
     }
   }
@@ -543,6 +593,8 @@ function handleSprings() {
     if (player.prevY + PLAYER_RADIUS <= spring.y + 12) {
       player.vx = Math.max(player.vx, spring.powerX);
       player.vy = spring.powerY;
+      playSfx("spring");
+      emitParticles(spring.x + spring.w / 2, spring.y, "#ffa9d0", 12, 135);
       player.onGround = false;
       shakeTime = 0.08;
     }
@@ -554,12 +606,16 @@ function updateCheckpoints() {
     if (index > checkpointIndex && player.x >= point.x) {
       checkpointIndex = index;
       point.active = true;
+      emitParticles(point.x, point.y - 45, "#75ffcc", 20, 130);
+      playSfx("checkpoint");
     }
   });
 }
 function damagePlayer(fall) {
   if (player.invulnerable > 0) return;
   shakeTime = 0.22;
+  emitParticles(player.x, player.y, "#ff896d", 13, 155);
+  playSfx("hurt");
 
   if (fall || player.rings <= 0) {
     const respawn = checkpointIndex >= 0 ? checkpoints[checkpointIndex] : spawn;
@@ -613,6 +669,7 @@ function draw() {
   drawTunnels();
   drawSigns();
   drawObjects();
+  drawParticles();
   drawPlayer();
 
   ctx.restore();
@@ -837,58 +894,165 @@ function drawObjects() {
   ctx.fillText("GO", goal.x + 14, goal.y + 23);
 }
 
+// Flux has a unique vector silhouette: white helmet, cyan visor, orange
+// scarf, twin amber boots and a glowing cyan core. Poses follow actual physics.
 function drawPlayer() {
+  const moving = Math.abs(player.vx) > 40;
+  const airborne = !player.onGround;
+  const fast = clamp(Math.abs(player.vx) / SLIDE_DOWNHILL_CAP, 0, 1);
+
   for (const dot of player.trail) {
-    ctx.globalAlpha = dot.life / 0.24;
-    ctx.fillStyle = "#48e0ef";
+    ctx.globalAlpha = clamp(dot.life / 0.24, 0, 0.65);
+    ctx.fillStyle = "#59f4e6";
     ctx.beginPath();
-    ctx.arc(dot.x, dot.y + 4, 16 * (dot.life / 0.24), 0, Math.PI * 2);
+    ctx.arc(dot.x, dot.y, 16 * dot.life / 0.24, 0, Math.PI * 2);
     ctx.fill();
   }
   ctx.globalAlpha = 1;
 
-  if (player.invulnerable > 0 && Math.floor(performance.now() / 80) % 2 === 0) {
-    ctx.globalAlpha = 0.45;
+  ctx.save();
+  ctx.translate(player.x, player.y);
+  ctx.scale(player.facing, 1);
+  if (player.invulnerable > 0 && Math.floor(visualTime * 12) % 2 === 0) {
+    ctx.globalAlpha = 0.42;
   }
 
-  const speedGlow = clamp(Math.abs(player.vx) / 790, 0, 1);
+  // Ground shadow, engine glow and momentum streaks.
+  ctx.fillStyle = player.boosting ? "rgba(71,242,255,.44)" : "rgba(64,209,202,.20)";
+  ctx.beginPath();
+  ctx.ellipse(-9 - fast * 7, 3, 25 + fast * 20, 18, 0, 0, Math.PI * 2);
+  ctx.fill();
+  if (player.boosting) {
+    ctx.strokeStyle = "rgba(94,243,250,.8)";
+    ctx.lineWidth = 3;
+    for (let i = 0; i < 3; i += 1) {
+      ctx.beginPath();
+      ctx.moveTo(-21 - i * 6, -10 + i * 10);
+      ctx.lineTo(-39 - fast * 20 - i * 7, -10 + i * 10);
+      ctx.stroke();
+    }
+  }
+
   if (player.sliding) {
-    ctx.fillStyle = "rgba(246, 172, 67, .35)";
+    const shimmer = 2 * Math.sin(visualTime * 16);
+    ctx.fillStyle = "#f8b85a";
     ctx.beginPath();
-    ctx.ellipse(player.x - player.facing * 10, player.y + 8, 37, 14, 0, 0, Math.PI * 2);
+    ctx.moveTo(-12, -4);
+    ctx.lineTo(-34 - fast * 8, -8 + shimmer);
+    ctx.lineTo(-24, 3);
+    ctx.closePath();
     ctx.fill();
-    ctx.fillStyle = "#f5ac43";
-    roundRect(player.x - 22, player.y + 4, 44, 13, 6);
+    ctx.fillStyle = "#103947";
+    ctx.beginPath();
+    ctx.ellipse(0, 9, 24, 8, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = "#38dcd0";
-    ctx.fillRect(player.x + player.facing * 6 - 4, player.y + 5, 12, 4);
-    ctx.globalAlpha = 1;
-    return;
+    ctx.fillStyle = "#f9ba61";
+    ctx.fillRect(-22, 11, 16, 6);
+    ctx.fillRect(4, 11, 20, 6);
+    ctx.fillStyle = "#e9fbf8";
+    ctx.beginPath();
+    ctx.ellipse(7, -3, 15, 12, -0.16, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#168d9d";
+    ctx.beginPath();
+    ctx.ellipse(13, -3, 8, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#7effeb";
+    ctx.fillRect(14, -5, 4, 2);
+  } else {
+    const stride = moving && !airborne ? Math.sin(player.animationPhase) : 0;
+    const bounce = airborne ? Math.sin(visualTime * 7) * 1.5 : moving ? Math.abs(stride) * -1.6 : Math.sin(visualTime * 2.5) * 1.2;
+    const legFront = airborne ? -3 : stride * 6;
+    const legBack = airborne ? 5 : -stride * 6;
+
+    if (airborne) ctx.rotate(clamp(player.vy / 2100, -0.29, 0.29));
+
+    // Scarf reacts to motion and gives Flux a recognizable profile.
+    ctx.fillStyle = "#ffba5e";
+    ctx.beginPath();
+    ctx.moveTo(-11, -7 + bounce);
+    ctx.lineTo(-25 - fast * 15, -13 + Math.sin(visualTime * 12) * 3);
+    ctx.lineTo(-19 - fast * 9, 0);
+    ctx.lineTo(-11, 0 + bounce);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = "#ffbd65";
+    ctx.beginPath();
+    ctx.ellipse(-8 + legBack, 15 + bounce, 10, 5, -0.18, 0, Math.PI * 2);
+    ctx.ellipse(9 + legFront, 15 + bounce, 11, 5, 0.12, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#124955";
+    ctx.beginPath();
+    ctx.ellipse(-2, 5 + bounce, 13, 14, -0.16, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#52ebe1";
+    ctx.beginPath();
+    ctx.arc(3, 6 + bounce, 6, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Helmet and aerodynamic crest.
+    ctx.fillStyle = "#f2fffd";
+    ctx.beginPath();
+    ctx.ellipse(0, -5 + bounce, 17, 15, -0.13, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#55d8dc";
+    ctx.beginPath();
+    ctx.moveTo(-12, -17 + bounce);
+    ctx.lineTo(-16, -24 + bounce);
+    ctx.lineTo(0, -19 + bounce);
+    ctx.lineTo(7, -18 + bounce);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = "#092b3b";
+    ctx.beginPath();
+    ctx.ellipse(7, -6 + bounce, 10, 6, -0.12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#73fff0";
+    ctx.beginPath();
+    ctx.ellipse(9, -8 + bounce, 4, 2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#f0c06c";
+    ctx.fillRect(12, -1 + bounce, 6, 2);
   }
-  ctx.fillStyle = `rgba(72, 224, 239, ${0.18 + speedGlow * 0.28})`;
-  ctx.beginPath();
-  ctx.ellipse(player.x - player.facing * 12, player.y + 2, 28 + speedGlow * 22, 19, 0, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.restore();
+}
 
-  ctx.fillStyle = "#f4f7f7";
-  ctx.beginPath();
-  ctx.arc(player.x, player.y, PLAYER_RADIUS, 0, Math.PI * 2);
-  ctx.fill();
+function updateParticles(dt) {
+  for (const p of particles) {
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.vy += p.gravity * dt;
+    p.life -= dt;
+  }
+  particles = particles.filter(p => p.life > 0).slice(-180);
+}
 
-  ctx.fillStyle = "#1aa8bf";
-  ctx.beginPath();
-  ctx.arc(player.x - player.facing * 4, player.y - 3, PLAYER_RADIUS - 5, 0, Math.PI * 2);
-  ctx.fill();
+function emitParticles(x, y, color, count, speed = 95) {
+  const room = Math.max(0, 180 - particles.length);
+  for (let i = 0; i < Math.min(room, count); i += 1) {
+    const angle = Math.random() * Math.PI * 2;
+    const magnitude = speed * (0.25 + Math.random() * 0.75);
+    const life = 0.22 + Math.random() * 0.36;
+    particles.push({
+      x, y, vx: Math.cos(angle) * magnitude, vy: Math.sin(angle) * magnitude - 20,
+      gravity: 100 + Math.random() * 90, size: 1.8 + Math.random() * 3.2,
+      color, life, maxLife: life
+    });
+  }
+}
 
-  ctx.fillStyle = "#071215";
-  ctx.beginPath();
-  ctx.arc(player.x + player.facing * 7, player.y - 5, 3, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillStyle = "#f6ac43";
-  ctx.fillRect(player.x - 15, player.y + 12, 14, 7);
-  ctx.fillRect(player.x + 3, player.y + 12, 14, 7);
-
+function drawParticles() {
+  for (const p of particles) {
+    if (p.x < cameraX - 40 || p.x > cameraX + VIEW_W + 40) continue;
+    ctx.globalAlpha = clamp(p.life / p.maxLife, 0, 1);
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size * (0.5 + 0.5 * p.life / p.maxLife), 0, Math.PI * 2);
+    ctx.fill();
+  }
   ctx.globalAlpha = 1;
 }
 
@@ -991,8 +1155,77 @@ function roundRect(x, y, w, h, radius) {
   ctx.closePath();
 }
 
+// All sound effects are synthesized locally using Web Audio: no downloaded assets.
+// The context is only created after a click/key/pointer gesture.
+function unlockAudio() {
+  if (!soundEnabled || audioContext) return;
+  const AudioCtor = window.AudioContext || window.webkitAudioContext;
+  if (!AudioCtor) return;
+  try {
+    audioContext = new AudioCtor();
+    if (audioContext.state === "suspended") audioContext.resume().catch(() => {});
+  } catch (_) {
+    audioContext = null;
+  }
+}
+
+function playSfx(kind) {
+  if (!soundEnabled || !audioContext || audioContext.state !== "running") return;
+  const sounds = {
+    jump:       [440, 680, 0.16, "sine", 0.038],
+    land:       [125, 65, 0.095, "triangle", 0.024],
+    crystal:    [850, 1260, 0.12, "sine", 0.023],
+    orb:        [430, 920, 0.26, "sine", 0.058],
+    boost:      [170, 425, 0.28, "sawtooth", 0.028],
+    slide:      [230, 105, 0.17, "triangle", 0.026],
+    checkpoint: [500, 840, 0.35, "sine", 0.052],
+    gate:       [160, 60, 0.25, "sawtooth", 0.048],
+    hit:        [270, 95, 0.12, "square", 0.023],
+    spring:     [280, 750, 0.22, "sine", 0.046],
+    hurt:       [270, 115, 0.24, "triangle", 0.045],
+    finish:     [530, 1060, 0.65, "sine", 0.06],
+  };
+  const config = sounds[kind];
+  if (!config) return;
+  try {
+    const [start, end, duration, waveform, volume] = config;
+    const now = audioContext.currentTime;
+    const oscillator = audioContext.createOscillator();
+    const envelope = audioContext.createGain();
+    oscillator.type = waveform;
+    oscillator.frequency.setValueAtTime(start, now);
+    oscillator.frequency.exponentialRampToValueAtTime(end, now + duration);
+    envelope.gain.setValueAtTime(0.0001, now);
+    envelope.gain.exponentialRampToValueAtTime(volume, now + 0.014);
+    envelope.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+    oscillator.connect(envelope);
+    envelope.connect(audioContext.destination);
+    oscillator.start(now);
+    oscillator.stop(now + duration + 0.02);
+    oscillator.onended = () => { oscillator.disconnect(); envelope.disconnect(); };
+  } catch (_) {
+    // Audio is optional; never let a device's sound support interrupt physics.
+  }
+}
+
+function syncSoundButton() {
+  if (!soundToggle) return;
+  soundToggle.setAttribute("aria-pressed", String(soundEnabled));
+  soundToggle.textContent = soundEnabled ? "🔊 Som ligado" : "🔇 Som desligado";
+}
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  try { localStorage.setItem("velocity-rift-sound", soundEnabled ? "on" : "off"); } catch (_) {}
+  if (soundEnabled) unlockAudio();
+  syncSoundButton();
+}
+if (soundToggle) soundToggle.addEventListener("click", toggleSound);
+syncSoundButton();
+
 window.addEventListener("keydown", (event) => {
   const key = event.key.toLowerCase();
+  if (key === "m" && !event.repeat) toggleSound();
+  if (gameStarted && soundEnabled) unlockAudio();
   keys.add(key);
   if ([' ', 'arrowup', 'w', 'k'].includes(key) && !jumpHeld) {
     jumpBuffer = 0.13;
@@ -1031,6 +1264,7 @@ document.querySelectorAll('[data-key]').forEach(button => {
   button.addEventListener('pointerdown', event => {
     event.preventDefault();
     button.setPointerCapture(event.pointerId);
+    unlockAudio();
     keys.add(key);
     if (key === ' ' && !jumpHeld) { jumpBuffer = 0.13; jumpHeld = true; }
   });
