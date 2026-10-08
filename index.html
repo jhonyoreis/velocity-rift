@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Velocity Rift Prototype</title>
+    <link rel="stylesheet" href="./src/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="game-panel" aria-label="Velocity Rift Prototype">
+        <canvas id="game" width="960" height="540"></canvas>
+        <div id="overlay" class="overlay">
+          <h1>Velocity Rift</h1>
+          <p>Prototype 01</p>
+          <button id="startButton" type="button">Start</button>
+        </div>
+      </section>
+
+      <section class="notes" aria-label="Controls">
+        <div>
+          <strong>Move</strong>
+          <span>A/D or arrows</span>
+        </div>
+        <div>
+          <strong>Jump</strong>
+          <span>Space, W or Up</span>
+        </div>
+        <div>
+          <strong>Boost</strong>
+          <span>Shift or J</span>
+        </div>
+        <div>
+          <strong>Restart</strong>
+          <span>R</span>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
