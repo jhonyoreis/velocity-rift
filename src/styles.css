@@ -17,8 +17,8 @@ body {
   display: grid;
   place-items: center;
   background:
-    radial-gradient(circle at 20% 12%, rgba(36, 173, 190, 0.28), transparent 34rem),
-    linear-gradient(135deg, #071215, #111c20 48%, #071217);
+    radial-gradient(circle at 20% 12%, rgba(56, 220, 208, 0.23), transparent 34rem),
+    linear-gradient(135deg, #101c36, #102f3e 48%, #081d2c);
 }
 
 .shell {
