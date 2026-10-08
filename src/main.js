@@ -81,6 +81,7 @@ const player = {
   downhillSliding: false,
   animationPhase: 0,
   cores: 0,
+  falls: 0,
 };
 
 
@@ -522,6 +523,7 @@ function resetGame() {
   player.trail = [];
   player.animationPhase = 0;
   player.cores = 0;
+  player.falls = 0;
   musicStep = 0;
   particles = [];
   visualTime = 0;
@@ -951,6 +953,7 @@ function updateCheckpoints() {
 }
 function damagePlayer(fall) {
   if (player.invulnerable > 0 && !fall) return;
+  if (fall) player.falls += 1;
   shakeTime = 0.22;
   emitParticles(player.x, player.y, "#ff896d", 13, 155);
   playSfx("hurt");
@@ -1545,6 +1548,7 @@ function drawHud() {
   ctx.fillText(section ? section.title : (activeStage===2 ? "CÂNION PRISMA" : "PRIMEIRO IMPULSO"), 335, 54);
   ctx.fillText(Math.round(progress * 100) + '%', 704, 54);
   ctx.fillStyle="#f9cb83";ctx.font="bold 13px system-ui";ctx.fillText("Núcleos "+player.cores+"/3",335,80);
+  if(activeStage===2){ctx.fillStyle="#ffa2be";ctx.fillText("Quedas "+player.falls,610,80);}
   if (paused) {
     ctx.fillStyle = 'rgba(5, 9, 20, .75)';
     ctx.fillRect(0, 0, VIEW_W, VIEW_H);
