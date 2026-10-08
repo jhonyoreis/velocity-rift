@@ -12,25 +12,77 @@
         <canvas id="game" width="960" height="540"></canvas>
         <button id="debugToggle" class="debug-toggle" type="button" aria-pressed="false" aria-label="Alternar modo de teste com boost infinito, voo e invencibilidade" title="F3" hidden>DEBUG: OFF</button>
         <div id="overlay" class="overlay" role="region" aria-label="Menu do Velocity Rift">
-          <section id="mainMenu" class="menu-screen" aria-labelledby="menuHeading">
-            <div class="menu-eyebrow">FLUX // MISSÃO 01</div>
+          <section id="mainMenu" class="menu-screen v3-main" aria-labelledby="menuHeading">
+            <div class="v3-ambient-orb orb-one" aria-hidden="true"></div>
+            <div class="v3-ambient-orb orb-two" aria-hidden="true"></div>
+            <div class="v3-edition">VELOCITY RIFT <span>3.0 // ALÉM DAS FENDAS</span></div>
+            <div class="v3-crest" aria-hidden="true">◇</div>
+            <div class="menu-eyebrow">UMA JORNADA ATRAVÉS DO IMPOSSÍVEL</div>
             <h1 id="menuHeading">VELOCITY <span>RIFT</span></h1>
-            <p class="menu-subtitle">Primeiro Impulso <span>· Floresta Neon</span></p>
-            <div class="menu-mark"><span>02</span> FASES · NOVOS DESAFIOS</div>
-            <div class="menu-stat-grid" aria-label="Seu progresso">
-              <div><small>Status</small><strong id="menuProgress">Não concluída</strong></div>
-              <div><small>Melhor tempo</small><strong id="menuBest">--</strong></div>
-              <div><small>Melhor nota</small><strong id="menuGrade">--</strong></div>
+            <p class="v3-tagline">Cada fenda é um caminho. Cada segundo importa.</p>
+            <div class="v3-campaign-panel">
+              <div class="v3-campaign-heading"><span>◇ PROGRESSO DA CAMPANHA</span><small>ARQUIVO LOCAL</small></div>
+              <div class="menu-stat-grid" aria-label="Seu progresso">
+                <div><small>Campanha</small><strong id="menuProgress">Nova jornada</strong></div>
+                <div><small>Recorde da floresta</small><strong id="menuBest">--</strong></div>
+                <div><small>Melhor nota</small><strong id="menuGrade">--</strong></div>
+              </div>
+            </div>
+            <div class="v3-main-actions">
+              <button id="startButton" class="v3-action v3-continue" type="button" disabled>
+                <span>CONTINUAR</span><span aria-hidden="true">➜</span>
+              </button>
+              <p id="continueDescription" class="v3-continue-hint">Comece uma nova jornada para liberar Continuar</p>
+              <button id="newGameButton" class="v3-action" type="button"><span>NOVO JOGO</span><span aria-hidden="true">＋</span></button>
+              <button id="selectStagesButton" class="v3-action" type="button"><span>SELEÇÃO DE FASES</span><span aria-hidden="true">⌁</span></button>
+              <button id="settingsButton" class="v3-action" type="button"><span>CONFIGURAÇÕES</span><span aria-hidden="true">⚙</span></button>
+              <button id="achievementsButton" class="v3-action" type="button"><span>CONQUISTAS</span><span aria-hidden="true">✦</span></button>
+            </div>
+            <div class="v3-footer"><span>FLUX // O CORREDOR DA FENDA</span><span>SALVAMENTO AUTOMÁTICO</span></div>
+          </section>
+          <section id="settingsMenu" class="menu-screen v3-settings" aria-labelledby="settingsHeading" hidden>
+            <div class="menu-eyebrow">CENTRAL DE CONTROLE // 3.0</div>
+            <h2 id="settingsHeading">Configurações</h2>
+            <p class="menu-subtitle">Personalize o áudio da sua jornada. Ajustes salvos automaticamente.</p>
+            <div class="v3-settings-card">
+              <div class="v3-audio-title"><span aria-hidden="true">♫</span><strong>MIXADOR DE ÁUDIO</strong></div>
+              <div class="v3-volume-control">
+                <div class="v3-volume-meta"><label for="volume-master">Volume geral</label><output id="value-master" for="volume-master">100%</output></div>
+                <input id="volume-master" type="range" min="0" max="100" step="1" value="100" aria-label="Volume geral">
+                <p>Controla a intensidade de todo o áudio.</p>
+              </div>
+              <div class="v3-volume-control">
+                <div class="v3-volume-meta"><label for="volume-music">Música</label><output id="value-music" for="volume-music">100%</output></div>
+                <input id="volume-music" type="range" min="0" max="100" step="1" value="100" aria-label="Volume da música">
+                <p>Trilhas das fases e do Guardião do Prisma.</p>
+              </div>
+              <div class="v3-volume-control">
+                <div class="v3-volume-meta"><label for="volume-effects">Efeitos sonoros</label><output id="value-effects" for="volume-effects">100%</output></div>
+                <input id="volume-effects" type="range" min="0" max="100" step="1" value="100" aria-label="Volume dos efeitos sonoros">
+                <p>Pulos, cristais, boost, inimigos e portais.</p>
+              </div>
+              <div id="settingsAudioStatus" class="v3-audio-status" role="status">Volumes salvos automaticamente</div>
             </div>
             <div class="menu-actions">
-              <button id="startButton" class="primary-action" type="button">Jogar fase 1 <span aria-hidden="true">➜</span></button>
-              <button id="selectStagesButton" class="secondary-action" type="button">Selecionar fases</button>
-              <button id="achievementsButton" class="secondary-action" type="button">✦ Conquistas</button>
+              <button id="settingsBackButton" class="secondary-action" type="button">← Voltar ao menu</button>
             </div>
-            <p class="menu-help">Corrida + slide + boost · Progresso salvo neste navegador</p>
+          </section>
+          <section id="newGameConfirm" class="menu-screen v3-confirm" role="group" aria-labelledby="confirmNewHeading" hidden>
+            <div class="v3-confirm-icon" aria-hidden="true">◇</div>
+            <div class="menu-eyebrow">NOVA JORNADA // CONFIRMAÇÃO</div>
+            <h2 id="confirmNewHeading">Começar um novo jogo?</h2>
+            <p class="menu-subtitle">Sua campanha voltará ao início e a fase 2 será bloqueada novamente.</p>
+            <div class="v3-preserve-notice">
+              <strong>Seus feitos ficam guardados.</strong>
+              <span>Conquistas, rotas secretas e recordes da 2.0 não serão apagados.</span>
+            </div>
+            <div class="menu-actions">
+              <button id="confirmNewGameButton" class="primary-action" type="button">Sim, começar do início ➜</button>
+              <button id="cancelNewGameButton" class="secondary-action" type="button">Cancelar</button>
+            </div>
           </section>
           <section id="stageMenu" class="menu-screen" aria-labelledby="stageHeading" hidden>
-            <div class="menu-eyebrow">MAPA DE MISSÕES</div>
+            <div class="menu-eyebrow">MAPA DE MISSÕES // CAMPANHA 3.0</div>
             <h2 id="stageHeading">Escolher fase</h2>
             <p class="menu-subtitle">Primeiro Impulso é o treinamento. Cânion Prisma é seu primeiro grande desafio.</p>
             <div class="stage-list">
@@ -56,7 +108,7 @@
               <div class="stage-card stage-card-locked" aria-label="Fase 3 em desenvolvimento">
                 <div class="stage-number">03</div>
                 <div class="stage-copy">
-                  <strong>Fase 3</strong><small>Planejada</small>
+                  <strong>Cidade das Fendas</strong><small>Em desenvolvimento para a 3.0</small>
                   <span>Indisponível por enquanto</span>
                 </div>
                 <span class="stage-lock" aria-hidden="true">🔒</span>
