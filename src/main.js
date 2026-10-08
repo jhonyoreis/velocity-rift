@@ -8,7 +8,9 @@ const resultMenu = document.querySelector("#resultMenu");
 const pauseButton = document.querySelector("#pauseButton");
 const menuButton = document.querySelector("#menuButton");
 const achievementsMenu=document.querySelector("#achievementsMenu");
-const screens=[mainMenu,stageMenu,resultMenu,achievementsMenu];
+const settingsMenu=document.querySelector("#settingsMenu");
+const newGameConfirm=document.querySelector("#newGameConfirm");
+const screens=[mainMenu,stageMenu,resultMenu,achievementsMenu,settingsMenu,newGameConfirm];
 const soundToggle = document.querySelector("#soundToggle");
 const musicToggle = document.querySelector("#musicToggle");
 const trackNowPlaying = document.querySelector("#trackNowPlaying");
@@ -37,7 +39,9 @@ let jumpBuffer = 0;
 let coyoteTimer = 0;
 let jumpHeld = false;
 let checkpointIndex = -1;
-const PROGRESS_KEY = "velocity-rift-progress-v1";
+const PROGRESS_KEY = "velocity-rift-progress-v1"; // Never erase 2.0 records.
+const CAMPAIGN_KEY="velocity-rift-campaign-v3";
+const AUDIO_SETTINGS_KEY="velocity-rift-audio-settings-v3";
 const GRADE_ORDER=["C","B","A","S"];
 // Nine stepping stones per secret ascent: ~600 units above the normal road.
 // Each optional ascent is hand-authored rather than a repeated tower.
@@ -108,6 +112,7 @@ let debugUsedThisRun = false;
 let bestTime = 0;
 try { bestTime = Number(localStorage.getItem("velocity-rift-best-time")) || 0; } catch (_) { /* private storage */ }
 const progress=loadProgress();
+const campaign=loadCampaign();
 const secretTrials=[];
 const notification={title:"",subtitle:"",timer:0};
 let runDamageCount=0,bossDamagedThisRun=false;
@@ -139,6 +144,7 @@ let nextMusicNote = 0;
 try { musicEnabled = localStorage.getItem("velocity-rift-music") !== "off"; } catch (_) {}
 
 try { soundEnabled = localStorage.getItem("velocity-rift-sound") !== "off"; } catch (_) { /* unavailable storage */ }
+const audioLevels=loadAudioLevels();
 
 const player = {
   x: 90,
@@ -743,6 +749,84 @@ function loadProgress() {
   return result;
 }
 
+// 3.0 campaign pointer: legacy progress/achievements remain a separate archive.
+// This creates a safe migration from v2 on first use without modifying its key.
+function loadCampaign(){
+  let saved=null;
+  try{saved=JSON.parse(localStorage.getItem(CAMPAIGN_KEY)||"null");}catch(_){}
+  if(saved&&typeof saved==="object"){
+    const completed1=saved.stage1Completed===true;
+    const completed2=completed1&&saved.stage2Completed===true;
+    const started=saved.started===true||completed1||completed2;
+    return {started,stage1Completed:completed1,
+      stage2Completed:completed2,lastStage:saved.lastStage===2&&completed1?2:1};
+  }
+  const completed1=progress.stage1.completed||progress.stage2.completed;
+  const completed2=progress.stage2.completed;
+  return {started:completed1,stage1Completed:completed1,
+    stage2Completed:completed2,lastStage:completed1?2:1};
+}
+function saveCampaign(){
+  try{localStorage.setItem(CAMPAIGN_KEY,JSON.stringify(campaign));}catch(_){}
+}
+function resetCampaign(){
+  Object.assign(campaign,{started:false,stage1Completed:false,
+    stage2Completed:false,lastStage:1});
+  saveCampaign();
+}
+function nextCampaignStage(){
+  return campaign.stage1Completed&&campaign.lastStage===2?2:1;
+}
+function continueCampaign(){
+  if(!campaign.started)return;
+  startGame(nextCampaignStage());
+}
+function askNewGame(){
+  showScreen(newGameConfirm);
+}
+function confirmNewGame(){
+  resetCampaign();
+  startGame(1);
+}
+function loadAudioLevels(){
+  let saved=null;
+  try{saved=JSON.parse(localStorage.getItem(AUDIO_SETTINGS_KEY)||"null");}catch(_){}
+  const fix=value=>{
+    const number=Number(value);
+    return Number.isFinite(number)?Math.round(clamp(number,0,100)):100;
+  };
+  return {master:fix(saved?.master),music:fix(saved?.music),effects:fix(saved?.effects)};
+}
+function saveAudioLevels(){
+  try{localStorage.setItem(AUDIO_SETTINGS_KEY,JSON.stringify(audioLevels));}catch(_){}
+}
+function effectiveAudioGain(kind){
+  const master=soundEnabled?audioLevels.master/100:0;
+  if(kind==="music")return master*(musicEnabled?audioLevels.music/100:0);
+  return master*audioLevels.effects/100;
+}
+function refreshAudioSettings(){
+  for(const kind of ["master","music","effects"]){
+    const slider=document.querySelector("#volume-"+kind);
+    const label=document.querySelector("#value-"+kind);
+    if(slider)slider.value=String(audioLevels[kind]);
+    if(label)label.textContent=audioLevels[kind]+"%";
+  }
+  const label=document.querySelector("#settingsAudioStatus");
+  if(label)label.textContent=!soundEnabled?"Áudio geral silenciado":
+    !musicEnabled?"Música silenciada pelo atalho": "Volumes salvos automaticamente";
+}
+function changeAudioLevel(kind,value){
+  if(!["master","music","effects"].includes(kind))return;
+  const level=Number(value);
+  if(!Number.isFinite(level))return;
+  audioLevels[kind]=Math.round(clamp(level,0,100));
+  saveAudioLevels();
+  refreshAudioSettings();
+  // Smooth gain adjustment avoids gaps and does not restart the music clock.
+  syncMusic(false);
+}
+
 function storeProgress() {
   try {
     localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress));
@@ -756,6 +840,16 @@ function recordStageClear(time, crystals, cores = 0) {
   const improvedTime = !stage.bestTime || time < stage.bestTime;
   stage.completed = true;
   stage.clears += 1;
+  campaign.started=true;
+  if(activeStage===1){
+    campaign.stage1Completed=true;
+    campaign.lastStage=2;
+  }else if(activeStage===2){
+    campaign.stage1Completed=true;
+    campaign.stage2Completed=true;
+    campaign.lastStage=2;
+  }
+  saveCampaign();
   if (improvedTime) stage.bestTime = time;
   if (!stage.bestGrade || GRADE_ORDER.indexOf(grade) > GRADE_ORDER.indexOf(stage.bestGrade)) {
     stage.bestGrade = grade;
@@ -773,19 +867,27 @@ function formatTime(seconds) {
 
 function refreshProgressView() {
   const stage = progress.stage1;
-  document.querySelector("#menuProgress").textContent = stage.completed ? "Concluída ✓" : "Não concluída";
+  document.querySelector("#menuProgress").textContent = campaign.stage2Completed?
+    "Duas fases concluídas ✓":campaign.stage1Completed?"Cânion desbloqueado":
+    campaign.started?"Em andamento":"Nova jornada";
+  const continueButton=document.querySelector("#startButton");
+  continueButton.disabled=!campaign.started;
+  document.querySelector("#continueDescription").textContent=campaign.started
+    ? "Retomar: "+(nextCampaignStage()===2?"Cânion Prisma":"Primeiro Impulso")+
+      " · início da fase"
+    : "Comece uma nova jornada para liberar Continuar";
   document.querySelector("#menuBest").textContent = formatTime(stage.bestTime);
   document.querySelector("#menuGrade").textContent = stage.bestGrade || "--";
-  document.querySelector("#stageOneProgress").textContent = stage.completed
-    ? "Concluída · Melhor " + (stage.bestGrade || "--") + " · " + formatTime(stage.bestTime)
-    : "Disponível para jogar";
+  document.querySelector("#stageOneProgress").textContent = campaign.stage1Completed
+    ? "Campanha concluída · Melhor " + (stage.bestGrade || "--") + " · " + formatTime(stage.bestTime)
+    : "Campanha disponível" + (stage.bestTime?" · Recorde "+formatTime(stage.bestTime):"");
   document.querySelector("#stageOneProgress").textContent+=
     " · Rotas "+progress.secrets.stage1.length+"/3";
   const second=progress.stage2;
-  const unlocked=progress.stage1.completed || debugMode;
+  const unlocked=campaign.stage1Completed || debugMode;
   document.querySelector("#stageTwoProgress").textContent = !unlocked
     ? "Conclua a fase 1 para desbloquear"
-    : second.completed ? "Concluída · Melhor "+(second.bestGrade||"--")+" · "+formatTime(second.bestTime)
+    : campaign.stage2Completed ? "Campanha concluída · Melhor "+(second.bestGrade||"--")+" · "+formatTime(second.bestTime)
     : "Novo desafio disponível";
   if(unlocked)document.querySelector("#stageTwoProgress").textContent+=
     " · Rotas "+progress.secrets.stage2.length+"/3";
@@ -794,6 +896,7 @@ function refreshProgressView() {
   document.querySelector("#stageTwoCard").classList.toggle("stage-card-active",unlocked);
   document.querySelector("#stageTwoLock").hidden=unlocked;
   refreshAchievementsView();
+  refreshAudioSettings();
 }
 
 function showScreen(target) {
@@ -813,7 +916,8 @@ function showScreen(target) {
   }
 }
 
-function showMainMenu() { showScreen(mainMenu); }
+function showMainMenu() {showScreen(mainMenu);}
+function showSettingsMenu(){showScreen(settingsMenu);refreshAudioSettings();}
 function showStageMenu() { showScreen(stageMenu); }
 function showAchievementsMenu(){showScreen(achievementsMenu);}
 
@@ -929,7 +1033,13 @@ function resetGame() {
 }
 
 function startGame(stage=activeStage) {
+  if(stage===2&&!campaign.stage1Completed&&!debugMode)return;
   unlockAudio();
+  if(!debugMode){
+    campaign.started=true;
+    campaign.lastStage=stage;
+    saveCampaign();
+  }
   debugUsedThisRun = debugMode;
   if(debugToggle)debugToggle.hidden=false;
   activateStage(stage);
@@ -3183,7 +3293,7 @@ function unlockAudio() {
 }
 
 function playSfx(kind) {
-  if (!soundEnabled || !audioContext || audioContext.state !== "running") return;
+  if (!soundEnabled || effectiveAudioGain("effects")===0 || !audioContext || audioContext.state !== "running") return;
   const sounds = {
     jump:       [440, 680, 0.16, "sine", 0.038],
     land:       [125, 65, 0.095, "triangle", 0.024],
@@ -3213,6 +3323,7 @@ function playSfx(kind) {
   if (!config) return;
   try {
     const [start, end, duration, waveform, volume] = config;
+    const gain=volume*effectiveAudioGain("effects");
     const now = audioContext.currentTime;
     const oscillator = audioContext.createOscillator();
     const envelope = audioContext.createGain();
@@ -3220,7 +3331,7 @@ function playSfx(kind) {
     oscillator.frequency.setValueAtTime(start, now);
     oscillator.frequency.exponentialRampToValueAtTime(end, now + duration);
     envelope.gain.setValueAtTime(0.0001, now);
-    envelope.gain.exponentialRampToValueAtTime(volume, now + 0.014);
+    envelope.gain.exponentialRampToValueAtTime(Math.max(.0001,gain), now + 0.014);
     envelope.gain.exponentialRampToValueAtTime(0.0001, now + duration);
     oscillator.connect(envelope);
     envelope.connect(audioContext.destination);
@@ -3243,6 +3354,7 @@ function toggleSound() {
   if (soundEnabled) unlockAudio();
   syncSoundButton();
   syncMusic();
+  refreshAudioSettings();
 }
 if (soundToggle) soundToggle.addEventListener("click", toggleSound);
 syncSoundButton();
@@ -3281,13 +3393,14 @@ function initMusic(){
   try{musicBus=audioContext.createGain();musicBus.gain.value=0;musicBus.connect(audioContext.destination)}
   catch(_){musicBus=null}
 }
-function syncMusic(){
+function syncMusic(resetSchedule=true){
   if(!musicBus||!audioContext)return;
-  const yes=gameStarted&&!paused&&!gameCleared&&musicEnabled&&soundEnabled;
+  const level=gameStarted&&!paused&&!gameCleared?
+    (activeStage===2?.13:.14)*effectiveAudioGain("music"):0;
   const now=audioContext.currentTime;
   musicBus.gain.cancelScheduledValues(now);
-  musicBus.gain.setTargetAtTime(yes?(activeStage===2?.13:.14):0,now,.055);
-  if(yes)nextMusicNote=now+.05;
+  musicBus.gain.setTargetAtTime(level,now,.055);
+  if(level>0&&resetSchedule)nextMusicNote=now+.05;
 }
 function synthMusic(hz,at,duration,level,type="sine"){
   if(!musicBus||!audioContext||![hz,at,duration,level].every(Number.isFinite)
@@ -3456,7 +3569,7 @@ function scheduleGuardianTheme(at,step){
 }
 
 function scheduleMusic(){
-  if(!gameStarted||paused||gameCleared||!soundEnabled||!musicEnabled||
+  if(!gameStarted||paused||gameCleared||effectiveAudioGain("music")===0||
     !audioContext||!musicBus||audioContext.state!=="running")return;
   const now=audioContext.currentTime;
   const bossTheme=activeStage===2&&guardian.active&&!guardian.defeated;
@@ -3493,7 +3606,7 @@ function toggleMusic(){
   musicEnabled=!musicEnabled;
   try{localStorage.setItem("velocity-rift-music",musicEnabled?"on":"off")}catch(_){}
   if(musicEnabled)unlockAudio();
-  syncMusic();syncMusicButton();
+  syncMusic();syncMusicButton();refreshAudioSettings();
 }
 if(musicToggle)musicToggle.addEventListener("click",toggleMusic);
 syncMusicButton();
@@ -3563,10 +3676,19 @@ window.addEventListener("keyup", (event) => {
 });
 
 window.addEventListener('blur', () => { keys.clear(); jumpHeld = false; if (gameStarted) {paused = true;syncPauseButton();syncMusic();} });
-startButton.addEventListener("click", ()=>startGame(1));
+startButton.addEventListener("click",continueCampaign);
+document.querySelector("#newGameButton").addEventListener("click",askNewGame);
+document.querySelector("#confirmNewGameButton").addEventListener("click",confirmNewGame);
+document.querySelector("#cancelNewGameButton").addEventListener("click",showMainMenu);
+document.querySelector("#settingsButton").addEventListener("click",showSettingsMenu);
+document.querySelector("#settingsBackButton").addEventListener("click",showMainMenu);
+for(const name of ["master","music","effects"]){
+  document.querySelector("#volume-"+name).addEventListener("input",event=>
+    changeAudioLevel(name,event.target.value));
+}
 document.querySelector("#selectStagesButton").addEventListener("click", showStageMenu);
 document.querySelector("#stageOneButton").addEventListener("click", ()=>startGame(1));
-document.querySelector("#stageTwoButton").addEventListener("click", ()=>{if(progress.stage1.completed||debugMode)startGame(2)});
+ document.querySelector("#stageTwoButton").addEventListener("click", ()=>{if(campaign.stage1Completed||debugMode)startGame(2)});
 document.querySelector("#backToMainButton").addEventListener("click", showMainMenu);
 document.querySelector("#achievementsButton").addEventListener("click",showAchievementsMenu);
 document.querySelector("#stageAchievementsButton").addEventListener("click",showAchievementsMenu);
