@@ -7,7 +7,8 @@ const stageMenu = document.querySelector("#stageMenu");
 const resultMenu = document.querySelector("#resultMenu");
 const pauseButton = document.querySelector("#pauseButton");
 const menuButton = document.querySelector("#menuButton");
-const screens = [mainMenu, stageMenu, resultMenu];
+const achievementsMenu=document.querySelector("#achievementsMenu");
+const screens=[mainMenu,stageMenu,resultMenu,achievementsMenu];
 const soundToggle = document.querySelector("#soundToggle");
 const musicToggle = document.querySelector("#musicToggle");
 const trackNowPlaying = document.querySelector("#trackNowPlaying");
@@ -37,13 +38,43 @@ let coyoteTimer = 0;
 let jumpHeld = false;
 let checkpointIndex = -1;
 const PROGRESS_KEY = "velocity-rift-progress-v1";
-const GRADE_ORDER = ["C", "B", "A", "S"];
+const GRADE_ORDER=["C","B","A","S"];
+const SECRET_DEFS={
+  1:[
+    {id:"canopy",name:"Copa Esmeralda",lower:[2020,350,2260],upper:[2170,255,2390],startX:2110,targetX:2270,limit:9},
+    {id:"lumen",name:"Ninho Luminoso",lower:[9530,353,9860],upper:[9710,259,9960],startX:9660,targetX:9840,limit:8.5},
+    {id:"horizon",name:"Horizonte Neon",lower:[20520,259,20950],upper:[20710,170,21050],startX:20630,targetX:20910,limit:8}
+  ],
+  2:[
+    {id:"echo",name:"Eco Suspenso",lower:[3150,331,3500],upper:[3300,237,3570],startX:3260,targetX:3440,limit:8.5},
+    {id:"prism",name:"Arco Prismático",lower:[10230,306,10710],upper:[10440,214,10800],startX:10330,targetX:10600,limit:8},
+    {id:"zenith",name:"Zênite Violeta",lower:[24580,259,24940],upper:[24780,168,25140],startX:24700,targetX:24970,limit:8}
+  ]
+};
+const ACHIEVEMENTS=[
+  {id:"first",title:"Primeiro Impulso",description:"Conclua a fase 1."},
+  {id:"canyon",title:"Através do Cânion",description:"Conclua a fase 2."},
+  {id:"s1",title:"Velocidade Pura",description:"Conquiste nota S na fase 1."},
+  {id:"s2",title:"Mestre do Prisma",description:"Conquiste nota S na fase 2."},
+  {id:"zero1",title:"Passos Perfeitos",description:"Conclua a fase 1 sem quedas."},
+  {id:"zero2",title:"Sem Olhar para Baixo",description:"Conclua a fase 2 sem quedas."},
+  {id:"cores1",title:"Memórias da Floresta",description:"Reúna os três núcleos na fase 1."},
+  {id:"cores2",title:"Memórias do Cânion",description:"Reúna os três núcleos na fase 2."},
+  {id:"untouched",title:"Guardião Intocado",description:"Vença o Guardião sem receber dano durante a tentativa."},
+  {id:"explorer",title:"Explorador das Fendas",description:"Conclua uma rota secreta cronometrada."},
+  {id:"forestSecrets",title:"Segredos da Floresta",description:"Conclua as três rotas da fase 1."},
+  {id:"canyonSecrets",title:"Segredos do Prisma",description:"Conclua as três rotas da fase 2."},
+  {id:"sixSecrets",title:"Cartógrafo do Rift",description:"Complete as seis rotas secretas."}
+];
 let activeStage = 1;
 let debugMode = false;
 let debugUsedThisRun = false;
 let bestTime = 0;
 try { bestTime = Number(localStorage.getItem("velocity-rift-best-time")) || 0; } catch (_) { /* private storage */ }
-const progress = loadProgress();
+const progress=loadProgress();
+const secretTrials=[];
+const notification={title:"",subtitle:"",timer:0};
+let runDamageCount=0,bossDamagedThisRun=false;
 if (!bestTime && progress.stage1.bestTime) bestTime = progress.stage1.bestTime;
 let loopRunning = false;
 let gameStarted = false;
@@ -447,6 +478,18 @@ function createStageTwoWorld() {
 }
 
 const STAGES={1:stageOneWorld,2:createStageTwoWorld()};
+function installSecretRoutes(world,stage){
+  world.secretTrials=SECRET_DEFS[stage].map(def=>{
+    const [x1,y1,x2]=def.lower,[u1,uY,u2]=def.upper;
+    world.tracks.push(track(x1,y1,x2,y1,"secret"),
+      track(u1,uY,u2,uY,"secret"));
+    return {id:def.id,name:def.name,startX:def.startX,startY:y1-PLAYER_RADIUS,
+      targetX:def.targetX,targetY:uY-PLAYER_RADIUS,limit:def.limit,
+      active:false,completed:false,elapsed:0,armed:true,failed:false};
+  });
+}
+installSecretRoutes(STAGES[1],1);
+installSecretRoutes(STAGES[2],2);
 
 function activateStage(stage=1) {
   if(stage!==1&&stage!==2)throw new Error("Unknown level "+stage);
@@ -464,6 +507,7 @@ function activateStage(stage=1) {
   }
   Object.assign(goal,data.goal);Object.assign(spawn,data.spawn);
   bestTime=progress["stage"+stage].bestTime;
+  secretTrials.splice(0,secretTrials.length,...data.secretTrials.map(t=>({...t})));
   resetGuardian();
 }
 
@@ -536,7 +580,8 @@ function defaultStageProgress() {
   return { completed:false, clears:0, bestTime:0, bestGrade:"", bestCrystals:0, bestCores:0 };
 }
 function defaultProgress() {
-  return { stage1:defaultStageProgress(), stage2:defaultStageProgress() };
+  return {stage1:defaultStageProgress(),stage2:defaultStageProgress(),
+    secrets:{stage1:[],stage2:[]},achievements:{}};
 }
 function loadProgress() {
   const result=defaultProgress();
@@ -554,6 +599,14 @@ function loadProgress() {
       record.bestCrystals=Math.floor(clamp(Number(item.bestCrystals)||0,0,1000000));
       record.bestCores=Math.floor(clamp(Number(item.bestCores)||0,0,3));
     }
+    for(const stage of [1,2]){
+      const key="stage"+stage,allowed=SECRET_DEFS[stage].map(def=>def.id);
+      const existing=saved?.secrets?.[key];
+      if(Array.isArray(existing))
+        result.secrets[key]=[...new Set(existing.filter(id=>allowed.includes(id)))];
+    }
+    for(const item of ACHIEVEMENTS)
+      if(saved?.achievements?.[item.id]===true)result.achievements[item.id]=true;
     if (!saved?.stage1 && bestTime>0 && Number.isFinite(bestTime)) {
       result.stage1={completed:true,clears:1,bestTime,bestGrade:gradeForTime(bestTime,1),bestCrystals:0,bestCores:0};
     }
@@ -607,6 +660,7 @@ function refreshProgressView() {
   document.querySelector("#stageTwoCard").classList.toggle("stage-card-locked",!unlocked);
   document.querySelector("#stageTwoCard").classList.toggle("stage-card-active",unlocked);
   document.querySelector("#stageTwoLock").hidden=unlocked;
+  refreshAchievementsView();
 }
 
 function showScreen(target) {
@@ -628,6 +682,7 @@ function showScreen(target) {
 
 function showMainMenu() { showScreen(mainMenu); }
 function showStageMenu() { showScreen(stageMenu); }
+function showAchievementsMenu(){showScreen(achievementsMenu);}
 
 function showResults(time, crystals, cores = 0) {
   const result = debugUsedThisRun
@@ -643,6 +698,8 @@ function showResults(time, crystals, cores = 0) {
     ? "TESTE DEBUG: conclusão sem salvar recordes ou desbloqueios."
     : (result.improvedTime ? "Novo recorde!" : "Missão concluída!") +
       " Núcleos " + cores + "/3 · Melhor " + progress["stage"+activeStage].bestCores + "/3.";
+  if(!debugUsedThisRun)grantClearAchievements(result.grade,cores);
+  document.querySelector("#resultSecrets").textContent=secretTrials.filter(t=>t.completed).length+"/3";
   playSfx("finish");
   showScreen(resultMenu);
 }
@@ -721,6 +778,11 @@ function resetGame() {
     boostOrb.active = true;
   });
   memoryCores.forEach(core=>{core.active=true});
+  secretTrials.forEach(t=>Object.assign(t,{active:false,completed:false,
+    elapsed:0,armed:true,failed:false}));
+  runDamageCount=0;
+  bossDamagedThisRun=false;
+  notification.timer=0;
 }
 
 function startGame(stage=activeStage) {
@@ -1415,6 +1477,8 @@ function update(dt) {
   handleBoostPads();
   handleSprings();
   updateGuardian(dt);
+  updateSecretTrials(dt);
+  notification.timer=Math.max(0,notification.timer-dt);
   updateRiftPortal(dt);
   updateGuardianVisuals(dt);
   updateFluxFx(dt);
@@ -1713,6 +1777,8 @@ function updateCheckpoints() {
 }
 function damagePlayer(fall) {
   if (debugMode || (player.invulnerable > 0 && !fall)) return;
+  runDamageCount++;
+  if(activeStage===2&&guardian.active&&!guardian.defeated)bossDamagedThisRun=true;
   if (fall) player.falls += 1;
   shakeTime = 0.22;
   triggerFluxFx("hurt");
@@ -1789,6 +1855,7 @@ function draw() {
   drawGuardianVisuals();
   drawRiftPortal();
   drawMemoryCores();
+  drawSecretTrials();
   drawFluxWaves();
   drawParticles();
   drawFluxGhosts();
@@ -2454,6 +2521,20 @@ function drawHud() {
   ctx.fillText(Math.round(progress * 100) + '%', 704, 54);
   ctx.fillStyle="#f9cb83";ctx.font="bold 13px system-ui";ctx.fillText("Núcleos "+player.cores+"/3",335,80);
   if(activeStage===2){ctx.fillStyle="#ffa2be";ctx.fillText("Quedas "+player.falls,610,80);}
+  ctx.fillStyle="#baffed";ctx.font="bold 12px system-ui";
+  ctx.fillText("Rotas secretas "+secretTrials.filter(t=>t.completed).length+"/3",335,99);
+  if(notification.timer>0){
+    ctx.save();ctx.globalAlpha=Math.min(1,notification.timer/.4);
+    ctx.fillStyle="rgba(13,24,46,.92)";
+    roundRect(240,443,480,67,10);ctx.fill();
+    ctx.strokeStyle="#8bffed";ctx.lineWidth=2;ctx.stroke();
+    ctx.textAlign="center";
+    ctx.fillStyle="#c5fff5";ctx.font="bold 17px system-ui";
+    ctx.fillText(notification.title,VIEW_W/2,468);
+    ctx.fillStyle="#ffe0a5";ctx.font="12px system-ui";
+    ctx.fillText(notification.subtitle,VIEW_W/2,490);
+    ctx.textAlign="left";ctx.restore();
+  }
   if(debugMode){
     ctx.fillStyle="#ffd79d";ctx.font="bold 12px system-ui";
     ctx.fillText("DEBUG: BOOST ∞ · VOO · INVENCÍVEL",20,119);
@@ -2559,6 +2640,9 @@ function playSfx(kind) {
     gate:       [160, 60, 0.25, "sawtooth", 0.048],
     hit:        [270, 95, 0.12, "square", 0.023],
     spring:     [280, 750, 0.22, "sine", 0.046],
+    "secret-start": [470, 680, .25, "triangle", .025],
+    "secret-win": [550, 1280, .48, "sine", .043],
+    achievement: [660, 1100, .45, "sine", .04],
     "boss-alert": [220, 410, 0.29, "triangle", 0.031],
     "boss-enter": [105, 385, 0.95, "sawtooth", 0.026],
     "boss-collapse": [625, 75, 1.45, "sawtooth", 0.047],
@@ -2929,6 +3013,10 @@ document.querySelector("#selectStagesButton").addEventListener("click", showStag
 document.querySelector("#stageOneButton").addEventListener("click", ()=>startGame(1));
 document.querySelector("#stageTwoButton").addEventListener("click", ()=>{if(progress.stage1.completed||debugMode)startGame(2)});
 document.querySelector("#backToMainButton").addEventListener("click", showMainMenu);
+document.querySelector("#achievementsButton").addEventListener("click",showAchievementsMenu);
+document.querySelector("#stageAchievementsButton").addEventListener("click",showAchievementsMenu);
+document.querySelector("#resultsAchievementsButton").addEventListener("click",showAchievementsMenu);
+document.querySelector("#achievementsBackButton").addEventListener("click",showMainMenu);
 document.querySelector("#retryButton").addEventListener("click", ()=>startGame(activeStage));
 document.querySelector("#resultsStagesButton").addEventListener("click", showStageMenu);
 document.querySelector("#resultsMainButton").addEventListener("click", showMainMenu);
