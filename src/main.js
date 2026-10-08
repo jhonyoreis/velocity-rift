@@ -13,7 +13,7 @@ const musicToggle = document.querySelector("#musicToggle");
 
 const VIEW_W = canvas.width;
 const VIEW_H = canvas.height;
-const WORLD_W = 22700;
+let WORLD_W = 22700;
 const WORLD_H = 820;
 const PLAYER_RADIUS = 18;
 
@@ -36,6 +36,7 @@ let jumpHeld = false;
 let checkpointIndex = -1;
 const PROGRESS_KEY = "velocity-rift-progress-v1";
 const GRADE_ORDER = ["C", "B", "A", "S"];
+let activeStage = 1;
 let bestTime = 0;
 try { bestTime = Number(localStorage.getItem("velocity-rift-best-time")) || 0; } catch (_) { /* private storage */ }
 const progress = loadProgress();
@@ -169,6 +170,161 @@ const memoryCores = [4920,10220,19060].map((x,i)=>({
   x,y:groundY(x)-91,r:13,id:i,active:true
 }));
 const goal = {x:22550,y:348,w:54,h:72};
+// Switching stages replaces only world data; the physics and Flux controls stay shared.
+const WORLD_KEYS=["tracks","chapters","signs","checkpoints","walls","tunnels",
+  "enemies","rings","boostOrbs","springs","boostPads","spikes","pulseGates","memoryCores"];
+const stageOneWorld={
+  worldW:WORLD_W, spawn:{...spawn}, goal:{...goal},
+  tracks:tracks.map(t=>({...t})),chapters:chapters.map(t=>({...t})),
+  signs:signs.map(t=>({...t})),checkpoints:checkpoints.map(t=>({...t})),
+  walls:walls.map(t=>({...t})),tunnels:tunnels.map(t=>({...t})),
+  enemies:enemies.map(t=>({...t})),rings:rings.map(t=>({...t})),
+  boostOrbs:boostOrbs.map(t=>({...t})),springs:springs.map(t=>({...t})),
+  boostPads:boostPads.map(t=>({...t})),spikes:spikes.map(t=>({...t})),
+  pulseGates:pulseGates.map(t=>({...t})),memoryCores:memoryCores.map(t=>({...t})),
+  pits:[]
+};
+
+function createStageTwoWorld() {
+  const base=[
+    track(0,420,1150,420,"intro"),track(1150,420,1900,405,"rise"),
+    track(2130,435,2900,435,"canyon"),track(2900,435,3620,435,"canyon"),
+    track(3620,435,3900,345,"rise"),track(3900,345,4650,345,"cliff"),
+    track(4870,395,5610,395,"canyon"),
+    track(5840,420,6580,420,"canyon"),track(6580,420,7400,465,"drop"),
+    track(7400,465,7780,465,"cliff"),track(8020,450,8750,450,"canyon"),
+    track(8750,450,9200,355,"rise"),track(9200,355,9950,355,"cliff"),
+    track(10180,405,10800,405,"canyon"),track(10800,405,11600,440,"drop"),
+    track(11600,440,12300,440,"cliff"),track(12560,460,13300,460,"canyon"),
+    track(13300,460,14000,375,"rise"),track(14000,375,14900,375,"cliff"),
+    track(15130,410,16400,410,"canyon"),track(16400,410,16900,360,"rise"),
+    track(16900,360,17600,360,"finish")
+  ];
+  const lookup=x=>{
+    const floor=base.find(t=>x>=t.x1&&x<=t.x2);
+    return floor?yOnTrack(floor,x):null;
+  };
+  const pits=[[1900,2130],[4650,4870],[5610,5840],[7780,8020],
+    [9950,10180],[12300,12560],[14900,15130]];
+  // Platforms float above pits or reward an optional high route.
+  const ledges=[
+    track(1670,310,1970,310,"platform"),
+    track(2730,315,3030,315,"platform"),
+    track(4390,260,4690,260,"platform"),
+    track(7630,350,7930,350,"platform"),
+    track(9710,270,10070,270,"platform"),
+    track(12100,335,12430,335,"platform"),
+    track(14700,290,15020,290,"platform"),
+    track(15700,315,16010,315,"platform")
+  ];
+  // Moving platforms are useful shortcuts, never mandatory.
+  const moving=[
+    {x:5330,y:300,width:175,swing:72,speed:1.1,phase:0},
+    {x:8700,y:313,width:170,swing:96,speed:.9,phase:1.1},
+    {x:13390,y:294,width:185,swing:86,speed:1,phase:2.3},
+  ].map(obj=>{
+    const p=track(obj.x,obj.y,obj.x+obj.width,obj.y,"moving");
+    p.originX=obj.x;p.swing=obj.swing;p.speed=obj.speed;p.phase=obj.phase;
+    return p;
+  });
+  const stageTracks=[...base,...ledges,...moving];
+  const stageRings=[];
+  for (const [start,count,gap] of [
+    [280,11,57],[2200,10,60],[3230,7,56],[3940,9,63],
+    [4940,8,60],[5890,10,58],[6920,8,58],[8100,10,57],
+    [9030,8,64],[10270,8,59],[11450,10,60],
+    [12630,10,59],[13640,8,57],[15190,10,61],[16630,11,58]
+  ]) {
+    for(let i=0;i<count;i++){
+      const x=start+i*gap,y=lookup(x);
+      if(y!=null)stageRings.push({x,y:y-34-Math.sin(i/(count-1)*Math.PI)*12,r:8,active:true});
+    }
+  }
+  const stageEnemies=[
+    [860,"walker",30],[2530,"sentry",0],[3300,"drone",78],
+    [4140,"walker",70],[5220,"drone",65],[6140,"sentry",0],
+    [7160,"walker",90],[8370,"drone",65],[9350,"sentry",0],
+    [10530,"drone",90],[11290,"walker",70],[11880,"sentry",0],
+    [13130,"drone",85],[14180,"walker",65],[15360,"sentry",0],
+    [16200,"drone",75],[17020,"walker",85]
+  ].map(([x,type,patrol])=>{
+    const y=lookup(x);
+    const bad=enemy(x, y-(type==="drone"?46:2), patrol);
+    bad.type=type;bad.w=type==="sentry"?46:42;bad.h=type==="drone"?25:type==="sentry"?38:28;
+    return bad;
+  });
+  const checkpoints2=[2400,6020,9050,12860,15840].map(x=>({
+    x,y:lookup(x)-PLAYER_RADIUS,active:false
+  }));
+  const stageSigns=[
+    {x:250,title:"CANION PRISMA",hint:"NOVOS INIMIGOS E ABISMOS"},
+    {x:1460,title:"PRIMEIRO ABISMO",hint:"GANHE IMPULSO E PULE"},
+    {x:2570,title:"SENTINELA",hint:"EVITE OU USE BOOST"},
+    {x:3200,title:"DRONE",hint:"VOA E PATRULHA O AR"},
+    {x:4360,title:"PLATAFORMAS",hint:"BUSQUE UM CAMINHO ALTO"},
+    {x:7490,title:"NOVO SALTO",hint:"ACERTE A HORA DE PULAR"},
+    {x:11550,title:"ABISMO MAIOR",hint:"PREPARE SUA CORRIDA"},
+    {x:14610,title:"ULTIMO VAO",hint:"JUMP + CONTROLE"},
+    {x:16940,title:"CHEGADA",hint:"O CANION FOI SUPERADO"}
+  ];
+  return {
+    worldW:17600,spawn:{x:90,y:402},goal:{x:17460,y:288,w:55,h:72},
+    tracks:stageTracks,
+    chapters:[{x:0,title:"01 / PORTAL PRISMA"},{x:2900,title:"02 / PRIMEIRAS PLATAFORMAS"},
+      {x:5900,title:"03 / ABISMOS"},{x:8900,title:"04 / DRONES"},
+      {x:12300,title:"05 / RISCO E PRECISAO"},{x:15100,title:"06 / ESCAPE"}],
+    signs:stageSigns,
+    checkpoints:checkpoints2,
+    walls:[rect(-120,0,120,WORLD_H,"left-wall"),
+      rect(6340,346,44,74,"break-gate"),rect(13760,336,44,80,"break-gate")],
+    tunnels:[{x:3500,w:240,ground:435},{x:10630,w:290,ground:405}],
+    enemies:stageEnemies,rings:stageRings,
+    boostOrbs:[510,2250,5830,8420,10390,12450,13430,15630,16990]
+      .map(x=>orb(x,lookup(x)-32)),
+    springs:[{x:1840,y:394,w:36,h:15,powerX:540,powerY:-700},
+      {x:7650,y:449,w:36,h:15,powerX:525,powerY:-690},
+      {x:14830,y:359,w:36,h:15,powerX:560,powerY:-720}],
+    boostPads:[],
+    spikes:[3100,4160,6810,8640,11030,12950,14270,16140]
+      .map(x=>({x,y:lookup(x)-22,w:60,h:22})),
+    pulseGates:[{x:7050,y:lookup(7050)-102,w:18,h:76,phase:.7,period:2.8,live:1.05},
+      {x:14380,y:lookup(14380)-105,w:18,h:81,phase:1.2,period:2.7,live:1}],
+    memoryCores:[{x:2820,y:277,r:13,id:0,active:true},
+      {x:9860,y:225,r:13,id:1,active:true},
+      {x:15800,y:267,r:13,id:2,active:true}],
+    pits
+  };
+}
+const STAGES={1:stageOneWorld,2:createStageTwoWorld()};
+
+function activateStage(stage=1) {
+  if(stage!==1&&stage!==2)throw new Error("Unknown level "+stage);
+  activeStage=stage;
+  const data=STAGES[stage];
+  WORLD_W=data.worldW;
+  for(const [key,arr] of [
+    ["tracks",tracks],["chapters",chapters],["signs",signs],["checkpoints",checkpoints],
+    ["walls",walls],["tunnels",tunnels],["enemies",enemies],["rings",rings],
+    ["boostOrbs",boostOrbs],["springs",springs],["boostPads",boostPads],
+    ["spikes",spikes],["pulseGates",pulseGates],["memoryCores",memoryCores]
+  ]){
+    arr.splice(0,arr.length,...data[key].map(item=>({...item})));
+  }
+  Object.assign(goal,data.goal);Object.assign(spawn,data.spawn);
+  bestTime=progress["stage"+stage].bestTime;
+}
+
+function updateMovingPlatforms(dt) {
+  if(activeStage!==2)return;
+  for(const floor of tracks){
+    if(floor.kind!=="moving")continue;
+    const newX=floor.originX+Math.sin(gameTime*floor.speed+floor.phase)*floor.swing;
+    const dx=newX-floor.x1;
+    floor.x1=newX;floor.x2+=dx;
+    if(player.ground===floor&&player.onGround){player.x+=dx;player.prevX+=dx;}
+  }
+}
+
 function groundY(x){
   const floor=tracks.find(t=>x>=t.x1&&x<=t.x2);
   return floor?yOnTrack(floor,x):null;
@@ -218,53 +374,50 @@ function arcRings(x, y, count, gap) {
   }));
 }
 
-function gradeForTime(time) {
-  return time < 75 ? "S" : time < 100 ? "A" : time < 145 ? "B" : "C";
+function gradeForTime(time, stage=activeStage) {
+  if (stage===2) return time<60?"S":time<85?"A":time<120?"B":"C";
+  return time<75?"S":time<100?"A":time<145?"B":"C";
 }
 
+function defaultStageProgress() {
+  return { completed:false, clears:0, bestTime:0, bestGrade:"", bestCrystals:0, bestCores:0 };
+}
 function defaultProgress() {
-  return { stage1: { completed: false, clears: 0, bestTime: 0, bestGrade: "", bestCrystals: 0, bestCores: 0 } };
+  return { stage1:defaultStageProgress(), stage2:defaultStageProgress() };
 }
-
 function loadProgress() {
-  const fallback = defaultProgress();
+  const result=defaultProgress();
   try {
-    const previous = JSON.parse(localStorage.getItem(PROGRESS_KEY) || "null");
-    const saved = previous && typeof previous === "object" ? previous.stage1 : null;
-    if (saved && typeof saved === "object") {
-      const clears = Number(saved.clears);
-      const time = Number(saved.bestTime);
-      const crystals = Number(saved.bestCrystals);
-      const cores = Number(saved.bestCores);
-      const completed = saved.completed === true;
-      const validGrade = GRADE_ORDER.includes(saved.bestGrade) ? saved.bestGrade : "";
-      return { stage1: {
-        completed,
-        clears: completed && Number.isFinite(clears) ? Math.max(1, Math.floor(clamp(clears, 0, 1000000))) : 0,
-        bestTime: Number.isFinite(time) && time > 0 ? time : 0,
-        bestGrade: validGrade,
-        bestCrystals: Number.isFinite(crystals) && crystals > 0 ? Math.floor(clamp(crystals, 0, 1000000)) : 0,
-        bestCores: Number.isFinite(cores) ? Math.floor(clamp(cores, 0, 3)) : 0
-      } };
+    const saved=JSON.parse(localStorage.getItem(PROGRESS_KEY)||"null");
+    for (const id of [1,2]) {
+      const item=saved?.["stage"+id];
+      if (!item || typeof item!=="object") continue;
+      const record=result["stage"+id];
+      record.completed=item.completed===true;
+      record.clears=record.completed ? Math.max(1,Math.floor(clamp(Number(item.clears)||0,0,1000000))) : 0;
+      const time=Number(item.bestTime);
+      record.bestTime=Number.isFinite(time)&&time>0?time:0;
+      record.bestGrade=GRADE_ORDER.includes(item.bestGrade)?item.bestGrade:"";
+      record.bestCrystals=Math.floor(clamp(Number(item.bestCrystals)||0,0,1000000));
+      record.bestCores=Math.floor(clamp(Number(item.bestCores)||0,0,3));
     }
-    // Players from older versions may already have a saved first-stage record.
-    if (bestTime > 0 && Number.isFinite(bestTime)) {
-      return { stage1: { completed: true, clears: 1, bestTime, bestGrade: gradeForTime(bestTime), bestCrystals: 0, bestCores: 0 } };
+    if (!saved?.stage1 && bestTime>0 && Number.isFinite(bestTime)) {
+      result.stage1={completed:true,clears:1,bestTime,bestGrade:gradeForTime(bestTime,1),bestCrystals:0,bestCores:0};
     }
-  } catch (_) { /* Disabled/corrupt storage: play with in-memory progress. */ }
-  return fallback;
+  } catch (_) { /* Unavailable storage: keep in-memory progress. */ }
+  return result;
 }
 
 function storeProgress() {
   try {
     localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress));
-    if (bestTime > 0) localStorage.setItem("velocity-rift-best-time", String(bestTime));
+    if (progress.stage1.bestTime > 0) localStorage.setItem("velocity-rift-best-time", String(progress.stage1.bestTime));
   } catch (_) { /* Progress remains available until refresh. */ }
 }
 
 function recordStageClear(time, crystals, cores = 0) {
-  const stage = progress.stage1;
-  const grade = gradeForTime(time);
+  const stage = progress["stage"+activeStage];
+  const grade = gradeForTime(time,activeStage);
   const improvedTime = !stage.bestTime || time < stage.bestTime;
   stage.completed = true;
   stage.clears += 1;
@@ -291,6 +444,16 @@ function refreshProgressView() {
   document.querySelector("#stageOneProgress").textContent = stage.completed
     ? "Concluída · Melhor " + (stage.bestGrade || "--") + " · " + formatTime(stage.bestTime)
     : "Disponível para jogar";
+  const second=progress.stage2;
+  const unlocked=progress.stage1.completed;
+  document.querySelector("#stageTwoProgress").textContent = !unlocked
+    ? "Conclua a fase 1 para desbloquear"
+    : second.completed ? "Concluída · Melhor "+(second.bestGrade||"--")+" · "+formatTime(second.bestTime)
+    : "Novo desafio disponível";
+  document.querySelector("#stageTwoButton").disabled=!unlocked;
+  document.querySelector("#stageTwoCard").classList.toggle("stage-card-locked",!unlocked);
+  document.querySelector("#stageTwoCard").classList.toggle("stage-card-active",unlocked);
+  document.querySelector("#stageTwoLock").hidden=unlocked;
 }
 
 function showScreen(target) {
@@ -315,13 +478,14 @@ function showStageMenu() { showScreen(stageMenu); }
 function showResults(time, crystals, cores = 0) {
   const result = recordStageClear(time, crystals, cores);
   document.querySelector("#resultGrade").textContent = result.grade;
+  document.querySelector("#resultHeading").textContent = activeStage===2 ? "Cânion Prisma" : "Primeiro Impulso";
   document.querySelector("#resultTime").textContent = formatTime(time);
-  document.querySelector("#resultBest").textContent = formatTime(progress.stage1.bestTime);
+  document.querySelector("#resultBest").textContent = formatTime(progress["stage"+activeStage].bestTime);
   document.querySelector("#resultCrystals").textContent = String(crystals);
   document.querySelector("#resultClears").textContent = String(progress.stage1.clears);
   document.querySelector("#resultMessage").textContent =
     (result.improvedTime ? "Novo recorde!" : "Missão concluída!") +
-    " Núcleos " + cores + "/3 · Melhor " + progress.stage1.bestCores + "/3.";
+    " Núcleos " + cores + "/3 · Melhor " + progress["stage"+activeStage].bestCores + "/3.";
   playSfx("finish");
   showScreen(resultMenu);
 }
@@ -386,6 +550,7 @@ function resetGame() {
     bad.alive = true;
     bad.x = bad.baseX;
     bad.y = bad.yBase;
+    bad.phase=0;
   });
   rings.forEach((ring) => {
     ring.active = true;
@@ -396,8 +561,9 @@ function resetGame() {
   memoryCores.forEach(core=>{core.active=true});
 }
 
-function startGame() {
+function startGame(stage=activeStage) {
   unlockAudio();
+  activateStage(stage);
   resetGame();
   gameStarted = true;
   screens.forEach(screen => { screen.hidden = true; });
@@ -528,6 +694,7 @@ function update(dt) {
   player.x += player.vx * dt;
   player.y += player.vy * dt;
 
+  updateMovingPlatforms(dt);
   resolveTracks();
   if (!wasOnGround && player.onGround && previousVerticalSpeed > 130) {
     emitParticles(player.x, player.y + PLAYER_RADIUS, "#67c8c3", 8, 100);
@@ -666,15 +833,14 @@ function resolveWalls() {
 function updateEnemies(dt) {
   for (const bad of enemies) {
     if (!bad.alive) continue;
-    if (bad.patrol > 0) {
-      bad.phase += dt * 1.8;
-      bad.x = bad.baseX + Math.sin(bad.phase) * bad.patrol;
-    }
+    bad.phase += dt*(bad.type==="drone"?2.3:1.8);
+    if (bad.patrol>0)bad.x=bad.baseX+Math.sin(bad.phase)*bad.patrol;
+    if (bad.type==="drone")bad.y=bad.yBase+Math.sin(bad.phase*1.6)*15;
 
     const box = { x: bad.x - bad.w / 2, y: bad.y - bad.h, w: bad.w, h: bad.h };
     if (!circleRect(player.x, player.y, PLAYER_RADIUS, box)) continue;
 
-    const stomp = player.prevY + PLAYER_RADIUS <= box.y + 8 && player.vy > 80;
+    const stomp = bad.type!=="sentry" && player.prevY + PLAYER_RADIUS <= box.y + 8 && player.vy > 80;
     const smash = player.boosting && Math.abs(player.vx) > BOOST_SMASH_MIN_SPEED;
 
     if (stomp || smash) {
@@ -784,7 +950,7 @@ function updateCheckpoints() {
   });
 }
 function damagePlayer(fall) {
-  if (player.invulnerable > 0) return;
+  if (player.invulnerable > 0 && !fall) return;
   shakeTime = 0.22;
   emitParticles(player.x, player.y, "#ff896d", 13, 155);
   playSfx("hurt");
@@ -1475,7 +1641,7 @@ function scheduleMusic(){
   while(nextMusicNote < now+.18 && scheduled++<3){
     const step=musicStep%32,beat=step%16,bar=Math.floor(musicStep/16);
     const chapter=Math.max(0,chapters.findLastIndex(ch=>player.x>=ch.x));
-    const shift=[0,0,3,5,7,10][chapter];
+    const shift=[0,0,3,5,7,10][chapter]+(activeStage===2?5:0);
     if(beat%4===0){
       synthMusic(74,nextMusicNote,.10,.12);
       const bass=38+MUSIC_BASS[(Math.floor(step/4)+chapter)%8];
@@ -1522,7 +1688,7 @@ window.addEventListener("keydown", (event) => {
   }
   if (key === "p" && gameStarted && !event.repeat) togglePause();
   if (key === "escape" && gameStarted && !event.repeat) showMainMenu();
-  if (key === "r" && gameStarted && !event.repeat) startGame();
+  if (key === "r" && gameStarted && !event.repeat) startGame(activeStage);
   if ([" ", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) {
     event.preventDefault();
   }
@@ -1535,11 +1701,12 @@ window.addEventListener("keyup", (event) => {
 });
 
 window.addEventListener('blur', () => { keys.clear(); jumpHeld = false; if (gameStarted) {paused = true;syncPauseButton();syncMusic();} });
-startButton.addEventListener("click", startGame);
+startButton.addEventListener("click", ()=>startGame(1));
 document.querySelector("#selectStagesButton").addEventListener("click", showStageMenu);
-document.querySelector("#stageOneButton").addEventListener("click", startGame);
+document.querySelector("#stageOneButton").addEventListener("click", ()=>startGame(1));
+document.querySelector("#stageTwoButton").addEventListener("click", ()=>{if(progress.stage1.completed)startGame(2)});
 document.querySelector("#backToMainButton").addEventListener("click", showMainMenu);
-document.querySelector("#retryButton").addEventListener("click", startGame);
+document.querySelector("#retryButton").addEventListener("click", ()=>startGame(activeStage));
 document.querySelector("#resultsStagesButton").addEventListener("click", showStageMenu);
 document.querySelector("#resultsMainButton").addEventListener("click", showMainMenu);
 menuButton.addEventListener("click", showMainMenu);
