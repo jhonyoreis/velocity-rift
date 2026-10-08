@@ -54,6 +54,17 @@ https://github.com/jhonyoreis/velocity-rift
 - Slide com menor atrito no solo, efeito de derrapagem, botão de toque e túneis de passagem baixa.
 - Cenário Floresta Neon com montanhas e camadas adicionais de parallax.
 
+## Animações expressivas e polimento visual do Flux
+
+- Corrida com balanço dos braços sincronizado com as passadas, inclinação conforme a velocidade e gestos ao mudar de direção.
+- Pulo e queda com posturas distintas e leve alongamento/compressão visual na decolagem e aterrissagem; a hitbox nunca muda.
+- Aterrissagens produzem ondas luminosas ao redor dos pés; impactos mais fortes aumentam a intensidade do efeito.
+- Boost emite ondas de energia e **imagens residuais** que seguem o personagem em altas velocidades.
+- Slide preserva a silhueta baixa corrigida para rampas e ganha pequenas faíscas e partículas de atrito.
+- Efeitos de impacto após sofrer dano, poeira discreta durante corridas e piscar ocasional do visor.
+- Sistema cosmético com limites de até **10 imagens residuais, 16 ondas e 180 partículas**, limpo ao reiniciar a fase ou reaparecer após uma queda.
+- Todas as animações usam Canvas, sem novos arquivos de imagem, bibliotecas ou alteração das mecânicas. Verificação automatizada comparou as duas fases quadro a quadro com a versão anterior, sem diferenças na física.
+
 ## Identidade visual e áudio do Flux
 
 - Personagem desenhado diretamente no Canvas: capacete branco com visor turquesa, cachecol âmbar, núcleo luminoso e botas douradas.
