@@ -1570,8 +1570,11 @@ function update(dt) {
 
   const underTunnel = tunnels.some(t => player.x > t.x && player.x < t.x + t.w);
   if (jumpBuffer > 0 && coyoteTimer > 0 && !underTunnel) {
+    const springJump=player.ground?.behavior==="spring"&&
+      secretTrials.some(t=>t.active&&t.id===player.ground.secretId);
     player.sliding = false;
-    player.vy = -660 - Math.min(90, Math.abs(player.vx) * 0.09);
+    player.vy = -660 - Math.min(90, Math.abs(player.vx) * 0.09) -
+      (springJump?95:0);
     player.onGround = false;
     player.ground = null;
     jumpBuffer = 0;
@@ -1881,43 +1884,85 @@ function failSecretTrial(trial){
   playSfx("hurt");
 }
 
+function secretEnemyPosition(trial,bad){
+  const t=trial.elapsed;
+  if(bad.type==="moth")return {
+    x:bad.baseX+Math.sin(t*2.5+bad.phase)*bad.patrol,
+    y:bad.baseY+Math.sin(t*4.6+bad.phase)*19
+  };
+  if(bad.type==="drone")return {
+    x:bad.baseX+Math.sin(t*1.9+bad.phase)*bad.patrol,
+    y:bad.baseY+Math.sin(t*3+bad.phase)*11
+  };
+  if(bad.type==="dart")return {
+    x:bad.baseX+Math.sin(t*3.1+bad.phase)*bad.patrol,
+    y:bad.baseY+Math.sin(t*2+bad.phase)*14
+  };
+  if(bad.type==="orbiter")return {
+    x:bad.baseX+Math.cos(t*2.7+bad.phase)*bad.patrol,
+    y:bad.baseY+Math.sin(t*2.7+bad.phase)*bad.patrol
+  };
+  if(bad.type==="hunter")return {x:bad.x,y:bad.y};
+  return {x:bad.baseX,y:bad.baseY};
+}
+function secretLaserFiring(trial,bad){
+  return Math.sin(trial.elapsed*2.65+bad.phase)>.1;
+}
 function updateSecretTrialEnemies(trial,dt){
-  const now=trial.elapsed;
   for(const bad of trial.sentinels){
-    const px=bad.baseX+Math.sin(now*(bad.type==="drone"?2:1.25)+bad.phase)*bad.patrol;
-    const py=bad.baseY+(bad.type==="drone"?Math.sin(now*3+bad.phase)*12:0);
-    // The optional enemies are challenge hazards even during boost or DEBUG.
-    if(distance(player.x,player.y,px,py)<PLAYER_RADIUS+(bad.type==="drone"?17:21)){
-      failSecretTrial(trial);
-      return;
+    if(bad.type==="hunter"){
+      // This enemy slowly closes in, but has a capped pursuit speed.
+      const tx=clamp(player.x,bad.baseX-130,bad.baseX+155);
+      const ty=clamp(player.y,bad.baseY-115,bad.baseY+85);
+      const dx=tx-bad.x,dy=ty-bad.y;
+      const distanceToTarget=Math.hypot(dx,dy)||1;
+      const amount=Math.min(56*dt,distanceToTarget);
+      bad.x+=dx/distanceToTarget*amount;
+      bad.y+=dy/distanceToTarget*amount;
+    }
+    if(bad.type==="laser"){
+      if(!secretLaserFiring(trial,bad))continue;
+      const half=bad.patrol/2;
+      const closest=clamp(player.x,bad.baseX-half,bad.baseX+half);
+      if(Math.hypot(player.x-closest,player.y-bad.baseY)<PLAYER_RADIUS+7){
+        failSecretTrial(trial);return;
+      }
+      continue;
+    }
+    const {x,y}=secretEnemyPosition(trial,bad);
+    const radius={moth:14,drone:17,dart:15,orbiter:14,mine:14,
+      hunter:18,sentry:20}[bad.type]||17;
+    if(Math.hypot(player.x-x,player.y-y)<PLAYER_RADIUS+radius){
+      failSecretTrial(trial);return;
     }
   }
-  trial.shotTimer-=dt;
-  if(trial.shotTimer<=0){
-    const sentry=trial.sentinels.find(s=>s.type==="sentry");
-    const px=sentry.baseX,py=sentry.baseY;
-    const dx=player.x-px,dy=player.y-py,distanceToPlayer=Math.hypot(dx,dy)||1;
-    // Only shoots within sight of the upper platforms.
-    if(distanceToPlayer<370){
-      trial.shots.push({x:px,y:py,
-        vx:dx/distanceToPlayer*245,vy:dy/distanceToPlayer*245,
-        life:2.4});
-      playSfx("boss-alert");
+  const sentry=trial.sentinels.find(s=>s.type==="sentry");
+  if(sentry){
+    trial.shotTimer-=dt;
+    if(trial.shotTimer<=0){
+      const dx=player.x-sentry.baseX,dy=player.y-sentry.baseY;
+      const distanceToPlayer=Math.hypot(dx,dy)||1;
+      if(distanceToPlayer<380&&trial.shots.length<10){
+        trial.shots.push({x:sentry.baseX,y:sentry.baseY,
+          vx:dx/distanceToPlayer*245,vy:dy/distanceToPlayer*245,
+          life:2.4});
+        playSfx("boss-alert");
+      }
+      trial.shotTimer=1.85;
     }
-    trial.shotTimer=1.75;
   }
   for(const shot of trial.shots){
     const oldX=shot.x,oldY=shot.y;
     shot.x+=shot.vx*dt;shot.y+=shot.vy*dt;shot.life-=dt;
-    // Swept collision prevents high-speed projectiles tunneling through Flux.
-    const vx=shot.x-oldX,vy=shot.y-oldY,len2=vx*vx+vy*vy;
-    const t=len2?clamp(((player.x-oldX)*vx+(player.y-oldY)*vy)/len2,0,1):0;
-    if(Math.hypot(player.x-(oldX+vx*t),player.y-(oldY+vy*t))<PLAYER_RADIUS+9){
-      failSecretTrial(trial);
-      return;
+    const vx=shot.x-oldX,vy=shot.y-oldY,length2=vx*vx+vy*vy;
+    const amount=length2?
+      clamp(((player.x-oldX)*vx+(player.y-oldY)*vy)/length2,0,1):0;
+    if(Math.hypot(player.x-(oldX+vx*amount),
+      player.y-(oldY+vy*amount))<PLAYER_RADIUS+9){
+      failSecretTrial(trial);return;
     }
   }
-  trial.shots=trial.shots.filter(b=>b.life>0).slice(-10);
+  trial.shots=trial.shots.filter(shot=>shot.life>0).slice(-10);
 }
 
 function updateSecretTrials(dt){
