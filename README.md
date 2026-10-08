@@ -54,6 +54,15 @@ https://github.com/jhonyoreis/velocity-rift
 - Slide com menor atrito no solo, efeito de derrapagem, botão de toque e túneis de passagem baixa.
 - Cenário Floresta Neon com montanhas e camadas adicionais de parallax.
 
+## Identidade visual e áudio do Flux
+
+- Personagem desenhado diretamente no Canvas: capacete branco com visor turquesa, cachecol âmbar, núcleo luminoso e botas douradas.
+- Poses procedurais para parado, corrida, salto/queda, slide e impulso com boost, acompanhando o estado real da física.
+- Partículas de movimento e eventos: pulo, aterrissagem, boost, deslize, cristais, orbes de energia, inimigos, molas, checkpoints, portões e chegada.
+- Efeitos sonoros gerados localmente pela Web Audio API, sem baixar arquivos de áudio. O navegador só ativa o som após uma interação.
+- Controle **Som ligado / Som desligado** abaixo do jogo ou tecla **M**. A preferência fica salva no navegador quando o armazenamento está disponível.
+- Se o navegador não suportar áudio, a jogabilidade continua funcionando normalmente.
+
 ## Controles
 
 - A/D ou setas: mover
@@ -62,17 +71,18 @@ https://github.com/jhonyoreis/velocity-rift
 - S ou seta para baixo: deslizar em túneis e acelerar ao descer morros
 - R: reiniciar
 - P: pausar/continuar
-- Em dispositivos de toque: botões de direção, pulo e boost
+- M: ligar/desligar efeitos sonoros
+- Em dispositivos de toque: botões de direção, pulo, boost e slide
 
 ## O que ja existe
 
 - Movimento com aceleracao, inercia e velocidade alta.
 - Boost com barra de energia.
-- Coletaveis que recarregam boost.
+- Orbes de energia que recarregam boost (cristais comuns pontuam apenas).
 - Inimigos derrotaveis por pisao ou velocidade.
 - Espinhos e dano.
 - Portoes que exigem boost/velocidade.
-- Fase com rota baixa, media e alta.
+- Primeira fase longa, com uma rota principal e seis seções.
 - Camera seguindo o jogador.
 
 ## Plano da versão 2.0
@@ -89,6 +99,6 @@ Experimento com implementação diretamente na `main`.
 - Avaliar migração para TypeScript futuramente (Vite já configurado).
 - Separar entidades em arquivos.
 - Criar editor simples de fase.
-- Adicionar sprites e animacoes reais.
+- Refinar as animações procedurais e considerar sprites autorais futuramente.
 - Melhorar fisica de rampas e loopings.
 - Publicar no GitHub Pages.
