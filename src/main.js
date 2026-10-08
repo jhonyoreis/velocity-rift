@@ -191,6 +191,10 @@ const GUARDIAN_INTRO_SECONDS=1.85;
 const GUARDIAN_COLLAPSE_SECONDS=2.75;
 const GUARDIAN_SHARD_LIMIT=90;
 const guardianFx={shards:[],rings:[],flash:0,impact:0,entry:0};
+// The stage 2 exit is a dimensional rift, never an ordinary white goal door.
+// All portal state is reset when the stage or Guardian encounter restarts.
+const RIFT_OPEN_SECONDS=1.45;
+const riftPortal={opening:false,open:false,time:0,particleTimer:0};
 // Switching stages replaces only world data; the physics and Flux controls stay shared.
 const WORLD_KEYS=["tracks","chapters","signs","checkpoints","walls","tunnels",
   "enemies","rings","boostOrbs","springs","boostPads","spikes","pulseGates","memoryCores"];
@@ -788,6 +792,7 @@ function resetGuardian(){
   guardianFx.flash=0;
   guardianFx.impact=0;
   guardianFx.entry=0;
+  resetRiftPortal();
 }
 function guardianCorePosition(){
   // Three real attack angles; the third core is behind the body.
@@ -926,6 +931,7 @@ function updateGuardian(dt){
     // During collapse the arena stays sealed and the core stops attacking.
     if(guardian.timer>=GUARDIAN_COLLAPSE_SECONDS){
       guardian.state="defeated";guardian.defeated=true;guardian.timer=0;
+      activateRiftPortal();
       guardianFx.flash=.42;
       pushGuardianRing(guardian.x,guardian.y,"#c2ffdb",165,1);
       playSfx("boss-win");
@@ -967,6 +973,118 @@ function updateGuardian(dt){
       {x:guardian.x-42,y:guardian.y-55,w:84,h:109}))damagePlayer(false);
   }
 }
+// --------------------------- Rift exit ---------------------------
+// The former white GO door is exclusive to stage 1. The Prism Guardian
+// creates this stage 2 exit only after its complete collapse cinematic.
+function resetRiftPortal(){
+  riftPortal.opening=false;
+  riftPortal.open=false;
+  riftPortal.time=0;
+  riftPortal.particleTimer=0;
+}
+function riftCenter(){
+  // Keep the rift aligned with the existing stage 2 goal and flat ground.
+  return {x:goal.x+goal.w/2,y:goal.y+14};
+}
+function activateRiftPortal(){
+  if(activeStage!==2 || riftPortal.open || riftPortal.opening)return;
+  riftPortal.opening=true;
+  riftPortal.time=0;
+  riftPortal.particleTimer=0;
+  const p=riftCenter();
+  emitParticles(p.x,p.y,"#bca2ff",32,115);
+  emitParticles(p.x,p.y,"#92fff0",20,125);
+  playSfx("portal-open");
+}
+function updateRiftPortal(dt){
+  if(activeStage!==2||!riftPortal.opening)return;
+  riftPortal.time+=dt;
+  if(!riftPortal.open&&riftPortal.time>=RIFT_OPEN_SECONDS){
+    riftPortal.open=true;
+    const p=riftCenter();
+    emitParticles(p.x,p.y,"#a6ffeb",28,135);
+  }
+  riftPortal.particleTimer-=dt;
+  if(riftPortal.particleTimer<=0){
+    // Discrete drifting sparks share the game's existing capped particle pool.
+    const p=riftCenter(),phase=riftPortal.time*8;
+    emitParticles(p.x+Math.cos(phase)*21,p.y+Math.sin(phase)*44,
+      Math.floor(phase)%2?"#d3afff":"#85fff3",2,32);
+    riftPortal.particleTimer=.13;
+  }
+}
+function playerTouchesRift(){
+  if(activeStage!==2||!riftPortal.open)return false;
+  const p=riftCenter();
+  // Rounded active aperture: forgiving at ground level, not a hidden rectangle.
+  const dx=(player.x-p.x)/58;
+  const dy=(player.y-p.y)/79;
+  return dx*dx+dy*dy<=1;
+}
+function drawRiftPortal(){
+  if(activeStage!==2||!riftPortal.opening)return;
+  const p=riftCenter();
+  if(p.x<cameraX-110||p.x>cameraX+VIEW_W+110)return;
+  const progress=clamp(riftPortal.time/RIFT_OPEN_SECONDS,0,1);
+  const emerge=1-Math.pow(1-progress,3);
+  const phase=visualTime*2.6;
+  const pulse=1+Math.sin(visualTime*4.8)*.055;
+  const openScale=.08+emerge*.92;
+  ctx.save();
+  ctx.translate(p.x,p.y);
+  ctx.scale(openScale*pulse,openScale*pulse);
+  ctx.globalAlpha=Math.max(.05,Math.min(1,progress*2));
+  // A shadow underneath anchors the portal to the ground.
+  ctx.fillStyle="rgba(33,10,73,.40)";
+  ctx.beginPath();ctx.ellipse(0,55,63,10,0,0,Math.PI*2);ctx.fill();
+  // Layered translucent auras supply glow without extra image assets.
+  for(let i=3;i>=0;i--){
+    ctx.fillStyle=i%2===0?"rgba(164,91,255,.055)":"rgba(81,246,235,.062)";
+    ctx.beginPath();ctx.ellipse(0,0,48+i*9,59+i*8,0,0,Math.PI*2);ctx.fill();
+  }
+  // Black-blue center that reads as depth rather than a solid exit block.
+  ctx.fillStyle="#0e1741";
+  ctx.beginPath();ctx.ellipse(0,0,35,53,0,0,Math.PI*2);ctx.fill();
+  for(let i=0;i<5;i++){
+    const radius=29-i*4;
+    const sway=Math.sin(phase+i*.9)*3;
+    ctx.fillStyle=i%2===0?"rgba(71,213,246,.13)":"rgba(184,104,255,.17)";
+    ctx.beginPath();ctx.ellipse(sway,0,radius,47-i*7,phase*.09+i*.2,
+      0,Math.PI*2);ctx.fill();
+  }
+  ctx.fillStyle="rgba(118,255,241,.34)";
+  ctx.beginPath();ctx.ellipse(Math.sin(phase)*4,-2,12,28,
+    -Math.sin(phase*.4)*.35,0,Math.PI*2);ctx.fill();
+  // Two counter-rotating lilac/cyan broken rings.
+  for(let side=0;side<2;side++){
+    ctx.strokeStyle=side===0?"#be94ff":"#7cfff0";
+    ctx.lineWidth=side===0?7:3.3;
+    ctx.beginPath();
+    const angle=side===0?phase*.46:-phase*.6;
+    ctx.ellipse(0,0,42+side*5,57+side*4,0,
+      angle,angle+Math.PI*1.62);ctx.stroke();
+  }
+  // Three bright crystals orbit the frame and identify it as a fenda.
+  for(let i=0;i<3;i++){
+    const angle=phase*(i===1?-.72:.58)+i*Math.PI*2/3;
+    const x=Math.cos(angle)*47,y=Math.sin(angle)*58;
+    ctx.save();ctx.translate(x,y);ctx.rotate(angle+.8);
+    ctx.fillStyle=i===1?"#8effef":"#e5b4ff";
+    ctx.beginPath();ctx.moveTo(0,-9);ctx.lineTo(6,0);
+    ctx.lineTo(0,9);ctx.lineTo(-6,0);ctx.closePath();ctx.fill();
+    ctx.restore();
+  }
+  ctx.restore();
+  if(riftPortal.open){
+    ctx.save();
+    ctx.globalAlpha=.7+.3*Math.sin(visualTime*3)**2;
+    ctx.fillStyle="#b9fff0";
+    ctx.font="bold 12px system-ui";ctx.textAlign="center";
+    ctx.fillText("PORTAL DA FENDA",p.x,p.y-83);
+    ctx.textAlign="left";ctx.restore();
+  }
+}
+
 function drawGuardianBackdrop(){
   if(!guardian.active && player.x<guardian.arenaLeft-580)return;
   ctx.fillStyle="rgba(25,14,62,.92)";
@@ -1297,6 +1415,7 @@ function update(dt) {
   handleBoostPads();
   handleSprings();
   updateGuardian(dt);
+  updateRiftPortal(dt);
   updateGuardianVisuals(dt);
   updateFluxFx(dt);
   updateTrail(dt);
@@ -1314,11 +1433,16 @@ function update(dt) {
 
   if(!debugMode&&player.y>720){damagePlayer(true);}
 
-  if (circleRect(player.x, player.y, PLAYER_RADIUS, goal) && !gameCleared
-    && (activeStage!==2 || guardian.defeated)) {
-    gameCleared = true;
-    emitParticles(player.x, player.y, "#fbc66d", 45, 240);
-    showResults(gameTime, player.rings, player.cores);
+  // Stage 1 keeps its original exit. Stage 2 requires entering a fully open
+  // dimensional portal; touching the inactive spawn point cannot win.
+  const exitReached=activeStage===2
+    ? riftPortal.open && playerTouchesRift()
+    : circleRect(player.x,player.y,PLAYER_RADIUS,goal);
+  if(exitReached && !gameCleared){
+    gameCleared=true;
+    emitParticles(player.x,player.y,activeStage===2?"#a6ffeb":"#fbc66d",45,240);
+    if(activeStage===2)playSfx("portal-enter");
+    showResults(gameTime,player.rings,player.cores);
   }
 
   updateCamera(dt);
@@ -1655,6 +1779,7 @@ function draw() {
   drawSentryShots();
   drawGuardian();
   drawGuardianVisuals();
+  drawRiftPortal();
   drawMemoryCores();
   drawFluxWaves();
   drawParticles();
@@ -1982,14 +2107,15 @@ function drawObjects() {
     }
   }
 
-  ctx.fillStyle = "#ffffff";
-  roundRect(goal.x, goal.y, goal.w, goal.h, 6);
-  ctx.fill();
-  ctx.fillStyle = "#ff5b8b";
-  ctx.fillRect(goal.x + 9, goal.y + 8, 32, 20);
-  ctx.fillStyle = "#071215";
-  ctx.font = "bold 13px Inter, sans-serif";
-  ctx.fillText("GO", goal.x + 14, goal.y + 23);
+  // The simple GO marker belongs only to the tutorial stage.
+  if(activeStage===1){
+    ctx.fillStyle="#ffffff";
+    roundRect(goal.x,goal.y,goal.w,goal.h,6);ctx.fill();
+    ctx.fillStyle="#ff5b8b";
+    ctx.fillRect(goal.x+9,goal.y+8,32,20);
+    ctx.fillStyle="#071215";ctx.font="bold 13px Inter, sans-serif";
+    ctx.fillText("GO",goal.x+14,goal.y+23);
+  }
 }
 
 // Flux has a unique vector silhouette: white helmet, cyan visor, orange
@@ -2336,7 +2462,8 @@ function drawHud() {
   }
   if(activeStage===2&&guardian.defeated&&player.x>=guardian.arenaLeft){
     ctx.fillStyle="#adffd8";ctx.font="bold 15px system-ui";
-    ctx.fillText("GUARDIÃO DERROTADO · PORTAL LIBERADO",329,115);
+    ctx.fillText(riftPortal.open?"PORTAL DA FENDA ABERTO · ENTRE NA FENDA":
+      "PORTAL DA FENDA SE MATERIALIZANDO...",329,115);
   }
   drawGuardianCinematic();
   if (paused) {
@@ -2428,6 +2555,8 @@ function playSfx(kind) {
     "boss-enter": [105, 385, 0.95, "sawtooth", 0.026],
     "boss-collapse": [625, 75, 1.45, "sawtooth", 0.047],
     "boss-crack": [750, 135, 0.48, "sawtooth", 0.036],
+    "portal-open": [160, 925, 1.18, "sine", 0.052],
+    "portal-enter": [760, 1320, 0.53, "triangle", 0.047],
     "boss-hit": [600, 140, 0.34, "sawtooth", 0.043],
     "boss-win": [310, 1050, 0.7, "sine", 0.055],
     hurt:       [270, 115, 0.24, "triangle", 0.045],
