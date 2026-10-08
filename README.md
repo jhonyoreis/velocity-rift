@@ -63,6 +63,15 @@ https://github.com/jhonyoreis/velocity-rift
 - Controle **Som ligado / Som desligado** abaixo do jogo ou tecla **M**. A preferência fica salva no navegador quando o armazenamento está disponível.
 - Se o navegador não suportar áudio, a jogabilidade continua funcionando normalmente.
 
+## Trilha sonora autoral por fase
+
+- **Fase 1 — Neon Canopy (108 BPM):** tema eletrônico melódico e leve; sua composição, andamento e arranjo permanecem independentes.
+- **Fase 2 — Ecos do Prisma (126 BPM):** composição nova e própria do Cânion Prisma, com modo frígio, padrão de bateria sincopado, baixo grave filtrado, sinos sintéticos cristalinos e pads atmosféricos.
+- O tema do Cânion Prisma tem melodia de 64 passos, progressão harmônica de quatro compassos e camadas que se intensificam conforme avançam os nove setores. Os últimos setores acrescentam arpejos e vozes mais agudas.
+- Ambas as trilhas são geradas localmente com Web Audio, sem importar músicas ou amostras externas; cada fase seleciona automaticamente sua própria trilha.
+- A faixa atual aparece abaixo da identidade do Flux. A tecla **N** liga/desliga a música, **M** silencia o áudio geral, e a pausa/menu interrompem a reprodução.
+- Valores de frequência/duração são validados e erros do sintetizador são isolados do loop do jogo para não travar a física.
+
 ## Fase 2 — Cânion Prisma
 
 - **Fase 2 reformulada: 34.000 unidades de extensão (antes 17.600), nove setores**, com desafios progressivos de precisão, ritmo e domínio das mecânicas.
@@ -81,7 +90,7 @@ https://github.com/jhonyoreis/velocity-rift
 - Cinco barreiras temporizadas: eletropulso vermelho (perigo), aviso âmbar e janela verde livre.
 - Três núcleos de memória opcionais em trajetórias que estimulam pulos de precisão.
 - HUD de núcleos e recorde de núcleos recuperados na tela de resultados.
-- Trilha original **Neon Canopy** em 108 BPM, sintetizada no próprio navegador: melodia, baixo, harmonia e percussão, com variações por setor.
+- Trilha original **Neon Canopy** em 108 BPM exclusiva da fase 1; a fase 2 utiliza a nova composição **Ecos do Prisma** em 126 BPM.
 - Música sem arquivos externos: só toca durante o jogo, respeita pausa, menu, som geral e o novo controle de música.
 - Tecla **N** ativa/desativa apenas a trilha. Preferência salva localmente.
 
