@@ -612,6 +612,20 @@ function loadProgress() {
     }
     for(const item of ACHIEVEMENTS)
       if(saved?.achievements?.[item.id]===true)result.achievements[item.id]=true;
+    // Backfill achievements supported by old records; don't invent unknown
+    // no-death/boss achievements that older saves never tracked.
+    for(const stage of [1,2]){
+      const record=result["stage"+stage];
+      if(record.completed)result.achievements[stage===1?"first":"canyon"]=true;
+      if(record.bestGrade==="S")result.achievements[stage===1?"s1":"s2"]=true;
+      if(record.bestCores===3)result.achievements[stage===1?"cores1":"cores2"]=true;
+    }
+    if(result.secrets.stage1.length+result.secrets.stage2.length>0)
+      result.achievements.explorer=true;
+    if(result.secrets.stage1.length===3)result.achievements.forestSecrets=true;
+    if(result.secrets.stage2.length===3)result.achievements.canyonSecrets=true;
+    if(result.secrets.stage1.length+result.secrets.stage2.length===6)
+      result.achievements.sixSecrets=true;
     if (!saved?.stage1 && bestTime>0 && Number.isFinite(bestTime)) {
       result.stage1={completed:true,clears:1,bestTime,bestGrade:gradeForTime(bestTime,1),bestCrystals:0,bestCores:0};
     }
@@ -1807,6 +1821,18 @@ function refreshAchievementsView(){
     progress.secrets.stage1.length+"/3 · Cânion "+
     progress.secrets.stage2.length+"/3";
   const list=document.querySelector("#achievementList");
+  const routes=document.querySelector("#secretRouteList");
+  if(routes)routes.innerHTML=[1,2].flatMap(stage=>
+    SECRET_DEFS[stage].map(def=>{
+      const earned=progress.secrets["stage"+stage].includes(def.id);
+      const time=progress.secretTimes["stage"+stage][def.id];
+      return '<div class="secret-route-entry'+(earned?' discovered':'')+'">'+
+        '<strong>'+(earned?'✦ ':'◇ ')+def.name+'</strong>'+
+        '<small>Fase '+stage+' · '+(earned
+          ?'Recorde '+(time?time.toFixed(2)+'s':'concluída')
+          :'Ainda não descoberta')+'</small></div>';
+    })
+  ).join("");
   if(list)list.innerHTML=ACHIEVEMENTS.map(a=>{
     const unlocked=progress.achievements[a.id]===true;
     return '<div class="achievement-entry'+(unlocked?' achieved':' locked')+'">'+
@@ -2120,8 +2146,8 @@ function drawTracks() {
   for (const floor of tracks) {
     if (floor.x2 < cameraX - 120 || floor.x1 > cameraX + VIEW_W + 120) continue;
     ctx.strokeStyle = activeStage===2
-      ? floor.kind==="moving" ? "#ffcf82" : floor.kind==="platform" ? "#bb91ff" : floor.kind==="finish" ? "#a2f5ff" : "#a47df7"
-      : floor.kind==="boost" ? "#f6ac43" : floor.kind==="finale" ? "#b785ef" : "#38dcd0";
+      ? floor.kind==="moving" ? "#ffcf82" : floor.kind==="secret" ? "#76ffeb" : floor.kind==="platform" ? "#bb91ff" : floor.kind==="finish" ? "#a2f5ff" : "#a47df7"
+      : floor.kind==="secret" ? "#9bfff0" : floor.kind==="boost" ? "#f6ac43" : floor.kind==="finale" ? "#b785ef" : "#38dcd0";
     ctx.lineWidth = 19;
     ctx.beginPath();
     ctx.moveTo(floor.x1, floor.y1);
