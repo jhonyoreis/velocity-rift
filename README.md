@@ -84,6 +84,24 @@ https://github.com/jhonyoreis/velocity-rift
 - A faixa atual aparece abaixo da identidade do Flux. A tecla **N** liga/desliga a música, **M** silencia o áudio geral, e a pausa/menu interrompem a reprodução.
 - Valores de frequência/duração são validados e erros do sintetizador são isolados do loop do jogo para não travar a física.
 
+## Rotas secretas e desafios opcionais
+
+- **Seis rotas elevadas e opcionais:** três na Floresta Neon (**Copa Esmeralda**, **Ninho Luminoso** e **Horizonte Neon**) e três no Cânion Prisma (**Eco Suspenso**, **Arco Prismático** e **Zênite Violeta**).
+- Cada rota possui **duas plataformas extras**, desenhadas em turquesa para diferenciá-las do caminho principal. As rotas não substituem o chão nem exigem mudanças nos 14 abismos da segunda fase.
+- Suba até o símbolo **DESAFIO** para iniciar uma prova cronometrada de 8 a 9 segundos. Alcance o fragmento giratório acima antes de o tempo acabar. O contador aparece no HUD e perto do fragmento.
+- Concluir o desafio rende **8 cristais e 20 pontos de boost**, além de registrar a rota descoberta e seu melhor tempo.
+- Falhou ou recebeu dano? O desafio pode ser reiniciado ao retornar ao símbolo. Nenhum segredo é obrigatório para concluir a fase.
+- As seis rotas e seus melhores tempos são salvos junto ao progresso existente no `localStorage`. O menu **Conquistas** lista caminhos encontrados e ainda desconhecidos.
+- As seis provas foram simuladas com a **física normal do Flux**, usando saltos comuns sem DEBUG. Também foi verificado que as duas rotas principais continuam concluíveis sem mudanças na física.
+
+## Sistema de conquistas
+
+- **13 conquistas permanentes** por terminar fases, alcançar notas S, finalizar sem quedas, coletar os três núcleos, derrotar o Guardião sem receber dano, descobrir rotas e recuperar todos os seis fragmentos.
+- Uma nova tela **Conquistas** pode ser acessada pelo menu principal, seleção de fases e resultados. Ela apresenta medalhas desbloqueadas, objetivos pendentes, contadores por fase e recordes dos percursos secretos.
+- Conquistas desbloqueadas geram um aviso visual e um som. Os registros são carregados automaticamente do progresso salvo.
+- O formato do progresso continua compatível com versões antigas: conclusões, melhores notas e núcleos previamente registrados podem reconhecer suas respectivas conquistas, sem inventar estatísticas antigas de quedas ou danos.
+- Partidas que utilizaram o **DEBUG** não registram conquistas, percursos secretos nem recordes, mesmo se ele for desligado antes da chegada.
+
 ## Portal da Fenda — conclusão da fase 2
 
 - A porta branca **GO** permanece na fase 1, mas foi completamente removida do Cânion Prisma.
