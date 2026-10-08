@@ -172,6 +172,8 @@ const memoryCores = [4920,10220,19060].map((x,i)=>({
   x,y:groundY(x)-91,r:13,id:i,active:true
 }));
 const goal = {x:22550,y:348,w:54,h:72};
+const guardian={x:33360,y:340,hp:3,maxHp:3,active:false,defeated:false,
+  state:"telegraph",timer:0,cycle:0,arenaLeft:32740,arenaRight:33765};
 // Switching stages replaces only world data; the physics and Flux controls stay shared.
 const WORLD_KEYS=["tracks","chapters","signs","checkpoints","walls","tunnels",
   "enemies","rings","boostOrbs","springs","boostPads","spikes","pulseGates","memoryCores"];
@@ -359,7 +361,7 @@ function createStageTwoWorld() {
     [28480,"RECARREGUE","ORBE ANTES DO PORTAO"],
     [29460,"VIGIAS DO CANION","DESVIE DOS DRONES"],
     [31190,"ULTIMA PROVA","MOMENTO EXATO DO PULO"],
-    [33000,"CHEGADA","CANION CONQUISTADO"]
+    [32800,"GUARDIAO DO PRISMA","SALTE / DESLIZE / USE BOOST"]
   ].map(([x,title,hint])=>({x,title,hint})));
   world.checkpoints.push(...[19400,23850,28510,32570].map(x=>({
     x,y:groundY2(x)-PLAYER_RADIUS,active:false
@@ -386,7 +388,7 @@ function createStageTwoWorld() {
     }
   }
   world.boostOrbs.push(...[18060,19260,21000,22400,23900,26120,
-    28420,28620,29010,30700,32830].map(x=>orb(x,groundY2(x)-32)));
+    28420,28620,29010,30700,32830,33030].map(x=>orb(x,groundY2(x)-32)));
   world.walls.push(rect(28960,291,44,74,"break-gate"));
   world.tunnels.push({x:22100,w:310,ground:420},
     {x:26670,w:260,ground:410},{x:32600,w:260,ground:410});
@@ -424,6 +426,7 @@ function activateStage(stage=1) {
   }
   Object.assign(goal,data.goal);Object.assign(spawn,data.spawn);
   bestTime=progress["stage"+stage].bestTime;
+  resetGuardian();
 }
 
 function updateMovingPlatforms(dt) {
@@ -636,6 +639,7 @@ function resetGame() {
   player.cores = 0;
   player.falls = 0;
   musicStep = 0;
+  resetGuardian();
   particles = [];
   visualTime = 0;
   sparkleCooldown = 0;
@@ -721,6 +725,104 @@ function loop(now) {
   }
   draw();
   requestAnimationFrame(loop);
+}
+
+// The arena is at the end of level 2. Three hits and alternated telegraphed
+// beams reward jumping, sliding, and timed attacks on the exposed energy core.
+function resetGuardian(){
+  Object.assign(guardian,{hp:guardian.maxHp,active:false,defeated:false,
+    state:"telegraph",timer:0,cycle:0});
+}
+function guardianHint(){
+  if(guardian.state==="telegraph")
+    return guardian.cycle%2===0?"PREPARE O PULO":"PREPARE O SLIDE";
+  if(guardian.state==="attack")
+    return guardian.cycle%2===0?"SALTE O FEIXE!":"DESLIZE SOB O FEIXE!";
+  return guardian.state==="exposed"?"NÚCLEO EXPOSTO! BOOST OU PULO":"ESCUDO RECARREGANDO...";
+}
+function hurtGuardian(){
+  guardian.hp--;
+  guardian.state="recovery";guardian.timer=0;guardian.cycle++;
+  playSfx("gate");shakeTime=.22;
+  emitParticles(guardian.x-20,guardian.y+10,"#dcb2ff",38,230);
+  if(guardian.hp<=0){
+    guardian.hp=0;guardian.defeated=true;guardian.state="defeated";
+    emitParticles(guardian.x,guardian.y,"#a8ffe5",48,250);
+    playSfx("finish");
+    return;
+  }
+  player.x=32970;player.y=groundY(32970)-PLAYER_RADIUS;
+  player.prevX=player.x;player.prevY=player.y;
+  player.vx=0;player.vy=0;player.onGround=false;player.ground=null;
+  player.invulnerable=Math.max(.55,player.invulnerable);
+  boostOrbs.forEach(orb=>{if(orb.x>=32800&&orb.x<33100)orb.active=true;});
+}
+function updateGuardian(dt){
+  if(activeStage!==2||guardian.defeated)return;
+  if(!guardian.active){
+    if(player.x<guardian.arenaLeft)return;
+    guardian.active=true;guardian.timer=0;guardian.state="telegraph";
+  }
+  guardian.timer+=dt;
+  const timing={telegraph:1.2,attack:.9,exposed:3.1,recovery:.85};
+  if(guardian.timer>=timing[guardian.state]){
+    guardian.timer=0;
+    guardian.state=guardian.state==="telegraph"?"attack":
+      guardian.state==="attack"?"exposed":
+      guardian.state==="exposed"?"telegraph":"telegraph";
+    if(guardian.state==="attack")playSfx("boost");
+  }
+  if(guardian.state==="attack"&&player.x>32920&&player.x<guardian.arenaRight){
+    const low=guardian.cycle%2===0;
+    const laserTop=low?386:352,laserBottom=low?416:382;
+    const playerTop=player.y-(player.sliding&&player.onGround?9:PLAYER_RADIUS);
+    if(playerTop<laserBottom&&player.y+PLAYER_RADIUS>laserTop)damagePlayer(false);
+  }
+  const coreX=guardian.x-23,coreY=guardian.y+17;
+  const nearby=distance(player.x,player.y,coreX,coreY)<PLAYER_RADIUS+30;
+  if(guardian.state==="exposed"&&nearby){
+    const dash=player.boosting&&Math.abs(player.vx)>=BOOST_GATE_MIN_SPEED;
+    const stomp=player.vy>105&&player.prevY+PLAYER_RADIUS<=coreY-8;
+    if(dash||stomp){hurtGuardian();return;}
+  }
+  if(guardian.state!=="recovery"&&circleRect(player.x,player.y,PLAYER_RADIUS,
+     {x:guardian.x-38,y:guardian.y-44,w:76,h:86}))damagePlayer(false);
+}
+function drawGuardian(){
+  if(activeStage!==2||(!guardian.active&&player.x<guardian.arenaLeft-550))return;
+  if(guardian.x<cameraX-100||guardian.x>cameraX+VIEW_W+130)return;
+  ctx.save();ctx.translate(guardian.x,guardian.y+Math.sin(visualTime*3)*4);
+  if(guardian.defeated){ctx.globalAlpha=.34;ctx.rotate(.5);}
+  ctx.fillStyle="rgba(193,116,255,.2)";
+  ctx.beginPath();ctx.ellipse(0,7,90,71,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#382452";
+  ctx.beginPath();ctx.moveTo(0,-73);ctx.lineTo(55,-27);ctx.lineTo(61,34);
+  ctx.lineTo(0,65);ctx.lineTo(-61,34);ctx.lineTo(-55,-27);ctx.closePath();ctx.fill();
+  ctx.strokeStyle="#c5a0ff";ctx.lineWidth=6;ctx.stroke();
+  ctx.fillStyle="#6d4f9d";
+  ctx.beginPath();ctx.moveTo(-53,-20);ctx.lineTo(-81,-42);ctx.lineTo(-69,39);
+  ctx.lineTo(-40,30);ctx.fill();
+  ctx.beginPath();ctx.moveTo(53,-20);ctx.lineTo(81,-42);ctx.lineTo(69,39);
+  ctx.lineTo(40,30);ctx.fill();
+  ctx.fillStyle=guardian.state==="exposed"?"#9cffe4":"#ff84ab";
+  ctx.beginPath();ctx.arc(-23,17,guardian.state==="exposed"?23:16,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#1c1032";ctx.beginPath();ctx.arc(-23,17,9,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#f1d0ff";ctx.fillRect(-20,-32,40,8);ctx.restore();
+  if(guardian.defeated)return;
+  if(guardian.active&&["telegraph","attack"].includes(guardian.state)){
+    const low=guardian.cycle%2===0,top=low?386:352,h=30,firing=guardian.state==="attack";
+    ctx.fillStyle=firing?"rgba(255,76,125,.23)":"rgba(255,204,112,.12)";
+    ctx.fillRect(32920,top,guardian.arenaRight-32920,h);
+    ctx.strokeStyle=firing?"#ff538e":"#ffd388";ctx.lineWidth=firing?7:3;
+    ctx.beginPath();ctx.moveTo(32920,top+15);ctx.lineTo(guardian.arenaRight,top+15);ctx.stroke();
+    if(!firing){ctx.font="bold 13px system-ui";ctx.fillStyle="#ffe9b0";
+      ctx.fillText(low?"PULAR":"DESLIZAR",32945,top-13);}
+  }
+  ctx.fillStyle="rgba(31,12,52,.92)";
+  roundRect(guardian.arenaRight-14,282,30,160,5);ctx.fill();
+  ctx.fillStyle="#eabaff";ctx.font="bold 10px system-ui";
+  ctx.save();ctx.translate(guardian.arenaRight+4,395);ctx.rotate(-Math.PI/2);
+  ctx.fillText("ESCUDO",0,0);ctx.restore();
 }
 
 function update(dt) {
@@ -833,6 +935,7 @@ function update(dt) {
   handlePulseGates();
   handleBoostPads();
   handleSprings();
+  updateGuardian(dt);
   updateTrail(dt);
   updateParticles(dt);
   if ((player.boosting || (player.sliding && Math.abs(player.vx) > 140)) && sparkleCooldown === 0) {
@@ -842,12 +945,16 @@ function update(dt) {
   }
 
   player.x = clamp(player.x, PLAYER_RADIUS, WORLD_W - PLAYER_RADIUS);
+  if(activeStage===2&&!guardian.defeated&&player.x>guardian.arenaRight){
+    player.x=guardian.arenaRight;player.vx=Math.min(0,player.vx);
+  }
 
   if (player.y > 720) {
     damagePlayer(true);
   }
 
-  if (circleRect(player.x, player.y, PLAYER_RADIUS, goal) && !gameCleared) {
+  if (circleRect(player.x, player.y, PLAYER_RADIUS, goal) && !gameCleared
+    && (activeStage!==2 || guardian.defeated)) {
     gameCleared = true;
     emitParticles(player.x, player.y, "#fbc66d", 45, 240);
     showResults(gameTime, player.rings, player.cores);
@@ -1091,6 +1198,7 @@ function damagePlayer(fall) {
     coyoteTimer = 0;
     jumpBuffer = 0;
     player.invulnerable = 1.3;
+    if(activeStage===2&&guardian.active&&!guardian.defeated)resetGuardian();
     return;
   }
 
@@ -1123,6 +1231,7 @@ function draw() {
   drawPulseGates();
   drawSigns();
   drawObjects();
+  drawGuardian();
   drawMemoryCores();
   drawParticles();
   drawPlayer();
@@ -1654,6 +1763,19 @@ function drawHud() {
   ctx.fillText(Math.round(progress * 100) + '%', 704, 54);
   ctx.fillStyle="#f9cb83";ctx.font="bold 13px system-ui";ctx.fillText("Núcleos "+player.cores+"/3",335,80);
   if(activeStage===2){ctx.fillStyle="#ffa2be";ctx.fillText("Quedas "+player.falls,610,80);}
+  if(activeStage===2&&guardian.active&&!guardian.defeated){
+    ctx.fillStyle="rgba(15,8,35,.86)";roundRect(310,102,355,68,9);ctx.fill();
+    ctx.fillStyle="#e7ceff";ctx.font="bold 15px system-ui";
+    ctx.fillText("GUARDIÃO DO PRISMA",325,123);
+    ctx.fillStyle="#35234e";ctx.fillRect(325,131,322,12);
+    ctx.fillStyle="#bc93ff";ctx.fillRect(325,131,322*guardian.hp/guardian.maxHp,12);
+    ctx.font="12px system-ui";ctx.fillStyle="#ffe3ac";
+    ctx.fillText(guardianHint(),325,161);
+  }
+  if(activeStage===2&&guardian.defeated&&player.x>=guardian.arenaLeft){
+    ctx.fillStyle="#adffd8";ctx.font="bold 15px system-ui";
+    ctx.fillText("GUARDIÃO DERROTADO · PORTAL LIBERADO",329,115);
+  }
   if (paused) {
     ctx.fillStyle = 'rgba(5, 9, 20, .75)';
     ctx.fillRect(0, 0, VIEW_W, VIEW_H);
