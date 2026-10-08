@@ -84,15 +84,17 @@ https://github.com/jhonyoreis/velocity-rift
 - A faixa atual aparece abaixo da identidade do Flux. A tecla **N** liga/desliga a música, **M** silencia o áudio geral, e a pausa/menu interrompem a reprodução.
 - Valores de frequência/duração são validados e erros do sintetizador são isolados do loop do jogo para não travar a física.
 
-## Rotas secretas e desafios opcionais
+## Rotas secretas — escaladas verticais de tentativa única
 
-- **Seis rotas elevadas e opcionais:** três na Floresta Neon (**Copa Esmeralda**, **Ninho Luminoso** e **Horizonte Neon**) e três no Cânion Prisma (**Eco Suspenso**, **Arco Prismático** e **Zênite Violeta**).
-- Cada rota possui **duas plataformas extras**, desenhadas em turquesa para diferenciá-las do caminho principal. As rotas não substituem o chão nem exigem mudanças nos 14 abismos da segunda fase.
-- Suba até o símbolo **DESAFIO** para iniciar uma prova cronometrada de 8 a 9 segundos. Alcance o fragmento giratório acima antes de o tempo acabar. O contador aparece no HUD e perto do fragmento.
-- Concluir o desafio rende **8 cristais e 20 pontos de boost**, além de registrar a rota descoberta e seu melhor tempo.
-- Falhou ou recebeu dano? O desafio pode ser reiniciado ao retornar ao símbolo. Nenhum segredo é obrigatório para concluir a fase.
-- As seis rotas e seus melhores tempos são salvos junto ao progresso existente no `localStorage`. O menu **Conquistas** lista caminhos encontrados e ainda desconhecidos.
-- As seis provas foram simuladas com a **física normal do Flux**, usando saltos comuns sem DEBUG. Também foi verificado que as duas rotas principais continuam concluíveis sem mudanças na física.
+- As **seis rotas opcionais** continuam nas mesmas regiões: Copa Esmeralda, Ninho Luminoso, Horizonte Neon (fase 1), Eco Suspenso, Arco Prismático e Zênite Violeta (fase 2).
+- Cada percurso agora possui **nove plataformas** (em vez de duas), com subida em zigue-zague de aproximadamente **600 unidades de altura**, pedras menores e plataformas que oscilam horizontalmente. O caminho principal não foi substituído, e os 14 abismos do Cânion Prisma continuam no mesmo lugar.
+- Ao tocar o símbolo **DESAFIO**, inicia-se uma prova de 25 a 29 segundos conforme a rota. A câmera se fixa horizontalmente na torre e acompanha suavemente o Flux **para cima**, inclusive em posições com coordenada vertical negativa.
+- **Quatro inimigos exclusivos por desafio:** três drones patrulheiros e uma sentinela que mira e dispara projéteis de plasma durante a subida. A colisão com qualquer um deles, incluindo projéteis, provoca falha imediata — mesmo durante boost ou DEBUG.
+- **Tentativa única por partida:** encostar num inimigo, deixar o limite da torre, cair abaixo da entrada, receber dano ou ultrapassar o tempo bloqueia aquela rota até o jogador **reiniciar a fase**. Morrer e reaparecer no checkpoint **não reinicia** o desafio.
+- Em todos os casos, a única mensagem exibida é exatamente **“Desafio perdido”** (sem texto secundário). O fragmento fica indisponível na tentativa perdida.
+- Uma vitória concede **8 cristais e 20 de boost** e salva o fragmento e o melhor tempo normalmente. Uma falha não apaga conquistas ou segredos já registrados em tentativas anteriores.
+- O DEBUG continua útil para testar o voo, mas não salva novos segredos, recordes ou conquistas.
+- A escalada foi verificada em simulações com saltos normais, sem necessidade do voo de DEBUG; a passagem principal das duas fases foi testada separadamente.
 
 ## Sistema de conquistas
 
