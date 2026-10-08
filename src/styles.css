@@ -128,3 +128,38 @@ button:hover {
 .touch-controls { display:none; position:absolute; bottom:12px; left:12px; right:12px; justify-content:space-between; gap:6px; pointer-events:none; }
 .touch-controls button { pointer-events:auto; touch-action:none; user-select:none; padding:10px 5px; min-width:0; flex:1; background:rgba(56,220,208,.8); border:1px solid rgba(255,255,255,.35); }
 @media (pointer:coarse) { .touch-controls { display:flex; } }
+
+/* Flux identity strip and accessible audio control. */
+.game-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(94, 234, 228, 0.24);
+  border-radius: 10px;
+  background: linear-gradient(95deg, rgba(21, 65, 73, 0.78), rgba(9, 25, 41, 0.9));
+}
+.hero-identity { display: grid; gap: 3px; min-width: 0; }
+.hero-identity strong { color: #7ef8e7; font-size: 0.86rem; letter-spacing: 0.08em; }
+.hero-identity strong span { color: #f6c77b; font-weight: 650; letter-spacing: 0.02em; }
+.hero-identity small { color: #bbdfe0; font-size: 0.76rem; }
+.sound-toggle {
+  flex-shrink: 0;
+  padding: 9px 14px;
+  border: 1px solid rgba(126, 248, 231, 0.45);
+  border-radius: 8px;
+  color: #dbf7f5;
+  background: rgba(25, 65, 78, 0.82);
+  font-size: 0.83rem;
+}
+.sound-toggle:hover { background: #285b65; }
+.sound-toggle:focus-visible { outline: 3px solid #f6c77b; outline-offset: 3px; }
+@media (max-width: 480px) {
+  .game-toolbar { padding: 10px; }
+  .hero-identity strong { font-size: 0.74rem; }
+  .hero-identity small { font-size: 0.68rem; }
+  .sound-toggle { width: 100%; }
+}
