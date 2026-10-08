@@ -706,7 +706,6 @@ function collectItems() {
   }
 
   for (const core of memoryCores) {
-    if (!core.active && core.id < 0) continue;
     if (core.active && distance(player.x, player.y, core.x, core.y) < PLAYER_RADIUS + core.r) {
       core.active = false;
       player.cores += 1;
