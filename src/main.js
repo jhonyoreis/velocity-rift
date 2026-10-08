@@ -185,7 +185,7 @@ const guardian={
   x:33360,y:336,hp:3,maxHp:3,active:false,defeated:false,
   state:"telegraph",timer:0,cycle:0,arenaLeft:32710,arenaRight:33670,
   aimX:32910,aimY:392,lockAim:false,
-  pickups:[],arenaFloor:410
+  pickups:[],arenaFloor:410,introDuration:1.85
 };
 const GUARDIAN_INTRO_SECONDS=1.85;
 const GUARDIAN_COLLAPSE_SECONDS=2.75;
@@ -776,6 +776,7 @@ function loop(now) {
 function resetGuardian(){
   Object.assign(guardian,{hp:guardian.maxHp,active:false,defeated:false,
     state:"telegraph",timer:0,cycle:0,lockAim:false,
+    introDuration:GUARDIAN_INTRO_SECONDS,
     aimX:guardian.arenaLeft+140,aimY:392,
     pickups:[
       {x:32810,y:375,r:15,active:true,cooldown:0},
@@ -804,7 +805,7 @@ function guardianHint(){
   if(guardian.state==="attack")return "LASER! DESVIE DA LINHA DE DISPARO";
   if(guardian.state==="exposed")
     return "NÚCLEO "+guardianCorePosition().name+" · BOOST OU GOLPE DESCENDENTE";
-  return "ESCUDO RECONFIGURANDO...";
+  return "NÚCLEO DESLOCADO: "+guardianCorePosition().name+" · RECONFIGURANDO";
 }
 function guardianLaserLine(){
   const ox=guardian.x-21,oy=guardian.y-21;
@@ -829,8 +830,9 @@ function distanceToLaser(px,py,line){
   const amount=clamp(((px-line.x1)*dx+(py-line.y1)*dy)/distance2,0,1);
   return Math.hypot(px-(line.x1+dx*amount),py-(line.y1+dy*amount));
 }
-function beginGuardianFight(){
+function beginGuardianFight(quickRetry=false){
   guardian.active=true;guardian.state="intro";guardian.timer=0;
+  guardian.introDuration=quickRetry?.85:GUARDIAN_INTRO_SECONDS;
   guardian.lockAim=false;
   guardian.aimX=player.x;guardian.aimY=player.y;
   guardianFx.entry=1;
@@ -851,15 +853,20 @@ function hurtGuardian(){
   guardian.lockAim=false;
   guardian.timer=0;
   guardianFx.impact=1;
-  guardianFx.flash=guardian.hp===0?.82:.46;
-  pushGuardianRing(previousCore.x,previousCore.y,
-    guardian.hp===0?"#fff4bb":"#89ffee",guardian.hp===0?125:76,1);
+  // First crack: turquoise. Second: volatile amber. Finale: golden rupture.
+  const impactColor=guardian.hp===0?"#fff0bf":
+    guardian.hp===1?"#ffca89":"#a0ffee";
+  guardianFx.flash=guardian.hp===0?.82:guardian.hp===1?.60:.42;
+  pushGuardianRing(previousCore.x,previousCore.y,impactColor,
+    guardian.hp===0?125:guardian.hp===1?94:70,1);
   spawnGuardianShards(previousCore.x,previousCore.y,
-    guardian.hp===0?60:28,guardian.hp===0?270:180);
-  emitParticles(previousCore.x,previousCore.y,
-    guardian.hp===0?"#fff0bf":"#9affef",guardian.hp===0?48:24,210);
-  shakeTime=guardian.hp===0?.46:.22;
-  playSfx(guardian.hp===0?"boss-collapse":"boss-hit");
+    guardian.hp===0?60:guardian.hp===1?38:25,
+    guardian.hp===0?270:guardian.hp===1?210:160);
+  emitParticles(previousCore.x,previousCore.y,impactColor,
+    guardian.hp===0?48:guardian.hp===1?33:22,210);
+  shakeTime=guardian.hp===0?.46:guardian.hp===1?.29:.17;
+  playSfx(guardian.hp===0?"boss-collapse":
+    guardian.hp===1?"boss-crack":"boss-hit");
 
   if(guardian.hp===0){
     guardian.state="collapse";
@@ -910,7 +917,7 @@ function updateGuardian(dt){
   guardian.timer+=dt;
   if(guardian.state==="intro"){
     // Cinematic introduction, with clear view and no damaging beams.
-    if(guardian.timer>=GUARDIAN_INTRO_SECONDS){
+    if(guardian.timer>=guardian.introDuration){
       guardian.state="telegraph";guardian.timer=0;guardian.lockAim=false;
       pushGuardianRing(guardian.x,guardian.y,"#8bffe9",85,1);
       playSfx("boss-alert");
@@ -1052,7 +1059,7 @@ function drawGuardianCinematic(){
   const collapsing=guardian.state==="collapse";
   if(!arriving&&!collapsing)return;
   const time=guardian.timer;
-  const duration=arriving?GUARDIAN_INTRO_SECONDS:GUARDIAN_COLLAPSE_SECONDS;
+  const duration=arriving?guardian.introDuration:GUARDIAN_COLLAPSE_SECONDS;
   const progress=clamp(time/duration,0,1);
   // Fade in, then fade out to restore visibility before gameplay resumes.
   const alpha=arriving?Math.min(1,time/.30,(duration-time)/.34):
@@ -1102,7 +1109,7 @@ function drawGuardian(){
   // Angular guardian body and expressive repositioning crystal.
   ctx.save();ctx.translate(guardian.x,guardian.y+Math.sin(visualTime*3)*4);
   if(guardian.state==="intro"){
-    const phase=clamp(guardian.timer/GUARDIAN_INTRO_SECONDS,0,1);
+    const phase=clamp(guardian.timer/guardian.introDuration,0,1);
     const smooth=1-Math.pow(1-phase,3);
     ctx.translate(0,-(1-smooth)*220);
     ctx.rotate((1-smooth)*-.24);
@@ -1610,7 +1617,7 @@ function damagePlayer(fall) {
       player.prevX=player.x;player.prevY=player.y;
       cameraX=guardian.arenaLeft;cameraY=0;
       resetGuardian();
-      beginGuardianFight();
+      beginGuardianFight(true);
     }
     return;
   }
@@ -2420,6 +2427,7 @@ function playSfx(kind) {
     "boss-alert": [220, 410, 0.29, "triangle", 0.031],
     "boss-enter": [105, 385, 0.95, "sawtooth", 0.026],
     "boss-collapse": [625, 75, 1.45, "sawtooth", 0.047],
+    "boss-crack": [750, 135, 0.48, "sawtooth", 0.036],
     "boss-hit": [600, 140, 0.34, "sawtooth", 0.043],
     "boss-win": [310, 1050, 0.7, "sine", 0.055],
     hurt:       [270, 115, 0.24, "triangle", 0.045],
