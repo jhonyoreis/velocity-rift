@@ -581,7 +581,7 @@ function defaultStageProgress() {
 }
 function defaultProgress() {
   return {stage1:defaultStageProgress(),stage2:defaultStageProgress(),
-    secrets:{stage1:[],stage2:[]},achievements:{}};
+    secrets:{stage1:[],stage2:[]},secretTimes:{stage1:{},stage2:{}},achievements:{}};
 }
 function loadProgress() {
   const result=defaultProgress();
@@ -604,6 +604,11 @@ function loadProgress() {
       const existing=saved?.secrets?.[key];
       if(Array.isArray(existing))
         result.secrets[key]=[...new Set(existing.filter(id=>allowed.includes(id)))];
+      for(const id of allowed){
+        const time=Number(saved?.secretTimes?.[key]?.[id]);
+        if(Number.isFinite(time)&&time>0&&time<10000)
+          result.secretTimes[key][id]=time;
+      }
     }
     for(const item of ACHIEVEMENTS)
       if(saved?.achievements?.[item.id]===true)result.achievements[item.id]=true;
@@ -1681,6 +1686,136 @@ function updateEnemies(dt) {
   }
 }
 
+// ---------------------- Optional routes & achievements ----------------------
+function announce(title,subtitle=""){
+  notification.title=title;notification.subtitle=subtitle;notification.timer=3.1;
+}
+function grantAchievement(id){
+  if(debugUsedThisRun||progress.achievements[id])return false;
+  const item=ACHIEVEMENTS.find(a=>a.id===id);
+  if(!item)return false;
+  progress.achievements[id]=true;
+  storeProgress();
+  announce("CONQUISTA: "+item.title,item.description);
+  playSfx("achievement");
+  return true;
+}
+function updateRouteAchievements(){
+  if(debugUsedThisRun)return;
+  const one=progress.secrets.stage1.length,two=progress.secrets.stage2.length;
+  if(one+two>0)grantAchievement("explorer");
+  if(one===3)grantAchievement("forestSecrets");
+  if(two===3)grantAchievement("canyonSecrets");
+  if(one+two===6)grantAchievement("sixSecrets");
+}
+function grantClearAchievements(grade,cores){
+  const stage=activeStage;
+  grantAchievement(stage===1?"first":"canyon");
+  if(grade==="S")grantAchievement(stage===1?"s1":"s2");
+  if(player.falls===0)grantAchievement(stage===1?"zero1":"zero2");
+  if(cores===3)grantAchievement(stage===1?"cores1":"cores2");
+  if(stage===2&&guardian.defeated&&!bossDamagedThisRun)
+    grantAchievement("untouched");
+}
+function updateSecretTrials(dt){
+  for(const trial of secretTrials){
+    if(trial.completed)continue;
+    const atStart=distance(player.x,player.y,trial.startX,trial.startY)<34;
+    if(!atStart)trial.armed=true;
+    if(!trial.active&&trial.armed&&atStart){
+      trial.active=true;trial.armed=false;trial.failed=false;trial.elapsed=0;
+      announce("DESAFIO: "+trial.name,trial.limit+"s para alcançar o fragmento!");
+      playSfx("secret-start");
+    }
+    if(!trial.active)continue;
+    trial.elapsed+=dt;
+    if(trial.elapsed>=trial.limit){
+      trial.active=false;trial.failed=true;
+      announce("TEMPO ESGOTADO","Volte ao símbolo de início para tentar de novo.");
+      continue;
+    }
+    if(distance(player.x,player.y,trial.targetX,trial.targetY)<32){
+      trial.active=false;trial.completed=true;
+      player.rings+=8;
+      player.boost=Math.min(100,player.boost+20);
+      emitParticles(trial.targetX,trial.targetY,"#bc9cff",26,165);
+      playSfx("secret-win");
+      announce("ROTA DESCOBERTA: "+trial.name,
+        "Fragmento recuperado · +8 cristais · +20 boost");
+      if(!debugUsedThisRun){
+        const key="stage"+activeStage;
+        if(!progress.secrets[key].includes(trial.id))
+          progress.secrets[key].push(trial.id);
+        const old=progress.secretTimes[key][trial.id];
+        if(!old||trial.elapsed<old)progress.secretTimes[key][trial.id]=trial.elapsed;
+        storeProgress();
+        updateRouteAchievements();
+      }
+    }
+  }
+}
+function interruptSecretTrials(){
+  for(const trial of secretTrials){
+    if(trial.active){
+      trial.active=false;trial.failed=true;trial.armed=false;trial.elapsed=0;
+    }
+  }
+}
+function drawSecretTrials(){
+  for(const trial of secretTrials){
+    if(trial.startX>=cameraX-90&&trial.startX<=cameraX+VIEW_W+90){
+      ctx.save();ctx.translate(trial.startX,trial.startY);
+      ctx.strokeStyle=trial.completed?"#ffe29a":"#6dffe7";
+      ctx.lineWidth=2.5;
+      ctx.rotate(Math.PI/4);
+      ctx.strokeRect(-13,-13,26,26);
+      ctx.rotate(-Math.PI/4);
+      ctx.fillStyle=trial.completed?"#ffe29a":"#baffef";
+      ctx.beginPath();ctx.arc(0,0,5+Math.sin(visualTime*4)**2*2,0,Math.PI*2);ctx.fill();
+      ctx.font="bold 11px system-ui";ctx.textAlign="center";
+      ctx.fillText(trial.completed?"DESCOBERTO":"DESAFIO",0,-29);
+      ctx.textAlign="left";ctx.restore();
+    }
+    if(trial.targetX>=cameraX-80&&trial.targetX<=cameraX+VIEW_W+80){
+      ctx.save();ctx.translate(trial.targetX,trial.targetY);
+      const spin=visualTime*1.4;
+      const opacity=trial.completed?.25:trial.active?1:.65;
+      ctx.globalAlpha=opacity;
+      ctx.rotate(spin);
+      ctx.fillStyle="#b99aff";ctx.strokeStyle="#fff1b9";ctx.lineWidth=2.5;
+      ctx.beginPath();ctx.moveTo(0,-17);ctx.lineTo(13,0);
+      ctx.lineTo(0,17);ctx.lineTo(-13,0);ctx.closePath();
+      ctx.fill();ctx.stroke();
+      ctx.restore();
+      if(trial.active){
+        ctx.textAlign="center";ctx.font="bold 13px system-ui";
+        ctx.fillStyle="#ffe5ab";
+        ctx.fillText(Math.max(0,trial.limit-trial.elapsed).toFixed(1)+"s",
+          trial.targetX,trial.targetY-32);
+        ctx.textAlign="left";
+      }
+    }
+  }
+}
+function refreshAchievementsView(){
+  const unlocked=ACHIEVEMENTS.filter(a=>progress.achievements[a.id]).length;
+  const total=ACHIEVEMENTS.length;
+  const counter=document.querySelector("#achievementsCount");
+  if(counter)counter.textContent=unlocked+"/"+total+" conquistas desbloqueadas";
+  const summary=document.querySelector("#secretCollection");
+  if(summary)summary.textContent="Rotas: Floresta "+
+    progress.secrets.stage1.length+"/3 · Cânion "+
+    progress.secrets.stage2.length+"/3";
+  const list=document.querySelector("#achievementList");
+  if(list)list.innerHTML=ACHIEVEMENTS.map(a=>{
+    const unlocked=progress.achievements[a.id]===true;
+    return '<div class="achievement-entry'+(unlocked?' achieved':' locked')+'">'+
+      '<span class="achievement-symbol" aria-hidden="true">'+(unlocked?'✦':'◇')+'</span>'+
+      '<div><strong>'+a.title+'</strong><small>'+a.description+'</small></div>'+
+      '<span class="achievement-status">'+(unlocked?'CONCLUÍDA':'PENDENTE')+'</span></div>';
+  }).join("");
+}
+
 function collectItems() {
   for (const ring of rings) {
     if (!ring.active) continue;
@@ -1778,6 +1913,7 @@ function updateCheckpoints() {
 function damagePlayer(fall) {
   if (debugMode || (player.invulnerable > 0 && !fall)) return;
   runDamageCount++;
+  interruptSecretTrials();
   if(activeStage===2&&guardian.active&&!guardian.defeated)bossDamagedThisRun=true;
   if (fall) player.falls += 1;
   shakeTime = 0.22;
