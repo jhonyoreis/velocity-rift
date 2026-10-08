@@ -13,6 +13,10 @@ const keys = new Set();
 let lastTime = 0;
 let accumulator = 0;
 const FIXED_DT = 1 / 120;
+const BOOST_MAX_SPEED = 590;
+const BOOST_ACCELERATION = 850;
+const BOOST_GATE_MIN_SPEED = 510;
+const BOOST_SMASH_MIN_SPEED = 550;
 // A short burst of exponential momentum downhill, bounded for readable gameplay.
 const SLIDE_DOWNHILL_CAP = 870;
 const CAMERA_IDLE_ANCHOR = 0.42;
@@ -274,7 +278,8 @@ function update(dt) {
   const accel = player.onGround ? (player.sliding ? 390 : 1280) : 660;
   const friction = player.onGround ? (player.sliding ? 180 : 1050) : 110;
   const normalMax = 480;
-  const boostMax = 790;
+  const boostMax = BOOST_MAX_SPEED;
+  const speedBeforeInput = Math.abs(player.vx);
 
   if (left) {
     player.vx -= accel * dt;
@@ -291,7 +296,7 @@ function update(dt) {
   const boosting = boost && player.boost > 0 && Math.abs(player.vx) > 50;
   player.boosting = boosting;
   if (boosting) {
-    player.vx += player.facing * 1750 * dt;
+    player.vx += player.facing * BOOST_ACCELERATION * dt;
     player.boost = Math.max(0, player.boost - 34 * dt);
     player.trail.push({ x: player.x, y: player.y, life: 0.24 });
   }
@@ -310,9 +315,12 @@ function update(dt) {
   if (downhill) {
     player.vx = clamp(player.vx, -SLIDE_DOWNHILL_CAP, SLIDE_DOWNHILL_CAP);
   } else if (Math.abs(player.vx) > maxSpeed) {
-    // Do not snap from hill speed back to walking speed in a single frame.
-    player.vx = approach(player.vx, Math.sign(player.vx) * maxSpeed,
-      (player.sliding ? 880 : 1800) * dt);
+    // Preserve momentum inherited from a downhill slide, but never generate
+    // speed above the boost cap through input/boost acceleration alone.
+    const braking = player.sliding ? 880 : 1800;
+    const carriedSpeed = Math.max(maxSpeed, speedBeforeInput - braking * dt);
+    player.vx = Math.sign(player.vx) *
+      Math.min(Math.abs(player.vx), carriedSpeed);
   } else {
     player.vx = clamp(player.vx, -maxSpeed, maxSpeed);
   }
@@ -446,7 +454,7 @@ function resolveWalls() {
   for (const wall of walls) {
     if (!wall.active || !circleRect(player.x, player.y, PLAYER_RADIUS, wall)) continue;
     if (wall.kind === "break-gate") {
-      if (player.boosting && Math.abs(player.vx) > 510) {
+      if (player.boosting && Math.abs(player.vx) > BOOST_GATE_MIN_SPEED) {
         wall.active = false;
         player.vx += player.facing * 60;
         shakeTime = 0.13;
@@ -476,7 +484,7 @@ function updateEnemies(dt) {
     if (!circleRect(player.x, player.y, PLAYER_RADIUS, box)) continue;
 
     const stomp = player.prevY + PLAYER_RADIUS <= box.y + 8 && player.vy > 80;
-    const smash = player.boosting && Math.abs(player.vx) > 570;
+    const smash = player.boosting && Math.abs(player.vx) > BOOST_SMASH_MIN_SPEED;
 
     if (stomp || smash) {
       bad.alive = false;
