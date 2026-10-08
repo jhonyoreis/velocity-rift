@@ -25,6 +25,7 @@
             <div class="menu-actions">
               <button id="startButton" class="primary-action" type="button">Jogar fase 1 <span aria-hidden="true">➜</span></button>
               <button id="selectStagesButton" class="secondary-action" type="button">Selecionar fases</button>
+              <button id="achievementsButton" class="secondary-action" type="button">✦ Conquistas</button>
             </div>
             <p class="menu-help">Corrida + slide + boost · Progresso salvo neste navegador</p>
           </section>
@@ -63,6 +64,18 @@
             </div>
             <div class="menu-actions menu-actions-compact">
               <button id="backToMainButton" class="secondary-action" type="button">← Voltar ao menu</button>
+              <button id="stageAchievementsButton" class="secondary-action" type="button">✦ Conquistas</button>
+            </div>
+          </section>
+          <section id="achievementsMenu" class="menu-screen achievement-screen" aria-labelledby="achievementsHeading" hidden>
+            <div class="menu-eyebrow">COLEÇÃO DO FLUX</div>
+            <h2 id="achievementsHeading">Conquistas</h2>
+            <p id="achievementsCount" class="menu-subtitle" aria-live="polite">0/13 conquistas desbloqueadas</p>
+            <p id="secretCollection" class="achievement-route-summary">Rotas: Floresta 0/3 · Cânion 0/3</p>
+            <p class="achievement-instructions">Suba nas plataformas luminosas, toque no símbolo DESAFIO e alcance o fragmento antes do tempo acabar. Rotas são opcionais.</p>
+            <div id="achievementList" class="achievement-list" aria-label="Lista de conquistas"></div>
+            <div class="menu-actions menu-actions-compact">
+              <button id="achievementsBackButton" class="secondary-action" type="button">← Voltar ao menu</button>
             </div>
           </section>
           <section id="resultMenu" class="menu-screen" aria-labelledby="resultHeading" hidden>
@@ -73,12 +86,14 @@
               <div><small>Tempo</small><strong id="resultTime">--</strong></div>
               <div><small>Melhor tempo</small><strong id="resultBest">--</strong></div>
               <div><small>Cristais</small><strong id="resultCrystals">0</strong></div>
+              <div><small>Rotas secretas</small><strong id="resultSecrets">0/3</strong></div>
               <div><small>Conclusões</small><strong id="resultClears">0</strong></div>
             </div>
             <p id="resultMessage" class="menu-subtitle">Fase concluída!</p>
             <div class="menu-actions">
               <button id="retryButton" class="primary-action" type="button">Jogar novamente <span aria-hidden="true">➜</span></button>
               <button id="resultsStagesButton" class="secondary-action" type="button">Ver fases</button>
+              <button id="resultsAchievementsButton" class="secondary-action" type="button">✦ Conquistas</button>
               <button id="resultsMainButton" class="secondary-action" type="button">Menu principal</button>
             </div>
           </section>
