@@ -182,7 +182,7 @@ function resetGame() {
   player.onGround = false;
   player.ground = null;
   player.rings = 0;
-  player.boost = 100;
+  player.boost = 0;
   player.invulnerable = 0;
   player.trail = [];
   player.sliding = false;
@@ -260,11 +260,11 @@ function update(dt) {
   jumpBuffer = Math.max(0, jumpBuffer - dt);
   coyoteTimer = player.onGround ? 0.11 : Math.max(0, coyoteTimer - dt);
 
-  player.sliding = slide && player.onGround && Math.abs(player.vx) > 145;
-  const accel = player.onGround ? (player.sliding ? 620 : 2050) : 880;
-  const friction = player.onGround ? (player.sliding ? 260 : 1550) : 130;
-  const normalMax = 650;
-  const boostMax = 1120;
+  player.sliding = slide && player.onGround;
+  const accel = player.onGround ? (player.sliding ? 390 : 1280) : 660;
+  const friction = player.onGround ? (player.sliding ? 180 : 1050) : 110;
+  const normalMax = 480;
+  const boostMax = 790;
 
   if (left) {
     player.vx -= accel * dt;
@@ -278,13 +278,12 @@ function update(dt) {
     player.vx = approach(player.vx, 0, friction * dt);
   }
 
-  const boosting = boost && player.boost > 0 && Math.abs(player.vx) > 80;
+  const boosting = boost && player.boost > 0 && Math.abs(player.vx) > 50;
+  player.boosting = boosting;
   if (boosting) {
-    player.vx += player.facing * 3100 * dt;
-    player.boost = Math.max(0, player.boost - 42 * dt);
+    player.vx += player.facing * 1750 * dt;
+    player.boost = Math.max(0, player.boost - 34 * dt);
     player.trail.push({ x: player.x, y: player.y, life: 0.24 });
-  } else {
-    player.boost = Math.min(100, player.boost + (player.onGround ? 16 : 9) * dt);
   }
 
   const maxSpeed = boosting ? boostMax : normalMax;
@@ -292,7 +291,7 @@ function update(dt) {
 
   if (jumpBuffer > 0 && coyoteTimer > 0) {
     player.sliding = false;
-    player.vy = -710 - Math.min(170, Math.abs(player.vx) * 0.14);
+    player.vy = -660 - Math.min(90, Math.abs(player.vx) * 0.09);
     player.onGround = false;
     player.ground = null;
     jumpBuffer = 0;
@@ -300,8 +299,8 @@ function update(dt) {
   }
 
   if (!jump && player.vy < -160) player.vy += 1450 * dt;
-  player.vy += 2100 * dt;
-  player.vy = Math.min(player.vy, 1500);
+  player.vy += 1850 * dt;
+  player.vy = Math.min(player.vy, 1250);
   player.x += player.vx * dt;
   player.y += player.vy * dt;
 
@@ -317,7 +316,7 @@ function update(dt) {
 
   player.x = clamp(player.x, PLAYER_RADIUS, WORLD_W - PLAYER_RADIUS);
 
-  if (player.y > 620) {
+  if (player.y > 720) {
     damagePlayer(true);
   }
 
@@ -327,7 +326,7 @@ function update(dt) {
       bestTime = gameTime;
       try { localStorage.setItem('velocity-rift-best-time', String(bestTime)); } catch (_) { /* storage may be disabled */ }
     }
-    const grade = gameTime < 35 ? 'S' : gameTime < 50 ? 'A' : gameTime < 75 ? 'B' : 'C';
+    const grade = gameTime < 75 ? 'S' : gameTime < 100 ? 'A' : gameTime < 145 ? 'B' : 'C';
     overlay.querySelector("h1").textContent = `Stage Clear · ${grade}`;
     overlay.querySelector("p").textContent =
       `Tempo ${gameTime.toFixed(2)}s | Recorde ${bestTime.toFixed(2)}s | Coletáveis ${player.rings}`;
@@ -371,7 +370,7 @@ function resolveTracks() {
     player.ground = best.floor;
 
     const slope = (best.floor.y2 - best.floor.y1) / Math.max(1, best.floor.x2 - best.floor.x1);
-    player.vx += clamp(slope * 320, -170, 170) * FIXED_DT;
+    player.vx += clamp(slope * 230, -115, 115) * FIXED_DT;
   } else {
     player.onGround = false;
     player.ground = null;
@@ -414,13 +413,13 @@ function updateEnemies(dt) {
     if (!circleRect(player.x, player.y, PLAYER_RADIUS, box)) continue;
 
     const stomp = player.prevY + PLAYER_RADIUS <= box.y + 8 && player.vy > 80;
-    const smash = Math.abs(player.vx) > 820 || keys.has("shift") || keys.has("j");
+    const smash = player.boosting && Math.abs(player.vx) > 570;
 
     if (stomp || smash) {
       bad.alive = false;
       player.vy = stomp ? -520 : player.vy;
       player.vx += player.facing * 80;
-      player.boost = Math.min(100, player.boost + 15);
+      // Enemies do not refill boost.
     } else {
       damagePlayer(false);
     }
@@ -433,7 +432,7 @@ function collectItems() {
     if (distance(player.x, player.y, ring.x, ring.y) < PLAYER_RADIUS + ring.r) {
       ring.active = false;
       player.rings += 1;
-      player.boost = Math.min(100, player.boost + 2.5);
+      // Crystals grant score only.
     }
   }
 
@@ -441,8 +440,8 @@ function collectItems() {
     if (!boostOrb.active) continue;
     if (distance(player.x, player.y, boostOrb.x, boostOrb.y) < PLAYER_RADIUS + boostOrb.r) {
       boostOrb.active = false;
-      player.boost = Math.min(100, player.boost + 38);
-      player.vx += player.facing * 120;
+      player.boost = Math.min(100, player.boost + 55);
+      // Orb grants energy, not speed.
     }
   }
 }
@@ -461,7 +460,7 @@ function handleBoostPads() {
     if (circleRect(player.x, player.y, PLAYER_RADIUS, pad)) {
       player.vx = Math.max(player.vx, pad.power);
       player.facing = 1;
-      player.boost = Math.min(100, player.boost + 12);
+      // Pads do not replenish energy.
       player.trail.push({ x: player.x, y: player.y, life: 0.3 });
     }
   }
@@ -500,7 +499,8 @@ function damagePlayer(fall) {
     player.vx = 0;
     player.vy = 0;
     player.rings = Math.max(0, Math.floor(player.rings / 2));
-    player.boost = 70;
+    player.boost = 0;
+    boostOrbs.forEach(item => { if (item.x > respawn.x) item.active = true; });
     coyoteTimer = 0;
     jumpBuffer = 0;
     player.invulnerable = 1.3;
@@ -508,7 +508,7 @@ function damagePlayer(fall) {
   }
 
   player.rings = Math.max(0, player.rings - 8);
-  player.vx = -player.facing * 430;
+  player.vx = -player.facing * 250;
   player.vy = -450;
   player.invulnerable = 1.1;
 }
@@ -715,7 +715,7 @@ function drawPlayer() {
     ctx.globalAlpha = 0.45;
   }
 
-  const speedGlow = clamp(Math.abs(player.vx) / 1000, 0, 1);
+  const speedGlow = clamp(Math.abs(player.vx) / 790, 0, 1);
   if (player.sliding) {
     ctx.fillStyle = "rgba(246, 172, 67, .35)";
     ctx.beginPath();
