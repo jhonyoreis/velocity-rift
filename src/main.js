@@ -544,7 +544,10 @@ function draw() {
 
   drawSky();
   drawBackground();
+  drawForest();
   drawTracks();
+  drawTunnels();
+  drawSigns();
   drawObjects();
   drawPlayer();
 
@@ -595,42 +598,96 @@ function drawBackground() {
   }
 }
 
+function drawForest() {
+  // Procedural shapes repeat without external assets and are culled off-screen.
+  const first = Math.floor(cameraX / 235) - 2;
+  const last = Math.ceil((cameraX + VIEW_W) / 235) + 2;
+  for (let i = first; i <= last; i += 1) {
+    const x = i * 235 + 115, ground = groundY(x);
+    if (ground == null) continue;
+    const height = 55 + ((i % 4 + 4) % 4) * 21;
+    ctx.fillStyle = i % 2 ? "#123e42" : "#17555a";
+    ctx.fillRect(x - 6, ground - height + 18, 12, height);
+    ctx.fillStyle = i % 3 ? "#18766f" : "#22918b";
+    ctx.beginPath();
+    ctx.moveTo(x - 47, ground - height + 20);
+    ctx.lineTo(x, ground - height - 30);
+    ctx.lineTo(x + 47, ground - height + 20);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "#5bf0df";
+    ctx.fillRect(x - 3, ground - height + 4, 6, 6);
+  }
+}
 function drawTracks() {
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
-
   for (const floor of tracks) {
-    const isUpper = floor.kind.includes("upper");
-    ctx.strokeStyle = isUpper ? "#78f2ff" : "#7df28d";
-    ctx.lineWidth = 18;
+    if (floor.x2 < cameraX - 120 || floor.x1 > cameraX + VIEW_W + 120) continue;
+    ctx.strokeStyle = floor.kind === "boost" ? "#f6ac43" : floor.kind === "finale" ? "#b785ef" : "#38dcd0";
+    ctx.lineWidth = 19;
     ctx.beginPath();
     ctx.moveTo(floor.x1, floor.y1);
     ctx.lineTo(floor.x2, floor.y2);
     ctx.stroke();
-
-    ctx.strokeStyle = "rgba(4, 9, 11, 0.42)";
-    ctx.lineWidth = 5;
+    ctx.strokeStyle = "#14444d";
+    ctx.lineWidth = 8;
     ctx.beginPath();
     ctx.moveTo(floor.x1, floor.y1 + 5);
     ctx.lineTo(floor.x2, floor.y2 + 5);
     ctx.stroke();
   }
-
   for (const wall of walls) {
-    if (!wall.active || wall.kind === "void-floor") continue;
-    ctx.fillStyle = wall.kind === "break-gate" ? "#e06f58" : "#27444d";
+    if (!wall.active || wall.x < cameraX - 80 || wall.x > cameraX + VIEW_W + 80) continue;
+    ctx.fillStyle = wall.kind === "break-gate" ? "#f6ac43" : "#324d59";
     roundRect(wall.x, wall.y, wall.w, wall.h, 6);
     ctx.fill();
     if (wall.kind === "break-gate") {
-      ctx.fillStyle = "#ffe2a8";
-      ctx.font = "bold 12px Inter, sans-serif";
-      ctx.fillText("BOOST", wall.x + 2, wall.y + wall.h / 2);
+      ctx.fillStyle = "#101c36";
+      ctx.font = "bold 12px system-ui";
+      ctx.fillText("BOOST", wall.x + 1, wall.y + 39);
     }
   }
 }
-
+function drawTunnels() {
+  for (const tunnel of tunnels) {
+    if (tunnel.x > cameraX + VIEW_W + 80 || tunnel.x + tunnel.w < cameraX - 80) continue;
+    ctx.fillStyle = "#1a384e";
+    roundRect(tunnel.x, tunnel.ground - 102, tunnel.w, 76, 9);
+    ctx.fill();
+    ctx.strokeStyle = "#f6ac43";
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(tunnel.x, tunnel.ground - 26);
+    ctx.lineTo(tunnel.x + tunnel.w, tunnel.ground - 26);
+    ctx.stroke();
+    ctx.fillStyle = "#ffe0a6";
+    ctx.font = "bold 14px system-ui";
+    ctx.fillText("↓ SLIDE", tunnel.x + 22, tunnel.ground - 59);
+  }
+}
+function drawSigns() {
+  for (const sign of signs) {
+    if (sign.x < cameraX - 220 || sign.x > cameraX + VIEW_W + 100) continue;
+    const ground = groundY(sign.x);
+    if (ground == null) continue;
+    ctx.fillStyle = "rgba(16, 28, 54, 0.94)";
+    roundRect(sign.x, ground - 117, 210, 66, 8);
+    ctx.fill();
+    ctx.strokeStyle = "#38dcd0";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(sign.x + 2, ground - 115, 206, 62);
+    ctx.fillStyle = "#f6ac43";
+    ctx.font = "bold 16px system-ui";
+    ctx.fillText(sign.title, sign.x + 12, ground - 88);
+    ctx.fillStyle = "#f3fbff";
+    ctx.font = "11px system-ui";
+    ctx.fillText(sign.hint, sign.x + 12, ground - 67);
+  }
+}
 function drawObjects() {
   checkpoints.forEach((point, index) => {
+    if (point.x < cameraX - 80 || point.x > cameraX + VIEW_W + 80) return;
     ctx.fillStyle = index <= checkpointIndex ? '#38dcd0' : '#f6ac43';
     ctx.fillRect(point.x, point.y - 64, 5, 64);
     ctx.beginPath();
@@ -801,6 +858,18 @@ function drawHud() {
   ctx.font = "12px Inter, sans-serif";
   ctx.fillStyle = "#abd8dc";
   ctx.fillText(`Recorde ${bestTime ? bestTime.toFixed(2) + 's' : '--'}`, VIEW_W - 158, 58);
+  const progress = clamp(player.x / goal.x, 0, 1);
+  ctx.fillStyle = 'rgba(5, 9, 20, .64)';
+  roundRect(325, 18, 420, 21, 7);
+  ctx.fill();
+  ctx.fillStyle = '#f6ac43';
+  roundRect(332, 24, Math.max(0.01, 406 * progress), 8, 4);
+  ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 11px system-ui';
+  const section = chapters.slice().reverse().find(part => player.x >= part.x);
+  ctx.fillText(section ? section.title : 'PRIMEIRO IMPULSO', 335, 54);
+  ctx.fillText(Math.round(progress * 100) + '%', 704, 54);
   if (paused) {
     ctx.fillStyle = 'rgba(5, 9, 20, .75)';
     ctx.fillRect(0, 0, VIEW_W, VIEW_H);
