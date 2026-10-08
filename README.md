@@ -63,6 +63,15 @@ https://github.com/jhonyoreis/velocity-rift
 - Controle **Som ligado / Som desligado** abaixo do jogo ou tecla **M**. A preferência fica salva no navegador quando o armazenamento está disponível.
 - Se o navegador não suportar áudio, a jogabilidade continua funcionando normalmente.
 
+## Circuito Eletro-Neon e trilha original
+
+- Cinco barreiras temporizadas: eletropulso vermelho (perigo), aviso âmbar e janela verde livre.
+- Três núcleos de memória opcionais em trajetórias que estimulam pulos de precisão.
+- HUD de núcleos e recorde de núcleos recuperados na tela de resultados.
+- Trilha original **Neon Canopy** em 108 BPM, sintetizada no próprio navegador: melodia, baixo, harmonia e percussão, com variações por setor.
+- Música sem arquivos externos: só toca durante o jogo, respeita pausa, menu, som geral e o novo controle de música.
+- Tecla **N** ativa/desativa apenas a trilha. Preferência salva localmente.
+
 ## Menu e progressão
 
 - Menu principal com início rápido, melhor tempo, melhor classificação e status da primeira fase.
