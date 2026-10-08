@@ -802,7 +802,9 @@ function guardianLaserLine(){
   if(dy<-.0001)reach=Math.min(reach,(93-oy)/dy);
   if(dy>.0001)reach=Math.min(reach,(guardian.arenaFloor-12-oy)/dy);
   reach=Math.max(0,reach);
-  return {x1:ox,y1:oy,x2:ox+dx*reach,y2:oy+dy*reach};
+  return {x1:ox,y1:oy,
+    x2:clamp(ox+dx*reach,guardian.arenaLeft+8,guardian.arenaRight-8),
+    y2:clamp(oy+dy*reach,93,guardian.arenaFloor-12)};
 }
 function distanceToLaser(px,py,line){
   const dx=line.x2-line.x1,dy=line.y2-line.y1;
