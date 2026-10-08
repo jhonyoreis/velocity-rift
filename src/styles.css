@@ -341,3 +341,12 @@ button:hover {
 .secret-route-entry strong{font-size:.76rem;color:#dcf6f7;}
 .secret-route-entry small{font-size:.67rem;color:#badfe0;}
 @media(max-width:590px){.secret-route-list{grid-template-columns:1fr;max-height:118px;}}
+
+/* The collection stays scrollable inside the 16:9 game overlay. */
+.achievement-screen{
+  overflow-y:auto;overscroll-behavior:contain;
+  max-height:min(100%,490px);
+  padding:8px 3px;
+  scrollbar-color:#498b96 #142b3b;
+}
+@media(max-width:590px){.achievement-screen{max-height:100%;}}
