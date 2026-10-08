@@ -116,7 +116,7 @@ for (const [start,count,spacing] of [
 const boostOrbs = [930,4010,7160,8630,10840,12700,14680,16140,19160,21060]
   .map(x=>orb(x,groundY(x)-34));
 const springs = [4600,16930].map(x=>({
-  x,y:groundY(x)-15,w:36,h:15,powerX:480,powerY:-680
+  x,y:groundY(x)-10,w:36,h:15,powerX:480,powerY:-680
 }));
 const boostPads = [];
 const spikes = [2320,4090,5820,8390,9780,13130,15100,17900,20550,21640]
@@ -186,6 +186,7 @@ function resetGame() {
   player.invulnerable = 0;
   player.trail = [];
   player.sliding = false;
+  player.boosting = false;
   checkpointIndex = -1;
   jumpBuffer = 0;
   coyoteTimer = 0;
@@ -197,6 +198,7 @@ function resetGame() {
   gameTime = 0;
   gameCleared = false;
   shakeTime = 0;
+  checkpoints.forEach(point => { point.active = false; });
   walls.forEach((wall) => {
     wall.active = true;
   });
@@ -305,6 +307,7 @@ function update(dt) {
   player.y += player.vy * dt;
 
   resolveTracks();
+  resolveTunnels();
   resolveWalls();
   updateCheckpoints();
   updateEnemies(dt);
@@ -377,30 +380,40 @@ function resolveTracks() {
   }
 }
 
-function resolveWalls() {
-  for (const wall of walls) {
-    if (!wall.active) continue;
-    if (wall.kind === "void-floor") continue;
-    if (!circleRect(player.x, player.y, PLAYER_RADIUS, wall)) continue;
-
-    if (wall.kind === "break-gate") {
-      if (Math.abs(player.vx) > 760 || keys.has("shift") || keys.has("j")) {
-        wall.active = false;
-        player.vx += player.facing * 180;
-        shakeTime = 0.16;
-        continue;
-      }
-      damagePlayer(false);
-      player.x = player.prevX;
-      player.vx = -player.facing * 360;
-      continue;
-    }
-
-    player.x = player.prevX;
+function resolveTunnels() {
+  if (!player.onGround || player.sliding) return;
+  for (const tunnel of tunnels) {
+    if (player.x + PLAYER_RADIUS < tunnel.x || player.x - PLAYER_RADIUS > tunnel.x + tunnel.w) continue;
+    if (Math.abs(player.y + PLAYER_RADIUS - tunnel.ground) > 12) continue;
+    // A standing player is too tall; hold slide to pass under the ceiling.
+    const fromLeft = player.prevX < tunnel.x + tunnel.w / 2;
+    player.x = fromLeft ? tunnel.x - PLAYER_RADIUS : tunnel.x + tunnel.w + PLAYER_RADIUS;
     player.vx = 0;
+    break;
   }
 }
-
+function resolveWalls() {
+  for (const wall of walls) {
+    if (!wall.active || !circleRect(player.x, player.y, PLAYER_RADIUS, wall)) continue;
+    if (wall.kind === "break-gate") {
+      if (player.boosting && Math.abs(player.vx) > 510) {
+        wall.active = false;
+        player.vx += player.facing * 60;
+        shakeTime = 0.13;
+      } else {
+        // The preceding orb becomes available again if boost was used too early.
+        boostOrbs.forEach(item => {
+          if (item.x < wall.x && item.x > wall.x - 1400) item.active = true;
+        });
+        player.x = player.prevX;
+        player.vx = 0;
+      }
+    } else {
+      player.x = player.prevX;
+      player.vx = 0;
+    }
+  }
+}
 function updateEnemies(dt) {
   for (const bad of enemies) {
     if (!bad.alive) continue;
@@ -480,10 +493,12 @@ function handleSprings() {
 
 function updateCheckpoints() {
   checkpoints.forEach((point, index) => {
-    if (index > checkpointIndex && player.x >= point.x && Math.abs(player.y - point.y) < 110) checkpointIndex = index;
+    if (index > checkpointIndex && player.x >= point.x) {
+      checkpointIndex = index;
+      point.active = true;
+    }
   });
 }
-
 function damagePlayer(fall) {
   if (player.invulnerable > 0) return;
   shakeTime = 0.22;
