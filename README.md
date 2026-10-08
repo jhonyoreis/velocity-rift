@@ -36,11 +36,13 @@ https://github.com/jhonyoreis/velocity-rift
 ## Fase 1 — Primeiro Impulso (estendida)
 
 - Uma única rota, com 22.700 unidades de cenário (antes 4.850) e seis trechos: introdução, ritmo e saltos, slide, boost, domínio das mecânicas e final.
-- Velocidade reduzida: limite de 480 na corrida e 790 durante o boost; aceleração, impulso e gravidade ajustados.
+- Velocidade normal limitada a 480 e boost limitado a 790. Ao deslizar numa descida, o impulso da ladeira pode chegar a 870 (limite controlado).
 - Energia começa vazia e **somente orbes de boost** recarregam o medidor (+55 por coleta). Não há regeneração passiva; cristais e inimigos não recarregam boost.
 - Dois portões que precisam de boost ativo, três túneis baixos para slide, saltos, molas, inimigos, cristais e obstáculos.
 - Cinco checkpoints, orientação visual com placas e HUD com progresso por trecho.
 - Floresta Neon com novas cores, vegetação e parallax no cenário.
+- Câmera dinâmica: mostra mais terreno à frente quanto mais rápido o personagem corre, inclusive ao virar para a esquerda.
+- Slide nas descidas: velocidade cresce exponencialmente enquanto desliza morro abaixo; ao sair da ladeira, o impulso extra diminui progressivamente sem frear de uma vez.
 
 ## Funcionalidades da versão 2.0 (primeira entrega)
 
@@ -57,8 +59,7 @@ https://github.com/jhonyoreis/velocity-rift
 - A/D ou setas: mover
 - Space, W ou seta para cima: pular
 - Shift ou J: boost (consome energia; recarrega somente com orbes)
-- S ou seta para baixo: deslizar sob túneis
-- S ou seta para baixo: deslizar enquanto corre
+- S ou seta para baixo: deslizar em túneis e acelerar ao descer morros
 - R: reiniciar
 - P: pausar/continuar
 - Em dispositivos de toque: botões de direção, pulo e boost
