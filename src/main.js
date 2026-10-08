@@ -2164,6 +2164,7 @@ function refreshAchievementsView(){
       const time=progress.secretTimes["stage"+stage][def.id];
       return '<div class="secret-route-entry'+(earned?' discovered':'')+'">'+
         '<strong>'+(earned?'✦ ':'◇ ')+def.name+'</strong>'+
+        '<small>'+def.hint.toLowerCase()+'</small>'+
         '<small>Fase '+stage+' · '+(earned
           ?'Recorde '+(time?time.toFixed(2)+'s':'concluída')
           :'Ainda não descoberta')+'</small></div>';
