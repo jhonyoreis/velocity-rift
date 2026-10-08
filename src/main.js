@@ -588,7 +588,10 @@ function secretPlatformSolid(floor){
   if(!trial?.active)return true;
   if(floor.behavior==="crumble")return !floor.broken;
   if(floor.behavior==="phase")
-    return Math.sin(trial.elapsed*1.9+floor.phase)>-.76;
+    // A short safe opening lets the player learn the rhythm; afterwards
+    // the bridge visibly flickers and periodically becomes intangible.
+    return trial.elapsed<2.1||
+      Math.sin(trial.elapsed*1.9+floor.phase)>-.76;
   return true;
 }
 function updateMovingPlatforms(dt) {
