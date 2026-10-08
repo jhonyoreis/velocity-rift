@@ -40,12 +40,15 @@ https://github.com/jhonyoreis/velocity-rift
 - Dois checkpoints com reaparecimento após quedas.
 - Pausa (P), recorde local no navegador e nota S/A/B/C ao terminar.
 - Câmera suavizada e controles de toque em telas sensíveis ao toque.
+- Slide com menor atrito no solo, efeito de derrapagem e botão de toque.
+- Cenário Floresta Neon com montanhas e camadas adicionais de parallax.
 
 ## Controles
 
 - A/D ou setas: mover
 - Space, W ou seta para cima: pular
 - Shift ou J: boost
+- S ou seta para baixo: deslizar enquanto corre
 - R: reiniciar
 - P: pausar/continuar
 - Em dispositivos de toque: botões de direção, pulo e boost
@@ -63,7 +66,7 @@ https://github.com/jhonyoreis/velocity-rift
 
 ## Plano da versão 2.0
 
-A implementação será feita nesta branch de desenvolvimento, preservando `main`.
+Experimento com implementação diretamente na `main`.
 
 1. Física consistente e controle de salto (coyote time, jump buffer e altura variável).
 2. Checkpoints, pausa, recorde local e classificação da fase.
