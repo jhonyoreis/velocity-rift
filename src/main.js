@@ -55,6 +55,11 @@ let cameraAnchorX = VIEW_W * CAMERA_IDLE_ANCHOR;
 let shakeTime = 0;
 let visualTime = 0;
 let particles = [];
+// Dedicated, bounded cosmetic state: it never participates in hit detection.
+const FLUX_GHOST_LIMIT = 10, FLUX_WAVE_LIMIT = 16;
+const fluxFx = {ghosts:[],waves:[],stepTimer:0,ghostTimer:0,sparkTimer:0,
+  run:0,air:0,boost:0,landing:0,takeoff:0,turn:0,hit:0,slide:0,
+  pose:"idle",previousFacing:1};
 let sparkleCooldown = 0;
 let pickupSoundCooldown = 0;
 let sentryShots = [];
@@ -664,6 +669,7 @@ function resetGame() {
   player.boost = 0;
   player.invulnerable = 0;
   player.trail = [];
+  resetFluxFx();
   player.animationPhase = 0;
   player.cores = 0;
   player.falls = 0;
@@ -978,6 +984,7 @@ function update(dt) {
   const wasOnGround = player.onGround;
   const previousVerticalSpeed = player.vy;
   const wasBoosting = player.boosting;
+  const wasSliding = player.sliding;
   const wasDownhillSliding = player.downhillSliding;
   player.prevX = player.x;
   player.prevY = player.y;
@@ -1015,7 +1022,7 @@ function update(dt) {
   if(debugMode)player.boost=100;
   const boosting = boost && player.boost > 0 && Math.abs(player.vx) > 50;
   player.boosting = boosting;
-  if (boosting && !wasBoosting) playSfx("boost");
+  if (boosting && !wasBoosting) { playSfx("boost"); triggerFluxFx("boost"); }
   if (boosting) {
     player.vx += player.facing * BOOST_ACCELERATION * dt;
     player.boost = debugMode?100:Math.max(0, player.boost - 34 * dt);
@@ -1056,6 +1063,7 @@ function update(dt) {
     jumpBuffer = 0;
     coyoteTimer = 0;
     emitParticles(player.x, player.y + 18, "#d4ffff", 7, 90);
+    triggerFluxFx("jump");
     playSfx("jump");
   }
 
@@ -1078,8 +1086,10 @@ function update(dt) {
   updateMovingPlatforms(dt);
   if(!debugMode)resolveTracks();
   if(player.onGround && slide)player.sliding=true;
+  if(player.sliding && !wasSliding)triggerFluxFx("slide");
   if (!wasOnGround && player.onGround && previousVerticalSpeed > 130) {
     emitParticles(player.x, player.y + PLAYER_RADIUS, "#67c8c3", 8, 100);
+    triggerFluxFx("land",previousVerticalSpeed);
     playSfx("land");
   }
   if(!debugMode)resolveTunnels();
@@ -1093,6 +1103,7 @@ function update(dt) {
   handleBoostPads();
   handleSprings();
   updateGuardian(dt);
+  updateFluxFx(dt);
   updateTrail(dt);
   updateParticles(dt);
   if ((player.boosting || (player.sliding && Math.abs(player.vx) > 140)) && sparkleCooldown === 0) {
@@ -1377,6 +1388,7 @@ function damagePlayer(fall) {
   if (debugMode || (player.invulnerable > 0 && !fall)) return;
   if (fall) player.falls += 1;
   shakeTime = 0.22;
+  triggerFluxFx("hurt");
   emitParticles(player.x, player.y, "#ff896d", 13, 155);
   playSfx("hurt");
 
@@ -1394,6 +1406,7 @@ function damagePlayer(fall) {
     player.boost = 0;
     player.sliding = false;
     player.downhillSliding = false;
+    resetFluxFx();
     boostOrbs.forEach(item => { if (item.x > respawn.x) item.active = true; });
     memoryCores.forEach(item => { if (item.x > respawn.x) item.active = true; });
     // A respawn teleports the camera too; it must not pan across half the level.
@@ -1447,7 +1460,9 @@ function draw() {
   drawSentryShots();
   drawGuardian();
   drawMemoryCores();
+  drawFluxWaves();
   drawParticles();
+  drawFluxGhosts();
   drawPlayer();
 
   ctx.restore();
@@ -1783,6 +1798,113 @@ function drawObjects() {
 
 // Flux has a unique vector silhouette: white helmet, cyan visor, orange
 // scarf, twin amber boots and a glowing cyan core. Poses follow actual physics.
+// Player visual effects — independent of speed, collision and camera maths.
+function resetFluxFx() {
+  fluxFx.ghosts.length=0;fluxFx.waves.length=0;
+  Object.assign(fluxFx,{stepTimer:0,ghostTimer:0,sparkTimer:0,run:0,
+    air:0,boost:0,landing:0,takeoff:0,turn:0,hit:0,slide:0,
+    pose:"idle",previousFacing:player.facing});
+}
+function fluxWave(x,y,color,radius=36,flatten=.42) {
+  if(fluxFx.waves.length>=FLUX_WAVE_LIMIT)fluxFx.waves.shift();
+  fluxFx.waves.push({x,y,color,radius,flatten,life:.34,maxLife:.34});
+}
+function triggerFluxFx(kind,impact=0) {
+  if(kind==="jump") {
+    fluxFx.takeoff=1;
+    fluxWave(player.x,player.y+PLAYER_RADIUS-3,"#89fff1",33);
+  }else if(kind==="land"){
+    fluxFx.landing=clamp(impact/850,.35,1);
+    fluxWave(player.x,player.y+PLAYER_RADIUS-3,
+      impact>490?"#ffdb92":"#8bfff0",48+Math.min(impact*.04,26));
+    if(impact>410)emitParticles(player.x,player.y+16,"#f8e3b9",6,105);
+  }else if(kind==="boost"){
+    fluxFx.boost=1;
+    fluxWave(player.x,player.y,"#7cfff9",44,.9);
+  }else if(kind==="slide"){
+    fluxFx.slide=1;
+    fluxWave(player.x,player.y+10,"#ffd48a",25,.22);
+  }else if(kind==="hurt"){
+    fluxFx.hit=1;
+    fluxWave(player.x,player.y,"#ff96b5",45,1);
+  }
+}
+function updateFluxFx(dt){
+  const speed=Math.abs(player.vx),ease=1-Math.exp(-15*dt);
+  fluxFx.run+=( (player.onGround&&speed>60?clamp(speed/480,0,1):0)-fluxFx.run)*ease;
+  fluxFx.air+=(Number(!player.onGround)-fluxFx.air)*ease;
+  fluxFx.slide+=(Number(player.sliding)-fluxFx.slide)*(1-Math.exp(-22*dt));
+  fluxFx.boost+=(Number(Boolean(player.boosting))-fluxFx.boost)*(1-Math.exp(-12*dt));
+  fluxFx.landing=Math.max(0,fluxFx.landing-dt*2.7);
+  fluxFx.takeoff=Math.max(0,fluxFx.takeoff-dt*4.1);
+  fluxFx.turn=Math.max(0,fluxFx.turn-dt*5);
+  fluxFx.hit=Math.max(0,fluxFx.hit-dt*2.6);
+  if(fluxFx.previousFacing!==player.facing&&speed>115){
+    fluxFx.turn=1;
+    if(player.onGround)emitParticles(player.x,player.y+14,"#b9f7f0",4,65);
+  }
+  fluxFx.previousFacing=player.facing;
+  fluxFx.pose=player.sliding?"slide":!player.onGround?
+    player.vy<-90?"jump":player.vy>110?"fall":"float":
+    speed>85?"run":"idle";
+  for(const w of fluxFx.waves)w.life-=dt;
+  fluxFx.waves=fluxFx.waves.filter(w=>w.life>0).slice(-FLUX_WAVE_LIMIT);
+  for(const ghost of fluxFx.ghosts)ghost.life-=dt;
+  fluxFx.ghosts=fluxFx.ghosts.filter(g=>g.life>0).slice(-FLUX_GHOST_LIMIT);
+  if(speed>415||player.boosting){
+    fluxFx.ghostTimer-=dt;
+    if(fluxFx.ghostTimer<=0){
+      fluxFx.ghosts.push({x:player.x,y:player.y,facing:player.facing,
+        slide:player.sliding,boost:Boolean(player.boosting),life:.25,maxLife:.25});
+      if(fluxFx.ghosts.length>FLUX_GHOST_LIMIT)fluxFx.ghosts.shift();
+      fluxFx.ghostTimer=player.boosting?.045:.075;
+    }
+  }else fluxFx.ghostTimer=0;
+  fluxFx.stepTimer-=dt;
+  if(player.onGround&&!player.sliding&&speed>160&&fluxFx.stepTimer<=0){
+    emitParticles(player.x-player.facing*9,player.y+PLAYER_RADIUS-4,
+      activeStage===2?"#baafea":"#9cdec9",2,54);
+    fluxFx.stepTimer=clamp(75/speed,.09,.29);
+  }
+  fluxFx.sparkTimer-=dt;
+  if(player.sliding&&speed>245&&fluxFx.sparkTimer<=0){
+    emitParticles(player.x-player.facing*16,player.y+PLAYER_RADIUS-6,
+      "#ffc778",3,80);
+    fluxFx.sparkTimer=.075;
+  }else if(player.boosting&&fluxFx.sparkTimer<=0){
+    emitParticles(player.x-player.facing*15,player.y+5,"#79ffff",2,75);
+    fluxFx.sparkTimer=.065;
+  }
+}
+function drawFluxWaves(){
+  for(const wave of fluxFx.waves){
+    if(wave.x<cameraX-90||wave.x>cameraX+VIEW_W+90)continue;
+    const age=1-wave.life/wave.maxLife;
+    ctx.save();
+    ctx.globalAlpha=(1-age)*.65;
+    ctx.strokeStyle=wave.color;ctx.lineWidth=3*(1-age)+.5;
+    ctx.beginPath();
+    ctx.ellipse(wave.x,wave.y,wave.radius*(.42+age*.95),
+      wave.radius*wave.flatten*(.42+age*.95),0,0,Math.PI*2);
+    ctx.stroke();ctx.restore();
+  }
+}
+function drawFluxGhosts(){
+  for(const g of fluxFx.ghosts){
+    if(g.x<cameraX-75||g.x>cameraX+VIEW_W+75)continue;
+    const life=clamp(g.life/g.maxLife,0,1);
+    ctx.save();
+    ctx.globalAlpha=life*life*(g.boost?.34:.20);
+    ctx.translate(g.x,g.y);ctx.scale(g.facing,1);
+    ctx.fillStyle=g.boost?"#70fff8":"#b8edf1";
+    ctx.beginPath();ctx.ellipse(0,g.slide?0:-3,g.slide?24:17,
+      g.slide?8:18,-.12,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle="#b5ffff";ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(-17,-7);ctx.lineTo(-34,-6);ctx.stroke();
+    ctx.restore();
+  }
+}
+
 function drawPlayer() {
   const moving = Math.abs(player.vx) > 40;
   const airborne = !player.onGround;
@@ -1810,7 +1932,7 @@ function drawPlayer() {
   ctx.ellipse(-9 - fast * 7, player.sliding ? -2 : 3,
     25 + fast * 20, player.sliding ? 8 : 18, 0, 0, Math.PI * 2);
   ctx.fill();
-  if (player.boosting) {
+  if (player.boosting || fluxFx.boost>.1) {
     ctx.strokeStyle = "rgba(94,243,250,.8)";
     ctx.lineWidth = 3;
     for (let i = 0; i < 3; i += 1) {
@@ -1843,11 +1965,15 @@ function drawPlayer() {
     ctx.fillStyle="#f9ba61";roundRect(-23,4,46,3,1.5);ctx.fill();
   } else {
     const stride = moving && !airborne ? Math.sin(player.animationPhase) : 0;
+    const swing = Math.cos(player.animationPhase);
     const bounce = airborne ? Math.sin(visualTime * 7) * 1.5 : moving ? Math.abs(stride) * -1.6 : Math.sin(visualTime * 2.5) * 1.2;
     const legFront = airborne ? -3 : stride * 6;
     const legBack = airborne ? 5 : -stride * 6;
 
-    if (airborne) ctx.rotate(clamp(player.vy / 2100, -0.29, 0.29));
+    ctx.rotate((airborne ? clamp(player.vy/2100,-.29,.29) : fast*.11)
+      + fluxFx.turn*.08);
+    if (!player.sliding) ctx.scale(1+fluxFx.landing*.055-fluxFx.takeoff*.035,
+      1-fluxFx.landing*.15+fluxFx.takeoff*.11);
 
     // Scarf reacts to motion and gives Flux a recognizable profile.
     ctx.fillStyle = "#ffba5e";
@@ -1864,6 +1990,18 @@ function drawPlayer() {
     ctx.ellipse(-8 + legBack, 15 + bounce, 10, 5, -0.18, 0, Math.PI * 2);
     ctx.ellipse(9 + legFront, 15 + bounce, 11, 5, 0.12, 0, Math.PI * 2);
     ctx.fill();
+
+    // Arms alternate with the footfall rhythm and tuck during jumps.
+    ctx.strokeStyle="#43788a";ctx.lineWidth=6;ctx.lineCap="round";
+    const armFront=airborne?(player.vy<0?-7:6):-swing*7*fluxFx.run;
+    const armBack=airborne?(player.vy<0?8:-6):swing*7*fluxFx.run;
+    ctx.beginPath();ctx.moveTo(-7,0+bounce);
+    ctx.lineTo(-13+armBack,7+bounce);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(7,0+bounce);
+    ctx.lineTo(12+armFront,6+bounce);ctx.stroke();
+    ctx.fillStyle="#c2fef7";ctx.beginPath();
+    ctx.arc(12+armFront,6+bounce,3,0,Math.PI*2);
+    ctx.arc(-13+armBack,7+bounce,3,0,Math.PI*2);ctx.fill();
 
     ctx.fillStyle = "#124955";
     ctx.beginPath();
@@ -1893,11 +2031,15 @@ function drawPlayer() {
     ctx.ellipse(7, -6 + bounce, 10, 6, -0.12, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = "#73fff0";
-    ctx.beginPath();
-    ctx.ellipse(9, -8 + bounce, 4, 2, 0, 0, Math.PI * 2);
-    ctx.fill();
+    if(visualTime%4.8>4.67)ctx.fillRect(7,-8+bounce,7,1.5);
+    else{ctx.beginPath();ctx.ellipse(9,-8+bounce,4,2,0,0,Math.PI*2);ctx.fill();}
     ctx.fillStyle = "#f0c06c";
     ctx.fillRect(12, -1 + bounce, 6, 2);
+  }
+  if(fluxFx.hit>.01){
+    ctx.strokeStyle="rgba(255,142,176,"+(fluxFx.hit*.72)+")";
+    ctx.lineWidth=2.5;ctx.beginPath();
+    ctx.arc(0,0,22+fluxFx.hit*12,0,Math.PI*2);ctx.stroke();
   }
   ctx.restore();
 }
