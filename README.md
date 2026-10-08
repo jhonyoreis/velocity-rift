@@ -84,17 +84,22 @@ https://github.com/jhonyoreis/velocity-rift
 - A faixa atual aparece abaixo da identidade do Flux. A tecla **N** liga/desliga a música, **M** silencia o áudio geral, e a pausa/menu interrompem a reprodução.
 - Valores de frequência/duração são validados e erros do sintetizador são isolados do loop do jogo para não travar a física.
 
-## Rotas secretas — escaladas verticais de tentativa única
+## Rotas secretas — seis provas diferentes, uma tentativa por fase
 
-- As **seis rotas opcionais** continuam nas mesmas regiões: Copa Esmeralda, Ninho Luminoso, Horizonte Neon (fase 1), Eco Suspenso, Arco Prismático e Zênite Violeta (fase 2).
-- Cada percurso agora possui **nove plataformas** (em vez de duas), com subida em zigue-zague de aproximadamente **600 unidades de altura**, pedras menores e plataformas que oscilam horizontalmente. O caminho principal não foi substituído, e os 14 abismos do Cânion Prisma continuam no mesmo lugar.
-- Ao tocar o símbolo **DESAFIO**, inicia-se uma prova de 25 a 29 segundos conforme a rota. A câmera se fixa horizontalmente na torre e acompanha suavemente o Flux **para cima**, inclusive em posições com coordenada vertical negativa.
-- **Quatro inimigos exclusivos por desafio:** três drones patrulheiros e uma sentinela que mira e dispara projéteis de plasma durante a subida. A colisão com qualquer um deles, incluindo projéteis, provoca falha imediata — mesmo durante boost ou DEBUG.
-- **Tentativa única por partida:** encostar num inimigo, deixar o limite da torre, cair abaixo da entrada, receber dano ou ultrapassar o tempo bloqueia aquela rota até o jogador **reiniciar a fase**. Morrer e reaparecer no checkpoint **não reinicia** o desafio.
-- Em todos os casos, a única mensagem exibida é exatamente **“Desafio perdido”** (sem texto secundário). O fragmento fica indisponível na tentativa perdida.
-- Uma vitória concede **8 cristais e 20 de boost** e salva o fragmento e o melhor tempo normalmente. Uma falha não apaga conquistas ou segredos já registrados em tentativas anteriores.
-- O DEBUG continua útil para testar o voo, mas não salva novos segredos, recordes ou conquistas.
-- A escalada foi verificada em simulações com saltos normais, sem necessidade do voo de DEBUG; a passagem principal das duas fases foi testada separadamente.
+Cada rota mantém sua localização e recompensa, mas agora usa uma geometria própria, de **8 a 10 plataformas**, inimigos distintos e um perigo central diferente:
+
+- **Copa Esmeralda (fase 1):** saltos entre copas com molas de impulso, plataforma móvel, mariposas luminosas, drones e minas.
+- **Ninho Luminoso (fase 1):** ponte espectral com plataformas que desaparecem em ciclos, um orbitador, sentinela com disparos e mariposas.
+- **Horizonte Neon (fase 1):** subida em vaivém com esteiras que aceleram em direções opostas, dardos velozes, minas e drones.
+- **Eco Suspenso (fase 2):** travessia por plataformas oscilantes, drones patrulheiros, disparos de sentinela e obstáculos orbitais.
+- **Arco Prismático (fase 2):** plataformas espectrais, feixe pulsante com aviso visual, um orbitador e uma sentinela.
+- **Zênite Violeta (fase 2):** plataformas que desmoronam depois do pouso, um perseguidor lento, minas e disparadores rápidos.
+
+As seis rotas usam o sistema existente de câmera vertical e desafios cronometrados; os limites variam de **30 a 35 segundos**. Todos os tipos de plataforma têm aparência própria (molas verdes, pontes lilás intermitentes, esteiras alaranjadas, pedras móveis amarelas e blocos frágeis rosados). A tela **Conquistas** apresenta a mecânica característica de cada rota.
+
+**Tentativa única:** tocar em um inimigo, receber um projétil, cair para fora da torre ou deixar o tempo acabar encerra a tentativa, mostrando somente **“Desafio perdido”**. A rota só é liberada novamente ao **reiniciar a fase**, não ao reaparecer no checkpoint. Uma vitória concede **8 cristais e 20 de boost**, além de registrar fragmento e melhor tempo. Falhas não apagam conquistas antigas.
+
+O DEBUG permite experimentar os percursos sem afetar recordes ou medalhas. As plataformas opcionais não substituem o caminho normal, e os dois percursos principais continuam concluíveis; a fase 2 preserva os 14 abismos. Os **49 saltos individuais** entre degraus secretos passaram em simulações com física normal e sem voo.
 
 ## Sistema de conquistas
 
