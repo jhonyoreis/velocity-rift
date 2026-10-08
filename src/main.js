@@ -391,7 +391,7 @@ function createStageTwoWorld() {
     {x:26670,w:260,ground:410},{x:32600,w:260,ground:410});
   world.springs.push({x:18720,y:345,w:36,h:15,powerX:535,powerY:-700},
     {x:25610,y:345,w:36,h:15,powerX:540,powerY:-710},
-    {x:31870,y:420,w:36,h:15,powerX:550,powerY:-715});
+    {x:31870,y:395,w:36,h:15,powerX:550,powerY:-715});
   world.spikes.push(...[20300,22000,24920,26540,27630,28780,
     30680,32910].map(x=>({x,y:groundY2(x)-22,w:62,h:22})));
   world.pulseGates.push(...[20870,27170,31400].map((x,i)=>({
