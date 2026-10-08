@@ -10,10 +10,75 @@
     <main class="shell">
       <section class="game-panel" aria-label="Velocity Rift 2.0">
         <canvas id="game" width="960" height="540"></canvas>
-        <div id="overlay" class="overlay">
-          <h1>Velocity Rift</h1>
-          <p>Floresta Neon · Primeiro Impulso — Fase estendida</p>
-          <button id="startButton" type="button">Jogar</button>
+        <div id="overlay" class="overlay" role="region" aria-label="Menu do Velocity Rift">
+          <section id="mainMenu" class="menu-screen" aria-labelledby="menuHeading">
+            <div class="menu-eyebrow">FLUX // MISSÃO 01</div>
+            <h1 id="menuHeading">VELOCITY <span>RIFT</span></h1>
+            <p class="menu-subtitle">Primeiro Impulso <span>· Floresta Neon</span></p>
+            <div class="menu-mark"><span>01</span> UMA FASE · INFINITAS TENTATIVAS</div>
+            <div class="menu-stat-grid" aria-label="Seu progresso">
+              <div><small>Status</small><strong id="menuProgress">Não concluída</strong></div>
+              <div><small>Melhor tempo</small><strong id="menuBest">--</strong></div>
+              <div><small>Melhor nota</small><strong id="menuGrade">--</strong></div>
+            </div>
+            <div class="menu-actions">
+              <button id="startButton" class="primary-action" type="button">Jogar fase 1 <span aria-hidden="true">➜</span></button>
+              <button id="selectStagesButton" class="secondary-action" type="button">Selecionar fases</button>
+            </div>
+            <p class="menu-help">Corrida + slide + boost · Progresso salvo neste navegador</p>
+          </section>
+          <section id="stageMenu" class="menu-screen" aria-labelledby="stageHeading" hidden>
+            <div class="menu-eyebrow">MAPA DE MISSÕES</div>
+            <h2 id="stageHeading">Escolher fase</h2>
+            <p class="menu-subtitle">Complete fases e supere seus próprios recordes.</p>
+            <div class="stage-list">
+              <div class="stage-card stage-card-active">
+                <div class="stage-number">01</div>
+                <div class="stage-copy">
+                  <strong>Primeiro Impulso</strong>
+                  <small>Floresta Neon · 6 setores</small>
+                  <span id="stageOneProgress">Disponível para jogar</span>
+                </div>
+                <button id="stageOneButton" type="button" class="stage-play" aria-label="Jogar Primeiro Impulso">Jogar</button>
+              </div>
+              <div class="stage-card stage-card-locked" aria-label="Fase 2 em desenvolvimento">
+                <div class="stage-number">02</div>
+                <div class="stage-copy">
+                  <strong>Fase 2</strong><small>Em desenvolvimento</small>
+                  <span>Indisponível por enquanto</span>
+                </div>
+                <span class="stage-lock" aria-hidden="true">🔒</span>
+              </div>
+              <div class="stage-card stage-card-locked" aria-label="Fase 3 em desenvolvimento">
+                <div class="stage-number">03</div>
+                <div class="stage-copy">
+                  <strong>Fase 3</strong><small>Planejada</small>
+                  <span>Indisponível por enquanto</span>
+                </div>
+                <span class="stage-lock" aria-hidden="true">🔒</span>
+              </div>
+            </div>
+            <div class="menu-actions menu-actions-compact">
+              <button id="backToMainButton" class="secondary-action" type="button">← Voltar ao menu</button>
+            </div>
+          </section>
+          <section id="resultMenu" class="menu-screen" aria-labelledby="resultHeading" hidden>
+            <div class="menu-eyebrow">MISSÃO CONCLUÍDA</div>
+            <h2 id="resultHeading">Primeiro Impulso</h2>
+            <div class="result-grade" id="resultGrade">A</div>
+            <div class="result-stats">
+              <div><small>Tempo</small><strong id="resultTime">--</strong></div>
+              <div><small>Melhor tempo</small><strong id="resultBest">--</strong></div>
+              <div><small>Cristais</small><strong id="resultCrystals">0</strong></div>
+              <div><small>Conclusões</small><strong id="resultClears">0</strong></div>
+            </div>
+            <p id="resultMessage" class="menu-subtitle">Fase concluída!</p>
+            <div class="menu-actions">
+              <button id="retryButton" class="primary-action" type="button">Jogar novamente <span aria-hidden="true">➜</span></button>
+              <button id="resultsStagesButton" class="secondary-action" type="button">Ver fases</button>
+              <button id="resultsMainButton" class="secondary-action" type="button">Menu principal</button>
+            </div>
+          </section>
         </div>
         <div class="touch-controls" aria-label="Controles de toque">
           <button type="button" data-key="arrowleft" aria-label="Esquerda">◀</button>
@@ -29,7 +94,11 @@
           <strong>FLUX <span>// CORREDOR DA FENDA</span></strong>
           <small>Capacete de plasma · cachecol âmbar · energia cinética</small>
         </div>
-        <button id="soundToggle" class="sound-toggle" type="button" aria-label="Ligar ou desligar efeitos sonoros" aria-pressed="true">🔊 Som ligado</button>
+        <div class="toolbar-actions">
+          <button id="pauseButton" class="sound-toggle" type="button" hidden>Pausar</button>
+          <button id="menuButton" class="sound-toggle" type="button">Menu principal</button>
+          <button id="soundToggle" class="sound-toggle" type="button" aria-label="Ligar ou desligar efeitos sonoros" aria-pressed="true">🔊 Som ligado</button>
+        </div>
       </div>
 
       <section class="notes" aria-label="Controls">
