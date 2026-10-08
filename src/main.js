@@ -42,6 +42,7 @@ const player = {
   boost: 100,
   invulnerable: 0,
   trail: [],
+  sliding: false,
 };
 
 const spawn = { x: 90, y: 370 };
@@ -192,6 +193,7 @@ function resetGame() {
   player.boost = 100;
   player.invulnerable = 0;
   player.trail = [];
+  player.sliding = false;
   checkpointIndex = -1;
   jumpBuffer = 0;
   coyoteTimer = 0;
@@ -262,11 +264,13 @@ function update(dt) {
   const right = keys.has("arrowright") || keys.has("d");
   const jump = keys.has(" ") || keys.has("arrowup") || keys.has("w") || keys.has("k");
   const boost = keys.has("shift") || keys.has("j");
+  const slide = keys.has("arrowdown") || keys.has("s");
   jumpBuffer = Math.max(0, jumpBuffer - dt);
   coyoteTimer = player.onGround ? 0.11 : Math.max(0, coyoteTimer - dt);
 
-  const accel = player.onGround ? 2050 : 880;
-  const friction = player.onGround ? 1550 : 130;
+  player.sliding = slide && player.onGround && Math.abs(player.vx) > 145;
+  const accel = player.onGround ? (player.sliding ? 620 : 2050) : 880;
+  const friction = player.onGround ? (player.sliding ? 260 : 1550) : 130;
   const normalMax = 650;
   const boostMax = 1120;
 
@@ -295,6 +299,7 @@ function update(dt) {
   player.vx = clamp(player.vx, -maxSpeed, maxSpeed);
 
   if (jumpBuffer > 0 && coyoteTimer > 0) {
+    player.sliding = false;
     player.vy = -710 - Math.min(170, Math.abs(player.vx) * 0.14);
     player.onGround = false;
     player.ground = null;
@@ -542,9 +547,9 @@ function draw() {
 
 function drawSky() {
   const grad = ctx.createLinearGradient(0, cameraY, 0, cameraY + VIEW_H);
-  grad.addColorStop(0, "#0a2430");
-  grad.addColorStop(0.55, "#0b1820");
-  grad.addColorStop(1, "#101717");
+  grad.addColorStop(0, "#101c36");
+  grad.addColorStop(0.55, "#12344a");
+  grad.addColorStop(1, "#153a38");
   ctx.fillStyle = grad;
   ctx.fillRect(cameraX, cameraY, VIEW_W, VIEW_H);
 
@@ -556,16 +561,27 @@ function drawSky() {
 }
 
 function drawBackground() {
+  // Three parallax layers, rendered in screen space with distinct scroll factors.
+  ctx.fillStyle = "#163b50";
+  for (let i = -2; i < 24; i += 1) {
+    const x = i * 280 + ((-cameraX * 0.18) % 280) + cameraX;
+    const h = 110 + (i % 5) * 22;
+    ctx.beginPath();
+    ctx.moveTo(x - 100, cameraY + VIEW_H);
+    ctx.lineTo(x + 40, cameraY + 330 - h);
+    ctx.lineTo(x + 190, cameraY + VIEW_H);
+    ctx.fill();
+  }
   ctx.fillStyle = "#0f2b32";
   for (let i = -1; i < 18; i += 1) {
-    const x = i * 360 + ((-cameraX * 0.38) % 360);
+    const x = i * 360 + ((-cameraX * 0.38) % 360) + cameraX;
     const h = 130 + (i % 4) * 42;
     ctx.fillRect(x, 515 - h, 210, h);
   }
 
   ctx.fillStyle = "rgba(68, 203, 216, 0.12)";
   for (let i = 0; i < 12; i += 1) {
-    const x = i * 430 + ((-cameraX * 0.55) % 430);
+    const x = i * 430 + ((-cameraX * 0.55) % 430) + cameraX;
     ctx.beginPath();
     ctx.arc(x, 158 + (i % 3) * 36, 46, 0, Math.PI * 2);
     ctx.fill();
@@ -708,6 +724,19 @@ function drawPlayer() {
   }
 
   const speedGlow = clamp(Math.abs(player.vx) / 1000, 0, 1);
+  if (player.sliding) {
+    ctx.fillStyle = "rgba(246, 172, 67, .35)";
+    ctx.beginPath();
+    ctx.ellipse(player.x - player.facing * 10, player.y + 8, 37, 14, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#f5ac43";
+    roundRect(player.x - 22, player.y + 4, 44, 13, 6);
+    ctx.fill();
+    ctx.fillStyle = "#38dcd0";
+    ctx.fillRect(player.x + player.facing * 6 - 4, player.y + 5, 12, 4);
+    ctx.globalAlpha = 1;
+    return;
+  }
   ctx.fillStyle = `rgba(72, 224, 239, ${0.18 + speedGlow * 0.28})`;
   ctx.beginPath();
   ctx.ellipse(player.x - player.facing * 12, player.y + 2, 28 + speedGlow * 22, 19, 0, 0, Math.PI * 2);
@@ -743,8 +772,8 @@ function drawHud() {
 
   ctx.fillStyle = "#eef7f8";
   ctx.font = "bold 17px Inter, sans-serif";
-  ctx.fillText(`Rings ${player.rings}`, 32, 40);
-  ctx.fillText(`Speed ${speed}`, 32, 68);
+  ctx.fillText(`Cristais ${player.rings}`, 32, 40);
+  ctx.fillText(`Vel. ${speed}`, 32, 68);
 
   ctx.fillStyle = "#173139";
   roundRect(136, 55, 146, 14, 7);
@@ -754,7 +783,7 @@ function drawHud() {
   ctx.fill();
   ctx.fillStyle = "#abd8dc";
   ctx.font = "12px Inter, sans-serif";
-  ctx.fillText("Boost", 136, 47);
+  ctx.fillText(player.sliding ? "Deslizando" : "Boost", 136, 47);
 
   ctx.fillStyle = "rgba(5, 9, 11, 0.62)";
   roundRect(VIEW_W - 178, 14, 158, 56, 8);
