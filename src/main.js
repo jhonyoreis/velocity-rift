@@ -355,6 +355,7 @@ function createStageTwoWorld() {
     [22570,"SENTINELAS","PULO OU BOOST"],
     [25000,"PLATAFORMAS","OLHE ANTES DE SALTAR"],
     [27520,"CORREDOR RAPIDO","SLIDE E SALTO"],
+    [28480,"RECARREGUE","ORBE ANTES DO PORTAO"],
     [29460,"VIGIAS DO CANION","DESVIE DOS DRONES"],
     [31190,"ULTIMA PROVA","MOMENTO EXATO DO PULO"],
     [33000,"CHEGADA","CANION CONQUISTADO"]
@@ -384,7 +385,7 @@ function createStageTwoWorld() {
     }
   }
   world.boostOrbs.push(...[18060,19260,21000,22400,23900,26120,
-    28420,29010,30700,32830].map(x=>orb(x,groundY2(x)-32)));
+    28420,28620,29010,30700,32830].map(x=>orb(x,groundY2(x)-32)));
   world.walls.push(rect(28960,291,44,74,"break-gate"));
   world.tunnels.push({x:22100,w:310,ground:420},
     {x:26670,w:260,ground:410},{x:32600,w:260,ground:410});
@@ -1466,7 +1467,8 @@ function drawPlayer() {
   // Ground shadow, engine glow and momentum streaks.
   ctx.fillStyle = player.boosting ? "rgba(71,242,255,.44)" : "rgba(64,209,202,.20)";
   ctx.beginPath();
-  ctx.ellipse(-9 - fast * 7, 3, 25 + fast * 20, 18, 0, 0, Math.PI * 2);
+  ctx.ellipse(-9 - fast * 7, player.sliding ? -2 : 3,
+    25 + fast * 20, player.sliding ? 8 : 18, 0, 0, Math.PI * 2);
   ctx.fill();
   if (player.boosting) {
     ctx.strokeStyle = "rgba(94,243,250,.8)";
