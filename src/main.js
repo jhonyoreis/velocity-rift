@@ -69,7 +69,7 @@ const SECRET_DEFS={
       hint:"ATRAVESSE AS PLATAFORMAS OSCILANTES",
       steps:[[0,0,153,"fixed"],[115,70,115,"moving"],[223,140,115,"fixed"],
         [135,210,107,"moving"],[20,280,111,"fixed"],[-94,350,106,"moving"],
-        [5,420,111,"fixed"],[130,490,104,"moving"],[235,560,111,"fixed"],
+        [5,420,111,"fixed"],[105,490,143,"moving"],[235,560,111,"fixed"],
         [125,630,141,"fixed"]],
       hazards:[["drone",3,48,-59,42],["sentry",6,-38,-59,0],["orbiter",8,48,-70,33]]},
     {id:"prism",name:"Arco Prismático",x:10330,y:306,limit:34,
