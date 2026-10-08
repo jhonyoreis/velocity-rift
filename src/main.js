@@ -2,6 +2,12 @@ const canvas = document.querySelector("#game");
 const ctx = canvas.getContext("2d");
 const overlay = document.querySelector("#overlay");
 const startButton = document.querySelector("#startButton");
+const mainMenu = document.querySelector("#mainMenu");
+const stageMenu = document.querySelector("#stageMenu");
+const resultMenu = document.querySelector("#resultMenu");
+const pauseButton = document.querySelector("#pauseButton");
+const menuButton = document.querySelector("#menuButton");
+const screens = [mainMenu, stageMenu, resultMenu];
 const soundToggle = document.querySelector("#soundToggle");
 
 const VIEW_W = canvas.width;
@@ -27,8 +33,12 @@ let jumpBuffer = 0;
 let coyoteTimer = 0;
 let jumpHeld = false;
 let checkpointIndex = -1;
+const PROGRESS_KEY = "velocity-rift-progress-v1";
+const GRADE_ORDER = ["C", "B", "A", "S"];
 let bestTime = 0;
-try { bestTime = Number(localStorage.getItem('velocity-rift-best-time')) || 0; } catch (_) { /* private storage */ }
+try { bestTime = Number(localStorage.getItem("velocity-rift-best-time")) || 0; } catch (_) { /* private storage */ }
+const progress = loadProgress();
+if (!bestTime && progress.stage1.bestTime) bestTime = progress.stage1.bestTime;
 let loopRunning = false;
 let gameStarted = false;
 let gameCleared = false;
@@ -190,6 +200,124 @@ function arcRings(x, y, count, gap) {
   }));
 }
 
+function gradeForTime(time) {
+  return time < 75 ? "S" : time < 100 ? "A" : time < 145 ? "B" : "C";
+}
+
+function defaultProgress() {
+  return { stage1: { completed: false, clears: 0, bestTime: 0, bestGrade: "", bestCrystals: 0 } };
+}
+
+function loadProgress() {
+  const fallback = defaultProgress();
+  try {
+    const previous = JSON.parse(localStorage.getItem(PROGRESS_KEY) || "null");
+    const saved = previous && typeof previous === "object" ? previous.stage1 : null;
+    if (saved && typeof saved === "object") {
+      const clears = Number(saved.clears);
+      const time = Number(saved.bestTime);
+      const crystals = Number(saved.bestCrystals);
+      const completed = saved.completed === true;
+      const validGrade = GRADE_ORDER.includes(saved.bestGrade) ? saved.bestGrade : "";
+      return { stage1: {
+        completed,
+        clears: completed && Number.isFinite(clears) ? Math.max(1, Math.floor(clamp(clears, 0, 1000000))) : 0,
+        bestTime: Number.isFinite(time) && time > 0 ? time : 0,
+        bestGrade: validGrade,
+        bestCrystals: Number.isFinite(crystals) && crystals > 0 ? Math.floor(clamp(crystals, 0, 1000000)) : 0
+      } };
+    }
+    // Players from older versions may already have a saved first-stage record.
+    if (bestTime > 0 && Number.isFinite(bestTime)) {
+      return { stage1: { completed: true, clears: 1, bestTime, bestGrade: gradeForTime(bestTime), bestCrystals: 0 } };
+    }
+  } catch (_) { /* Disabled/corrupt storage: play with in-memory progress. */ }
+  return fallback;
+}
+
+function storeProgress() {
+  try {
+    localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress));
+    if (bestTime > 0) localStorage.setItem("velocity-rift-best-time", String(bestTime));
+  } catch (_) { /* Progress remains available until refresh. */ }
+}
+
+function recordStageClear(time, crystals) {
+  const stage = progress.stage1;
+  const grade = gradeForTime(time);
+  const improvedTime = !stage.bestTime || time < stage.bestTime;
+  stage.completed = true;
+  stage.clears += 1;
+  if (improvedTime) stage.bestTime = time;
+  if (!stage.bestGrade || GRADE_ORDER.indexOf(grade) > GRADE_ORDER.indexOf(stage.bestGrade)) {
+    stage.bestGrade = grade;
+  }
+  stage.bestCrystals = Math.max(stage.bestCrystals, crystals);
+  bestTime = stage.bestTime;
+  storeProgress();
+  return { grade, improvedTime };
+}
+
+function formatTime(seconds) {
+  return seconds > 0 ? seconds.toFixed(2) + "s" : "--";
+}
+
+function refreshProgressView() {
+  const stage = progress.stage1;
+  document.querySelector("#menuProgress").textContent = stage.completed ? "Concluída ✓" : "Não concluída";
+  document.querySelector("#menuBest").textContent = formatTime(stage.bestTime);
+  document.querySelector("#menuGrade").textContent = stage.bestGrade || "--";
+  document.querySelector("#stageOneProgress").textContent = stage.completed
+    ? "Concluída · Melhor " + (stage.bestGrade || "--") + " · " + formatTime(stage.bestTime)
+    : "Disponível para jogar";
+}
+
+function showScreen(target) {
+  gameStarted = false;
+  paused = false;
+  keys.clear();
+  jumpHeld = false;
+  screens.forEach(screen => { screen.hidden = screen !== target; });
+  overlay.classList.remove("is-hidden");
+  pauseButton.hidden = true;
+  refreshProgressView();
+  if (target === mainMenu || target === stageMenu) {
+    overlay.querySelector("button:not([hidden])")?.focus?.();
+  }
+}
+
+function showMainMenu() { showScreen(mainMenu); }
+function showStageMenu() { showScreen(stageMenu); }
+
+function showResults(time, crystals) {
+  const result = recordStageClear(time, crystals);
+  document.querySelector("#resultGrade").textContent = result.grade;
+  document.querySelector("#resultTime").textContent = formatTime(time);
+  document.querySelector("#resultBest").textContent = formatTime(progress.stage1.bestTime);
+  document.querySelector("#resultCrystals").textContent = String(crystals);
+  document.querySelector("#resultClears").textContent = String(progress.stage1.clears);
+  document.querySelector("#resultMessage").textContent = result.improvedTime
+    ? "Novo recorde! Próximo objetivo: melhorar sua classificação."
+    : "Missão concluída. Tente bater seu melhor tempo!";
+  playSfx("finish");
+  showScreen(resultMenu);
+}
+
+function syncPauseButton() {
+  pauseButton.hidden = !gameStarted;
+  pauseButton.textContent = paused ? "Continuar" : "Pausar";
+  pauseButton.setAttribute("aria-pressed", String(paused));
+}
+
+function togglePause() {
+  if (!gameStarted || gameCleared) return;
+  paused = !paused;
+  accumulator = 0;
+  keys.clear();
+  jumpHeld = false;
+  syncPauseButton();
+}
+
 function resetGame() {
   player.x = spawn.x;
   player.y = spawn.y;
@@ -243,9 +371,11 @@ function resetGame() {
 
 function startGame() {
   unlockAudio();
-  gameStarted = true;
-  overlay.classList.add("is-hidden");
   resetGame();
+  gameStarted = true;
+  screens.forEach(screen => { screen.hidden = true; });
+  overlay.classList.add("is-hidden");
+  syncPauseButton();
   ensureLoop();
 }
 
@@ -395,21 +525,10 @@ function update(dt) {
     damagePlayer(true);
   }
 
-  if (circleRect(player.x, player.y, PLAYER_RADIUS, goal)) {
-    playSfx("finish");
-    emitParticles(player.x, player.y, "#fbc66d", 45, 240);
+  if (circleRect(player.x, player.y, PLAYER_RADIUS, goal) && !gameCleared) {
     gameCleared = true;
-    if (!bestTime || gameTime < bestTime) {
-      bestTime = gameTime;
-      try { localStorage.setItem('velocity-rift-best-time', String(bestTime)); } catch (_) { /* storage may be disabled */ }
-    }
-    const grade = gameTime < 75 ? 'S' : gameTime < 100 ? 'A' : gameTime < 145 ? 'B' : 'C';
-    overlay.querySelector("h1").textContent = `Stage Clear · ${grade}`;
-    overlay.querySelector("p").textContent =
-      `Tempo ${gameTime.toFixed(2)}s | Recorde ${bestTime.toFixed(2)}s | Coletáveis ${player.rings}`;
-    startButton.textContent = "Play again";
-    overlay.classList.remove("is-hidden");
-    gameStarted = false;
+    emitParticles(player.x, player.y, "#fbc66d", 45, 240);
+    showResults(gameTime, player.rings);
   }
 
   updateCamera(dt);
@@ -1231,18 +1350,9 @@ window.addEventListener("keydown", (event) => {
     jumpBuffer = 0.13;
     jumpHeld = true;
   }
-  if (key === 'p' && gameStarted && !gameCleared && !event.repeat) {
-    paused = !paused;
-    accumulator = 0;
-  }
-  if (event.key.toLowerCase() === "r") {
-    resetGame();
-    if (!gameStarted) {
-      overlay.classList.add("is-hidden");
-      gameStarted = true;
-      ensureLoop();
-    }
-  }
+  if (key === "p" && gameStarted && !event.repeat) togglePause();
+  if (key === "escape" && gameStarted && !event.repeat) showMainMenu();
+  if (key === "r" && gameStarted && !event.repeat) startGame();
   if ([" ", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) {
     event.preventDefault();
   }
@@ -1256,6 +1366,14 @@ window.addEventListener("keyup", (event) => {
 
 window.addEventListener('blur', () => { keys.clear(); jumpHeld = false; if (gameStarted) paused = true; });
 startButton.addEventListener("click", startGame);
+document.querySelector("#selectStagesButton").addEventListener("click", showStageMenu);
+document.querySelector("#stageOneButton").addEventListener("click", startGame);
+document.querySelector("#backToMainButton").addEventListener("click", showMainMenu);
+document.querySelector("#retryButton").addEventListener("click", startGame);
+document.querySelector("#resultsStagesButton").addEventListener("click", showStageMenu);
+document.querySelector("#resultsMainButton").addEventListener("click", showMainMenu);
+menuButton.addEventListener("click", showMainMenu);
+pauseButton.addEventListener("click", togglePause);
 
 // Touch input uses the same controls as the keyboard.
 document.querySelectorAll('[data-key]').forEach(button => {
@@ -1273,4 +1391,5 @@ document.querySelectorAll('[data-key]').forEach(button => {
   button.addEventListener('lostpointercapture', release);
 });
 
+showMainMenu();
 draw();
