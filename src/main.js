@@ -175,8 +175,12 @@ const memoryCores = [4920,10220,19060].map((x,i)=>({
   x,y:groundY(x)-91,r:13,id:i,active:true
 }));
 const goal = {x:22550,y:348,w:54,h:72};
-const guardian={x:33360,y:340,hp:3,maxHp:3,active:false,defeated:false,
-  state:"telegraph",timer:0,cycle:0,arenaLeft:32740,arenaRight:33765};
+const guardian={
+  x:33360,y:336,hp:3,maxHp:3,active:false,defeated:false,
+  state:"telegraph",timer:0,cycle:0,arenaLeft:32710,arenaRight:33670,
+  aimX:32910,aimY:392,lockAim:false,
+  pickups:[],arenaFloor:410
+};
 // Switching stages replaces only world data; the physics and Flux controls stay shared.
 const WORLD_KEYS=["tracks","chapters","signs","checkpoints","walls","tunnels",
   "enemies","rings","boostOrbs","springs","boostPads","spikes","pulseGates","memoryCores"];
@@ -403,6 +407,23 @@ function createStageTwoWorld() {
   world.pulseGates.push(...[20870,27170,31400].map((x,i)=>({
     x,y:groundY2(x)-104,w:18,h:79,phase:i*.56+.4,period:2.8,live:1.03
   })));
+  // An isolated 960px boss chamber: no common enemies, signs, rings, spikes,
+  // tunnels, springs, moving platforms or original boost pickups inside it.
+  // The full-length ground stays flat at y=410.
+  const chamberStart=guardian.arenaLeft-10;
+  for(const key of ["enemies","rings","spikes","tunnels","springs","signs",
+    "boostOrbs","pulseGates","memoryCores"]){
+    world[key]=world[key].filter(item=>(item.x??0)<chamberStart);
+  }
+  world.tracks=world.tracks.filter(t=>t.kind!=="platform"&&t.kind!=="moving"||
+    t.x1<chamberStart);
+  world.tracks.push(
+    track(32850,320,33050,320,"boss-platform"),
+    track(33115,269,33325,269,"boss-platform"),
+    track(33435,308,33610,308,"boss-platform")
+  );
+  world.signs.push({x:32450,title:"GUARDIÃO ADIANTE",
+    hint:"ARENA ISOLADA · PREPARE O BOOST"});
   world.memoryCores=[
     {x:2820,y:277,r:13,id:0,active:true},
     {x:9860,y:225,r:13,id:1,active:true},
@@ -738,100 +759,199 @@ function loop(now) {
 
 // The arena is at the end of level 2. Three hits and alternated telegraphed
 // beams reward jumping, sliding, and timed attacks on the exposed energy core.
+// ----------------- Guardian of the Prism: arena fight -----------------
 function resetGuardian(){
   Object.assign(guardian,{hp:guardian.maxHp,active:false,defeated:false,
-    state:"telegraph",timer:0,cycle:0});
+    state:"telegraph",timer:0,cycle:0,lockAim:false,
+    aimX:guardian.arenaLeft+140,aimY:392,
+    pickups:[
+      {x:32810,y:375,r:15,active:true,cooldown:0},
+      {x:32965,y:282,r:15,active:true,cooldown:0},
+      {x:33520,y:272,r:15,active:true,cooldown:0}
+    ]});
+}
+function guardianCorePosition(){
+  // Three real attack angles; the third core is behind the body.
+  const slot=Math.min(2,guardian.maxHp-guardian.hp);
+  return [
+    {x:guardian.x-64,y:348,name:"FRENTE"},
+    {x:guardian.x-35,y:226,name:"TOPO"},
+    {x:guardian.x+68,y:340,name:"COSTAS"}
+  ][slot];
 }
 function guardianHint(){
-  if(guardian.state==="telegraph")
-    return guardian.cycle%2===0?"PREPARE O PULO":"PREPARE O SLIDE";
-  if(guardian.state==="attack")
-    return guardian.cycle%2===0?"SALTE O FEIXE!":"DESLIZE SOB O FEIXE!";
-  return guardian.state==="exposed"?"NÚCLEO EXPOSTO! BOOST OU PULO":"ESCUDO RECARREGANDO...";
+  if(guardian.state==="telegraph")return guardian.lockAim?"MIRA TRAVADA! SAIA DA LINHA":"LASER MIRANDO O FLUX";
+  if(guardian.state==="attack")return "LASER! DESVIE DA LINHA DE DISPARO";
+  if(guardian.state==="exposed")
+    return "NÚCLEO "+guardianCorePosition().name+" · BOOST OU GOLPE DESCENDENTE";
+  return "ESCUDO RECONFIGURANDO...";
+}
+function guardianLaserLine(){
+  const ox=guardian.x-21,oy=guardian.y-21;
+  let dx=guardian.aimX-ox,dy=guardian.aimY-oy;
+  const magnitude=Math.hypot(dx,dy)||1;
+  dx/=magnitude;dy/=magnitude;
+  return {x1:ox,y1:oy,x2:ox+dx*1350,y2:oy+dy*1350};
+}
+function distanceToLaser(px,py,line){
+  const dx=line.x2-line.x1,dy=line.y2-line.y1;
+  const distance2=dx*dx+dy*dy;
+  const amount=clamp(((px-line.x1)*dx+(py-line.y1)*dy)/distance2,0,1);
+  return Math.hypot(px-(line.x1+dx*amount),py-(line.y1+dy*amount));
+}
+function beginGuardianFight(){
+  guardian.active=true;guardian.state="telegraph";guardian.timer=0;
+  guardian.lockAim=false;
+  guardian.aimX=player.x;guardian.aimY=player.y;
+  musicStep=0;
+  if(audioContext&&audioContext.state==="running")nextMusicNote=audioContext.currentTime+.07;
+  syncTrackLabel();
 }
 function hurtGuardian(){
   guardian.hp--;
-  guardian.state="recovery";guardian.timer=0;guardian.cycle++;
-  playSfx("boss-hit");shakeTime=.22;
-  emitParticles(guardian.x-20,guardian.y+10,"#dcb2ff",38,230);
+  guardian.cycle++;
+  guardian.state="recovery";guardian.timer=0;guardian.lockAim=false;
+  playSfx("boss-hit");shakeTime=.25;
+  const core=guardianCorePosition();
+  emitParticles(core.x,core.y,"#b4ffe9",40,230);
   if(guardian.hp<=0){
     guardian.hp=0;guardian.defeated=true;guardian.state="defeated";
-    emitParticles(guardian.x,guardian.y,"#a8ffe5",48,250);
+    emitParticles(guardian.x,guardian.y,"#a8ffe5",70,250);
     playSfx("boss-win");
+    musicStep=0;
+    if(audioContext&&audioContext.state==="running")nextMusicNote=audioContext.currentTime+.07;
+    syncTrackLabel();
     return;
   }
-  player.x=32970;player.y=groundY(32970)-PLAYER_RADIUS;
+  // Retreat with enough time to re-approach, but don't reset arena progress.
+  player.x=32915;player.y=guardian.arenaFloor-PLAYER_RADIUS;
   player.prevX=player.x;player.prevY=player.y;
   player.vx=0;player.vy=0;player.onGround=false;player.ground=null;
-  player.invulnerable=Math.max(.55,player.invulnerable);
-  boostOrbs.forEach(orb=>{if(orb.x>=32800&&orb.x<33100)orb.active=true;});
+  player.invulnerable=Math.max(.65,player.invulnerable);
+  guardian.pickups.forEach(item=>{
+    if(!item.active)item.cooldown=Math.min(item.cooldown,1.1);
+  });
 }
 function updateGuardian(dt){
   if(activeStage!==2||guardian.defeated)return;
   if(!guardian.active){
     if(player.x<guardian.arenaLeft)return;
-    guardian.active=true;guardian.timer=0;guardian.state="telegraph";
+    beginGuardianFight();
+  }
+  // Lock both ends of the arena for a genuine boss encounter.
+  if(player.x<guardian.arenaLeft+PLAYER_RADIUS){
+    player.x=guardian.arenaLeft+PLAYER_RADIUS;
+    player.vx=Math.max(0,player.vx);
+  }
+  if(player.x>guardian.arenaRight-PLAYER_RADIUS){
+    player.x=guardian.arenaRight-PLAYER_RADIUS;
+    player.vx=Math.min(0,player.vx);
+  }
+  for(const item of guardian.pickups){
+    if(!item.active){
+      item.cooldown-=dt;
+      if(item.cooldown<=0){item.active=true;item.cooldown=0;}
+    }else if(distance(player.x,player.y,item.x,item.y)<PLAYER_RADIUS+item.r){
+      item.active=false;
+      item.cooldown=4.2;
+      player.boost=Math.min(100,player.boost+70);
+      emitParticles(item.x,item.y,"#67fff1",17,160);
+      playSfx("orb");
+    }
   }
   guardian.timer+=dt;
-  const timing={telegraph:1.2,attack:.9,exposed:3.1,recovery:.85};
-  if(guardian.timer>=timing[guardian.state]){
-    guardian.timer=0;
-    guardian.state=guardian.state==="telegraph"?"attack":
-      guardian.state==="attack"?"exposed":
-      guardian.state==="exposed"?"telegraph":"telegraph";
-    if(guardian.state==="attack")playSfx("boss-alert");
+  if(guardian.state==="telegraph"){
+    // Track during wind-up; lock on 0.48s before the shot for fair reactions.
+    if(!guardian.lockAim){
+      guardian.aimX=clamp(player.x,guardian.arenaLeft+30,guardian.arenaRight-30);
+      guardian.aimY=clamp(player.y,75,470);
+      if(guardian.timer>=.80)guardian.lockAim=true;
+    }
+    if(guardian.timer>=1.32){
+      guardian.state="attack";guardian.timer=0;
+      playSfx("boss-alert");
+    }
+  }else if(guardian.state==="attack"){
+    const line=guardianLaserLine();
+    if(distanceToLaser(player.x,player.y,line)<PLAYER_RADIUS+8)damagePlayer(false);
+    if(guardian.timer>=.66){guardian.state="exposed";guardian.timer=0;}
+  }else if(guardian.state==="exposed"){
+    const core=guardianCorePosition();
+    const close=distance(player.x,player.y,core.x,core.y)<PLAYER_RADIUS+27;
+    if(close){
+      const dash=player.boosting&&Math.abs(player.vx)>=BOOST_GATE_MIN_SPEED;
+      const stomp=player.vy>110&&player.prevY+PLAYER_RADIUS<=core.y-10;
+      if(dash||stomp){hurtGuardian();return;}
+    }
+    if(guardian.timer>=3.9){guardian.state="telegraph";guardian.timer=0;guardian.lockAim=false;}
+  }else if(guardian.state==="recovery"&&guardian.timer>=1.12){
+    guardian.state="telegraph";guardian.timer=0;guardian.lockAim=false;
   }
-  if(guardian.state==="attack"&&player.x>32920&&player.x<guardian.arenaRight){
-    const low=guardian.cycle%2===0;
-    const laserTop=low?386:352,laserBottom=low?416:382;
-    const playerTop=player.y-(player.sliding&&player.onGround?9:PLAYER_RADIUS);
-    if(playerTop<laserBottom&&player.y+PLAYER_RADIUS>laserTop)damagePlayer(false);
+  // Armoured body is dangerous outside the vulnerability/recovery windows.
+  if(guardian.state==="telegraph"||guardian.state==="attack"){
+    if(circleRect(player.x,player.y,PLAYER_RADIUS,
+      {x:guardian.x-42,y:guardian.y-55,w:84,h:109}))damagePlayer(false);
   }
-  const coreX=guardian.x-23,coreY=guardian.y+17;
-  const nearby=distance(player.x,player.y,coreX,coreY)<PLAYER_RADIUS+30;
-  if(guardian.state==="exposed"&&nearby){
-    const dash=player.boosting&&Math.abs(player.vx)>=BOOST_GATE_MIN_SPEED;
-    const stomp=player.vy>105&&player.prevY+PLAYER_RADIUS<=coreY-8;
-    if(dash||stomp){hurtGuardian();return;}
-  }
-  if(guardian.state!=="recovery"&&circleRect(player.x,player.y,PLAYER_RADIUS,
-     {x:guardian.x-38,y:guardian.y-44,w:76,h:86}))damagePlayer(false);
 }
 function drawGuardian(){
-  if(activeStage!==2||(!guardian.active&&player.x<guardian.arenaLeft-550))return;
-  if(guardian.x<cameraX-100||guardian.x>cameraX+VIEW_W+130)return;
-  ctx.save();ctx.translate(guardian.x,guardian.y+Math.sin(visualTime*3)*4);
-  if(guardian.defeated){ctx.globalAlpha=.34;ctx.rotate(.5);}
-  ctx.fillStyle="rgba(193,116,255,.2)";
-  ctx.beginPath();ctx.ellipse(0,7,90,71,0,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle="#382452";
-  ctx.beginPath();ctx.moveTo(0,-73);ctx.lineTo(55,-27);ctx.lineTo(61,34);
-  ctx.lineTo(0,65);ctx.lineTo(-61,34);ctx.lineTo(-55,-27);ctx.closePath();ctx.fill();
-  ctx.strokeStyle="#c5a0ff";ctx.lineWidth=6;ctx.stroke();
-  ctx.fillStyle="#6d4f9d";
-  ctx.beginPath();ctx.moveTo(-53,-20);ctx.lineTo(-81,-42);ctx.lineTo(-69,39);
-  ctx.lineTo(-40,30);ctx.fill();
-  ctx.beginPath();ctx.moveTo(53,-20);ctx.lineTo(81,-42);ctx.lineTo(69,39);
-  ctx.lineTo(40,30);ctx.fill();
-  ctx.fillStyle=guardian.state==="exposed"?"#9cffe4":"#ff84ab";
-  ctx.beginPath();ctx.arc(-23,17,guardian.state==="exposed"?23:16,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle="#1c1032";ctx.beginPath();ctx.arc(-23,17,9,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle="#f1d0ff";ctx.fillRect(-20,-32,40,8);ctx.restore();
-  if(guardian.defeated)return;
-  if(guardian.active&&["telegraph","attack"].includes(guardian.state)){
-    const low=guardian.cycle%2===0,top=low?386:352,h=30,firing=guardian.state==="attack";
-    ctx.fillStyle=firing?"rgba(255,76,125,.23)":"rgba(255,204,112,.12)";
-    ctx.fillRect(32920,top,guardian.arenaRight-32920,h);
-    ctx.strokeStyle=firing?"#ff538e":"#ffd388";ctx.lineWidth=firing?7:3;
-    ctx.beginPath();ctx.moveTo(32920,top+15);ctx.lineTo(guardian.arenaRight,top+15);ctx.stroke();
-    if(!firing){ctx.font="bold 13px system-ui";ctx.fillStyle="#ffe9b0";
-      ctx.fillText(low?"PULAR":"DESLIZAR",32945,top-13);}
+  if(activeStage!==2)return;
+  if(!guardian.active&&player.x<guardian.arenaLeft-580)return;
+  // Dedicated boss room backdrops, with bold geometry and no normal props.
+  ctx.fillStyle="rgba(31,14,66,.83)";
+  ctx.fillRect(guardian.arenaLeft,52,guardian.arenaRight-guardian.arenaLeft,357);
+  ctx.strokeStyle="rgba(194,147,255,.12)";ctx.lineWidth=2;
+  for(let x=guardian.arenaLeft+40;x<guardian.arenaRight;x+=105){
+    ctx.beginPath();ctx.moveTo(x,110);ctx.lineTo(x+100,403);ctx.stroke();
   }
-  ctx.fillStyle="rgba(31,12,52,.92)";
-  roundRect(guardian.arenaRight-14,282,30,160,5);ctx.fill();
-  ctx.fillStyle="#eabaff";ctx.font="bold 10px system-ui";
-  ctx.save();ctx.translate(guardian.arenaRight+4,395);ctx.rotate(-Math.PI/2);
-  ctx.fillText("ESCUDO",0,0);ctx.restore();
+  for(const p of guardian.pickups){
+    if(!p.active||guardian.defeated)continue;
+    ctx.fillStyle="rgba(103,249,239,.2)";ctx.beginPath();
+    ctx.arc(p.x,p.y,p.r+12,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle="#66f9ef";ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle="#173e57";ctx.beginPath();ctx.arc(p.x,p.y,p.r*.44,0,Math.PI*2);ctx.fill();
+  }
+  if(guardian.active&&!guardian.defeated&&["telegraph","attack"].includes(guardian.state)){
+    const laser=guardianLaserLine(),firing=guardian.state==="attack";
+    ctx.strokeStyle=firing?"rgba(255,66,148,.9)":guardian.lockAim?"rgba(255,200,105,.7)":"rgba(255,210,118,.3)";
+    ctx.lineWidth=firing?13:guardian.lockAim?4:2;
+    ctx.beginPath();ctx.moveTo(laser.x1,laser.y1);ctx.lineTo(laser.x2,laser.y2);ctx.stroke();
+    if(!firing){
+      ctx.fillStyle="#ffe5b4";ctx.font="bold 12px system-ui";
+      ctx.fillText(guardian.lockAim?"MIRA TRAVADA":"CALCULANDO ALVO",guardian.x-110,guardian.y-116);
+    }
+  }
+  // Angular guardian body and expressive repositioning crystal.
+  ctx.save();ctx.translate(guardian.x,guardian.y+Math.sin(visualTime*3)*4);
+  if(guardian.defeated){ctx.globalAlpha=.28;ctx.rotate(.48);}
+  ctx.fillStyle="rgba(180,107,246,.14)";
+  ctx.beginPath();ctx.ellipse(0,0,94,87,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#362351";ctx.beginPath();
+  ctx.moveTo(0,-79);ctx.lineTo(48,-46);ctx.lineTo(58,31);ctx.lineTo(0,68);
+  ctx.lineTo(-58,31);ctx.lineTo(-48,-46);ctx.closePath();ctx.fill();
+  ctx.strokeStyle="#b38cfa";ctx.lineWidth=6;ctx.stroke();
+  ctx.fillStyle="#7151aa";
+  ctx.beginPath();ctx.moveTo(-45,-38);ctx.lineTo(-72,-62);ctx.lineTo(-78,22);ctx.lineTo(-49,41);ctx.fill();
+  ctx.beginPath();ctx.moveTo(45,-38);ctx.lineTo(72,-62);ctx.lineTo(78,22);ctx.lineTo(49,41);ctx.fill();
+  ctx.fillStyle="#271342";ctx.fillRect(-20,-33,40,9);
+  ctx.fillStyle="#dcc0ff";ctx.fillRect(-13,-31,26,5);
+  ctx.restore();
+  const core=guardianCorePosition();
+  if(guardian.active&&!guardian.defeated){
+    ctx.fillStyle=guardian.state==="exposed"?"rgba(110,255,220,.2)":"rgba(255,117,195,.1)";
+    ctx.beginPath();ctx.arc(core.x,core.y,36,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=guardian.state==="exposed"?"#83ffe1":"#e0a8ff";
+    ctx.beginPath();ctx.arc(core.x,core.y,23,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle="#1c1336";ctx.beginPath();ctx.arc(core.x,core.y,10,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle="#faf0ff";ctx.lineWidth=2;ctx.beginPath();
+    ctx.arc(core.x,core.y,29,0,Math.PI*2);ctx.stroke();
+  }
+  // Entry barrier plus exit seal, drawn separately from boss sprite.
+  if(guardian.active&&!guardian.defeated){
+    ctx.strokeStyle="#da89ff";ctx.lineWidth=8;
+    for(const x of [guardian.arenaLeft,guardian.arenaRight]){
+      ctx.beginPath();ctx.moveTo(x,97);ctx.lineTo(x,405);ctx.stroke();
+    }
+  }
 }
 
 function update(dt) {
@@ -966,7 +1086,7 @@ function update(dt) {
 
   player.x = clamp(player.x, PLAYER_RADIUS, WORLD_W - PLAYER_RADIUS);
   if(activeStage===2&&!guardian.defeated&&player.x>guardian.arenaRight){
-    player.x=guardian.arenaRight;player.vx=Math.min(0,player.vx);
+    player.x=guardian.arenaRight-PLAYER_RADIUS;player.vx=Math.min(0,player.vx);
   }
 
   if(!debugMode&&player.y>720){damagePlayer(true);}
@@ -995,6 +1115,12 @@ function cameraAnchorFor(vx, facing) {
 }
 
 function updateCamera(dt) {
+  // Full arena is exactly one viewport wide. No look-ahead, no following.
+  if(activeStage===2&&guardian.active&&!guardian.defeated){
+    cameraX=guardian.arenaLeft;
+    cameraY=0;
+    return;
+  }
   const targetAnchor = cameraAnchorFor(player.vx, player.facing);
   cameraAnchorX = lerp(cameraAnchorX, targetAnchor, 1 - Math.exp(-4.8 * dt));
   const speed = clamp(Math.abs(player.vx) / SLIDE_DOWNHILL_CAP, 0, 1);
@@ -1216,7 +1342,14 @@ function damagePlayer(fall) {
     coyoteTimer = 0;
     jumpBuffer = 0;
     player.invulnerable = 1.3;
-    if(activeStage===2&&guardian.active&&!guardian.defeated)resetGuardian();
+    if(activeStage===2&&guardian.active&&!guardian.defeated) {
+      // Restart inside the room, not beyond its locked entrance.
+      player.x=guardian.arenaLeft+65;player.y=guardian.arenaFloor-PLAYER_RADIUS;
+      player.prevX=player.x;player.prevY=player.y;
+      cameraX=guardian.arenaLeft;cameraY=0;
+      resetGuardian();
+      beginGuardianFight();
+    }
     return;
   }
 
@@ -2149,7 +2282,7 @@ function setDebugMode(enabled){
 function toggleDebugMode(){setDebugMode(!debugMode);}
 function warpToGuardian(){
   if(!debugMode||!gameStarted||activeStage!==2||gameCleared)return;
-  player.x=32900;
+  player.x=guardian.arenaLeft+90;
   player.y=groundY(player.x)-PLAYER_RADIUS;
   player.prevX=player.x;player.prevY=player.y;
   player.vx=0;player.vy=0;
@@ -2158,8 +2291,8 @@ function warpToGuardian(){
   checkpoints.forEach((point,i)=>{point.active=i<=checkpointIndex;});
   resetGuardian();
   cameraAnchorX=VIEW_W*CAMERA_IDLE_ANCHOR;
-  cameraX=clamp(player.x-cameraAnchorX,0,WORLD_W-VIEW_W);
-  cameraY=clamp(player.y-VIEW_H*.56,0,WORLD_H-VIEW_H);
+  cameraX=guardian.arenaLeft;
+  cameraY=0;
   debugUsedThisRun=true;
 }
 if(debugToggle)debugToggle.addEventListener("click",toggleDebugMode);
