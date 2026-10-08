@@ -2123,6 +2123,7 @@ syncSoundButton();
 // Lead, bass, harmony and percussive tones change subtly across stage sectors.
 const MUSIC_STEP_SECONDS = 60 / 108 / 4; // Neon Canopy: 108 BPM
 const PRISM_STEP_SECONDS = 60 / 126 / 4; // Ecos do Prisma: 126 BPM
+const GUARDIAN_STEP_SECONDS = 60 / 142 / 4; // Ruptura do Prisma: 142 BPM
 const MUSIC_MELODY=[0,null,3,null,7,null,10,7,5,null,3,0,null,3,7,null,
   0,3,5,null,7,null,10,12,10,null,7,5,3,null,2,null];
 const MUSIC_BASS=[0,0,7,0,5,5,3,7];
@@ -2279,17 +2280,67 @@ function schedulePrismCanyonStep(at,step,chapter){
   }
 }
 
+// A third, independent composition: "Ruptura do Prisma".
+// 142 BPM, irregular bass ostinato, dark fifths, emergency beeps and
+// accelerating syncopation, contrasting with both stage themes.
+const GUARDIAN_RIFF=[
+  0,null,1,7, null,6,7,null, 10,7,null,1, 0,null,-2,7,
+  0,1,null,10, 8,null,7,6, null,3,1,null, 0,null,1,null
+];
+const GUARDIAN_BASS=[0,null,0,12,null,7,0,null, 0,0,null,7,12,null,0,5];
+function scheduleGuardianTheme(at,step){
+  const beat=step%16,bar=Math.floor(step/16)%4;
+  const root=[38,39,43,36][bar];
+  const tense=guardian.hp<=2;
+  const finalHit=guardian.hp===1;
+  const unit=GUARDIAN_STEP_SECONDS;
+  if([0,3,6,8,11,14].includes(beat)){
+    synthMusic(59,at,.09,beat===0?.15:.11,"sine");
+    if(finalHit)synthMusic(84,at,.055,.045,"triangle");
+  }
+  if([4,12].includes(beat)){
+    synthMusic(185,at,.082,.056,"square");
+    synthMusic(790,at,.042,.019,"triangle");
+  }
+  if(beat%2===1 || (tense&&beat%4===0)){
+    synthMusic(1770,at,.022,finalHit?.026:.013,"triangle");
+  }
+  const bass=GUARDIAN_BASS[beat];
+  if(bass!==null){
+    prismVoice(midiToHz(root+bass),at,unit*1.5,.095,"bass");
+  }
+  const lead=GUARDIAN_RIFF[step%GUARDIAN_RIFF.length];
+  if(lead!==null){
+    const hz=midiToHz(root+36+lead);
+    prismVoice(hz,at,unit*(tense?1.3:.95),.064,"glass");
+    if(finalHit && beat%4===3)prismVoice(hz*2,at+.018,unit*.62,.022,"glass");
+  }
+  if(beat===0){
+    for(const semitone of [0,6,10]){
+      prismVoice(midiToHz(root+24+semitone),at,unit*6.7,.014,"pad");
+    }
+  }
+  // The charging laser has a short rising musical pulse; all frequencies
+  // remain positive and finite even when the player waits for many loops.
+  if(guardian.state==="telegraph" && [5,9,13].includes(beat)){
+    prismVoice(midiToHz(78+beat/4),at,unit*.7,.033,"glass");
+  }
+}
+
 function scheduleMusic(){
   if(!gameStarted||paused||gameCleared||!soundEnabled||!musicEnabled||
     !audioContext||!musicBus||audioContext.state!=="running")return;
   const now=audioContext.currentTime;
-  const stepDuration=activeStage===2?PRISM_STEP_SECONDS:MUSIC_STEP_SECONDS;
+  const bossTheme=activeStage===2&&guardian.active&&!guardian.defeated;
+  const stepDuration=bossTheme?GUARDIAN_STEP_SECONDS:
+    activeStage===2?PRISM_STEP_SECONDS:MUSIC_STEP_SECONDS;
   if(!Number.isFinite(now)||!Number.isFinite(nextMusicNote))return;
   if(nextMusicNote<now-.15||nextMusicNote>now+1)nextMusicNote=now+.05;
   let scheduled=0;
   while(nextMusicNote<now+.18&&scheduled++<3){
     const chapter=Math.max(0,chapters.findLastIndex(ch=>player.x>=ch.x));
-    if(activeStage===2) schedulePrismCanyonStep(nextMusicNote,musicStep,chapter);
+    if(bossTheme)scheduleGuardianTheme(nextMusicNote,musicStep);
+    else if(activeStage===2)schedulePrismCanyonStep(nextMusicNote,musicStep,chapter);
     else scheduleNeonCanopyStep(nextMusicNote,musicStep,chapter);
     musicStep=(musicStep+1)%128;
     nextMusicNote+=stepDuration;
@@ -2299,7 +2350,9 @@ function scheduleMusic(){
 function syncTrackLabel(){
   if(!trackNowPlaying)return;
   trackNowPlaying.textContent=activeStage===2
-    ?"♫ Trilha original: Ecos do Prisma · 126 BPM"
+    ?guardian.active&&!guardian.defeated
+      ?"♫ CHEFE: Ruptura do Prisma · 142 BPM"
+      :"♫ Trilha original: Ecos do Prisma · 126 BPM"
     :"♫ Trilha original: Neon Canopy · 108 BPM";
 }
 
