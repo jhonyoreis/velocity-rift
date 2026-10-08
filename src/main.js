@@ -186,7 +186,7 @@ const stageOneWorld={
   pits:[]
 };
 
-function createStageTwoWorld() {
+function createStageTwoWorldOriginal() {
   const base=[
     track(0,420,1150,420,"intro"),track(1150,420,1900,405,"rise"),
     track(2130,435,2900,435,"canyon"),track(2900,435,3620,435,"canyon"),
@@ -298,6 +298,112 @@ function createStageTwoWorld() {
     pits
   };
 }
+// Rebuild Prism Canyon as a main stage: preserve the tested foundation, then
+// add progressively harder landings, enemy combinations and upper risk routes.
+function createStageTwoWorld() {
+  const world=createStageTwoWorldOriginal();
+  const additions=[
+    [17600,360,18820,360],[19050,400,21350,395],
+    [21600,420,23340,420],[23590,445,25700,360],
+    [25940,410,27980,410],[28230,440,30140,365],
+    [30390,400,32070,435],[32320,410,34000,410]
+  ];
+  const ground=[];
+  for(const [x1,y1,x2,y2] of additions){
+    if(y1===y2)ground.push(track(x1,y1,x2,y2,"canyon"));
+    else {
+      const middle=x1+Math.min(700,(x2-x1)*.42);
+      ground.push(track(x1,y1,middle,y2,y2<y1?"rise":"drop"));
+      ground.push(track(middle,y2,x2,y2,"canyon"));
+    }
+  }
+  const groundY2=x=>{
+    const f=ground.find(q=>x>=q.x1&&x<=q.x2);
+    return f?yOnTrack(f,x):null;
+  };
+  const highs=[
+    [18330,275,18980],[20580,292,21250],[22830,320,23540],
+    [25370,263,26040],[27500,300,28220],[29520,271,30280],
+    [31620,315,32320],[32930,290,33500]
+  ].map(([start,y,end])=>track(start,y,end,y,"platform"));
+  const moving=[
+    [18790,285,175,88,.88,.4],[23300,324,170,105,.9,1.2],
+    [27970,307,180,95,1.02,.7],[31940,300,175,92,1.06,1.4]
+  ].map(([x,y,width,swing,speed,phase])=>{
+    const p=track(x,y,x+width,y,"moving");
+    p.originX=x-Math.sin(phase)*swing;
+    p.swing=swing;p.speed=speed;p.phase=phase;return p;
+  });
+  world.tracks.push(...ground,...highs,...moving);
+  world.worldW=34000;
+  world.goal={x:33820,y:338,w:55,h:72};
+  world.pits.push(...additions.slice(0,-1).map((v,i)=>[v[2],additions[i+1][0]]));
+  world.chapters=[
+    {x:0,title:"01 / ENTRADA NO CANION"},
+    {x:3800,title:"02 / PLATAFORMAS DE PRECISAO"},
+    {x:7600,title:"03 / SALTOS EM SEQUENCIA"},
+    {x:11400,title:"04 / CAMINHOS ELEVADOS"},
+    {x:15100,title:"05 / GAUNTLET DE INIMIGOS"},
+    {x:18700,title:"06 / PLATAFORMAS MOVEIS"},
+    {x:22800,title:"07 / ENERGIA E CONTROLE"},
+    {x:27000,title:"08 / RITMO ALTO"},
+    {x:31100,title:"09 / DESAFIO FINAL"}
+  ];
+  world.signs.push(...[
+    [18120,"NOVA ESCALADA","PREPARE A ATERRISSAGEM"],
+    [20450,"DUAS ROTAS","VIA ALTA TEM MAIS CRISTAIS"],
+    [22570,"SENTINELAS","PULO OU BOOST"],
+    [25000,"PLATAFORMAS","OLHE ANTES DE SALTAR"],
+    [27520,"CORREDOR RAPIDO","SLIDE E SALTO"],
+    [29460,"VIGIAS DO CANION","DESVIE DOS DRONES"],
+    [31190,"ULTIMA PROVA","MOMENTO EXATO DO PULO"],
+    [33000,"CHEGADA","CANION CONQUISTADO"]
+  ].map(([x,title,hint])=>({x,title,hint})));
+  world.checkpoints.push(...[19400,23850,28510,32570].map(x=>({
+    x,y:groundY2(x)-PLAYER_RADIUS,active:false
+  })));
+  const robots=[
+    [18160,"walker",85],[19900,"drone",88],[20780,"sentry",0],
+    [21840,"walker",85],[22600,"drone",90],[24320,"sentry",0],
+    [25030,"walker",90],[26400,"drone",80],[27220,"sentry",0],
+    [27690,"walker",95],[29060,"drone",80],[29730,"sentry",0],
+    [30740,"walker",85],[31590,"drone",88],[33180,"sentry",0],
+    [33590,"walker",70]
+  ];
+  for(const [x,type,patrol] of robots){
+    const bad=enemy(x,groundY2(x)-(type==="drone"?48:2),patrol);
+    bad.type=type;bad.w=type==="sentry"?46:42;
+    bad.h=type==="drone"?25:type==="sentry"?38:28;
+    world.enemies.push(bad);
+  }
+  for(const start of [17820,19300,20100,21780,22580,23910,
+    24610,25500,26530,27090,28560,29450,30720,32600,33200]){
+    for(let i=0;i<9;i++){
+      const x=start+i*58,y=groundY2(x);
+      if(y!==null)world.rings.push({x,y:y-33-12*Math.sin(i/8*Math.PI),r:8,active:true});
+    }
+  }
+  world.boostOrbs.push(...[18060,19260,21000,22400,23900,26120,
+    28420,29010,30700,32830].map(x=>orb(x,groundY2(x)-32)));
+  world.walls.push(rect(28960,291,44,74,"break-gate"));
+  world.tunnels.push({x:22100,w:310,ground:420},
+    {x:26670,w:260,ground:410},{x:32600,w:260,ground:410});
+  world.springs.push({x:18720,y:345,w:36,h:15,powerX:535,powerY:-700},
+    {x:25610,y:345,w:36,h:15,powerX:540,powerY:-710},
+    {x:31870,y:420,w:36,h:15,powerX:550,powerY:-715});
+  world.spikes.push(...[20300,22000,24920,26540,27630,28780,
+    30680,32910].map(x=>({x,y:groundY2(x)-22,w:62,h:22})));
+  world.pulseGates.push(...[20870,27170,31400].map((x,i)=>({
+    x,y:groundY2(x)-104,w:18,h:79,phase:i*.56+.4,period:2.8,live:1.03
+  })));
+  world.memoryCores=[
+    {x:2820,y:277,r:13,id:0,active:true},
+    {x:9860,y:225,r:13,id:1,active:true},
+    {x:15800,y:267,r:13,id:2,active:true}
+  ];
+  return world;
+}
+
 const STAGES={1:stageOneWorld,2:createStageTwoWorld()};
 
 function activateStage(stage=1) {
@@ -378,7 +484,7 @@ function arcRings(x, y, count, gap) {
 }
 
 function gradeForTime(time, stage=activeStage) {
-  if (stage===2) return time<60?"S":time<85?"A":time<120?"B":"C";
+  if (stage===2) return time<105?"S":time<145?"A":time<195?"B":"C";
   return time<75?"S":time<100?"A":time<145?"B":"C";
 }
 
@@ -700,6 +806,7 @@ function update(dt) {
 
   updateMovingPlatforms(dt);
   resolveTracks();
+  if (player.onGround && slide) player.sliding = true;
   if (!wasOnGround && player.onGround && previousVerticalSpeed > 130) {
     emitParticles(player.x, player.y + PLAYER_RADIUS, "#67c8c3", 8, 100);
     playSfx("land");
@@ -760,38 +867,25 @@ function updateCamera(dt) {
 }
 
 function resolveTracks() {
-  let best = null;
-  let bestDistance = Infinity;
-  const bottom = player.y + PLAYER_RADIUS;
-  const prevBottom = player.prevY + PLAYER_RADIUS;
-
-  for (const floor of tracks) {
-    const minX = Math.min(floor.x1, floor.x2) - PLAYER_RADIUS;
-    const maxX = Math.max(floor.x1, floor.x2) + PLAYER_RADIUS;
-    if (player.x < minX || player.x > maxX) continue;
-
-    const y = yOnTrack(floor, player.x);
-    const distance = bottom - y;
-    const canLand = prevBottom <= y + 24 && bottom >= y - 12 && player.vy >= -160;
-    const canStick = player.onGround && player.ground === floor && distance > -45 && distance < 74;
-
-    if ((canLand || canStick) && Math.abs(distance) < bestDistance) {
-      bestDistance = Math.abs(distance);
-      best = { floor, y };
-    }
+  let best=null,bestDistance=Infinity;
+  const bottom=player.y+PLAYER_RADIUS,prevBottom=player.prevY+PLAYER_RADIUS;
+  for(const floor of tracks){
+    const left=Math.min(floor.x1,floor.x2),right=Math.max(floor.x1,floor.x2);
+    if(player.x<left-PLAYER_RADIUS||player.x>right+PLAYER_RADIUS)continue;
+    const y=yOnTrack(floor,clamp(player.x,left,right)),d=bottom-y;
+    const sticking=player.onGround&&player.ground===floor
+      &&player.vy>=-160&&d>-30&&d<40;
+    const landing=prevBottom<=y+14&&bottom>=y-12&&player.vy>=-160;
+    if(!sticking&&!landing)continue;
+    const score=Math.abs(d)-(sticking?8:0);
+    if(score<bestDistance){bestDistance=score;best={floor,y}}
   }
-
-  if (best) {
-    player.y = best.y - PLAYER_RADIUS;
-    player.vy = Math.min(player.vy, 0);
-    player.onGround = true;
-    player.ground = best.floor;
-
-    const slope = trackSlope(best.floor);
-    player.vx += clamp(slope * 230, -115, 115) * FIXED_DT;
-  } else {
-    player.onGround = false;
-    player.ground = null;
+  if(best){
+    player.y=best.y-PLAYER_RADIUS;player.vy=Math.min(player.vy,0);
+    player.onGround=true;player.ground=best.floor;
+    player.vx+=clamp(trackSlope(best.floor)*230,-115,115)*FIXED_DT;
+  }else{
+    player.onGround=false;player.ground=null;player.sliding=false;
   }
 }
 
@@ -945,7 +1039,8 @@ function handleSprings() {
 
 function updateCheckpoints() {
   checkpoints.forEach((point, index) => {
-    if (index > checkpointIndex && player.x >= point.x) {
+    if (index > checkpointIndex && player.x >= point.x && player.onGround
+      && Math.abs(player.y-point.y)<48) {
       checkpointIndex = index;
       point.active = true;
       emitParticles(point.x, point.y - 45, "#75ffcc", 20, 130);
@@ -1385,31 +1480,25 @@ function drawPlayer() {
   }
 
   if (player.sliding) {
-    const shimmer = 2 * Math.sin(visualTime * 16);
-    ctx.fillStyle = "#f8b85a";
-    ctx.beginPath();
-    ctx.moveTo(-12, -4);
-    ctx.lineTo(-34 - fast * 8, -8 + shimmer);
-    ctx.lineTo(-24, 3);
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = "#103947";
-    ctx.beginPath();
-    ctx.ellipse(0, 9, 24, 8, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "#f9ba61";
-    ctx.fillRect(-22, 11, 16, 6);
-    ctx.fillRect(4, 11, 20, 6);
-    ctx.fillStyle = "#e9fbf8";
-    ctx.beginPath();
-    ctx.ellipse(7, -3, 15, 12, -0.16, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "#168d9d";
-    ctx.beginPath();
-    ctx.ellipse(13, -3, 8, 5, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "#7effeb";
-    ctx.fillRect(14, -5, 4, 2);
+    // Collider center remains at ground - PLAYER_RADIUS. The sprite bounds
+    // stay within [-8,+7] of that center, above the 19px ground stroke.
+    const incline=player.ground?trackSlope(player.ground):0;
+    ctx.rotate(player.facing*Math.atan(incline));
+    ctx.translate(0,-3);
+    const flick=Math.sin(visualTime*14)*1.3;
+    ctx.fillStyle="rgba(255,183,95,.18)";
+    ctx.beginPath();ctx.ellipse(-7,-1,25,9,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle="#f8b85a";ctx.beginPath();
+    ctx.moveTo(-11,-4);ctx.lineTo(-30-fast*10,-5+flick);
+    ctx.lineTo(-22,3);ctx.closePath();ctx.fill();
+    ctx.fillStyle="#0d404e";ctx.beginPath();
+    ctx.ellipse(1,0,21,7,-.06,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle="#e9fbf8";ctx.beginPath();
+    ctx.ellipse(9,-1,12,6,-.1,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle="#128e9b";ctx.beginPath();
+    ctx.ellipse(14,-1,6,3,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle="#85fff0";ctx.fillRect(15,-3,3,2);
+    ctx.fillStyle="#f9ba61";roundRect(-23,4,46,3,1.5);ctx.fill();
   } else {
     const stride = moving && !airborne ? Math.sin(player.animationPhase) : 0;
     const bounce = airborne ? Math.sin(visualTime * 7) * 1.5 : moving ? Math.abs(stride) * -1.6 : Math.sin(visualTime * 2.5) * 1.2;
