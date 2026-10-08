@@ -67,20 +67,24 @@ https://github.com/jhonyoreis/velocity-rift
 
 - **Fase 1 — Neon Canopy (108 BPM):** tema eletrônico melódico e leve; sua composição, andamento e arranjo permanecem independentes.
 - **Fase 2 — Ecos do Prisma (126 BPM):** composição nova e própria do Cânion Prisma, com modo frígio, padrão de bateria sincopado, baixo grave filtrado, sinos sintéticos cristalinos e pads atmosféricos.
+- **Boss da fase 2 — Ruptura do Prisma (142 BPM):** terceira composição original, iniciada automaticamente dentro da arena do Guardião.
 - O tema do Cânion Prisma tem melodia de 64 passos, progressão harmônica de quatro compassos e camadas que se intensificam conforme avançam os nove setores. Os últimos setores acrescentam arpejos e vozes mais agudas.
 - Ambas as trilhas são geradas localmente com Web Audio, sem importar músicas ou amostras externas; cada fase seleciona automaticamente sua própria trilha.
 - A faixa atual aparece abaixo da identidade do Flux. A tecla **N** liga/desliga a música, **M** silencia o áudio geral, e a pausa/menu interrompem a reprodução.
 - Valores de frequência/duração são validados e erros do sintetizador são isolados do loop do jogo para não travar a física.
 
-## Guardião do Prisma — chefe da fase 2
+## Guardião do Prisma — arena reformulada
 
-- Um chefe final próprio da segunda fase, com **três pontos de resistência**, núcleo de energia e indicador de vida.
-- A arena fica depois do último checkpoint. O portal de chegada permanece selado enquanto o chefe estiver vivo.
-- O chefe sinaliza seus ataques antecipadamente e alterna dois tipos: **feixe baixo**, que exige pulo, e **feixe alto**, evitável por slide.
-- Após atacar, o Guardião expõe seu núcleo por alguns segundos. Um boost ativo (velocidade superior a 510) ou um golpe descendente podem atingir o núcleo.
-- Cada golpe faz o chefe recuar e reinicia a aproximação; orbes próximos recarregam o boost sem conceder regeneração passiva.
-- Ao reaparecer depois de uma derrota, o confronto reinicia. Somente após os três golpes a saída é liberada.
-- Alertas, impactos e vitória do chefe têm efeitos sonoros próprios.
+- **Arena isolada e reta**, com chão contínuo e três plataformas elevadas. Objetos comuns (espinhos, placas, cristais, inimigos, túneis e plataformas móveis) foram retirados da sala.
+- **Câmera fixa** durante o confronto, ocupando toda a arena. Barreiras laterais impedem a fuga; a passagem à chegada só libera depois da vitória.
+- **Laser direcional**: o Guardião acompanha o Flux durante a preparação, **trava a mira** com antecedência e dispara na última direção marcada. O feixe fica limitado à própria arena.
+- **Três posições de núcleo** em sequência: frente, topo e costas. Os ataques exigem rotas diferentes e uso das plataformas para alcançar o núcleo pelo lado certo.
+- O núcleo recebe dano durante a janela de vulnerabilidade com **boost ativo acima de 510 de velocidade** ou **golpe descendente**. Três acertos encerram o confronto.
+- **Três orbes de boost do chefe**, no chão e nas plataformas, com reposição automática após aproximadamente 4,2 segundos quando coletados. Eles não mudam a economia de boost do restante das fases.
+- Ao perder sem cristais ou cair durante o confronto, o Flux retorna ao início da arena, com chefe e recargas reiniciados.
+- Trilha musical própria **Ruptura do Prisma (142 BPM)**, com bateria pesada, baixo sincopado e sintetizadores tensos. As camadas se intensificam conforme a vida do chefe diminui; a trilha normal retorna após derrotá-lo.
+- **Sentinelas do Cânion Prisma** agora miram no Flux e lançam projéteis de plasma com intervalo e aviso visual. Eles podem ser desviados ou destruídos com boost em alta velocidade. Não aparecem dentro da arena do chefe.
+- Controles do DEBUG continuam: **F3** ativa o modo, **B** teleporta até a arena, voo/invencibilidade/boost ilimitado e tentativas sem recordes.
 
 ## Modo DEBUG temporário
 
