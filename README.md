@@ -84,6 +84,16 @@ https://github.com/jhonyoreis/velocity-rift
 - A faixa atual aparece abaixo da identidade do Flux. A tecla **N** liga/desliga a música, **M** silencia o áudio geral, e a pausa/menu interrompem a reprodução.
 - Valores de frequência/duração são validados e erros do sintetizador são isolados do loop do jogo para não travar a física.
 
+## Polimento cinematográfico do Guardião — atualização visual
+
+- **Entrada cinematográfica:** ao entrar na arena, o Guardião surge do alto com um pulso violeta, avisos no HUD e uma faixa breve de apresentação (1,85 s). O laser não causa dano durante a apresentação e os controles permanecem disponíveis.
+- **Retentativas mais rápidas:** se o Flux for derrotado dentro da arena, a nova entrada dura apenas 0,85 s, sem obrigar a rever toda a apresentação.
+- **Danos por fase:** primeiro impacto turquesa com uma rachadura; segundo impacto âmbar com novas fraturas e maior tremor; terceiro impacto dourado desencadeia a destruição.
+- **Sequência de derrota:** o corpo do Guardião se desestabiliza, solta fragmentos e ondas de energia, enquanto uma mensagem de reativação do portal é exibida por 2,75 s.
+- **Portal só abre após a sequência:** a terceira pancada não encerra o confronto instantaneamente; o laser para, a arena permanece fechada durante a animação e só então as barreiras são removidas.
+- **Efeitos limitados:** até 90 fragmentos e 12 ondas luminosas, com brilho contido e limpeza ao reiniciar ou reaparecer; não interferem na física.
+- Sons adicionais na entrada, no segundo impacto e na destruição, preservando a trilha `Ruptura do Prisma` durante o confronto. As outras duas trilhas e o DEBUG continuam operando como antes.
+
 ## Guardião do Prisma — arena reformulada
 
 - **Arena isolada e reta**, com chão contínuo e três plataformas elevadas. Objetos comuns (espinhos, placas, cristais, inimigos, túneis e plataformas móveis) foram retirados da sala.
