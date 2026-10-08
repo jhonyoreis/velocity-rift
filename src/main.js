@@ -2319,8 +2319,8 @@ function drawTracks() {
   for (const floor of tracks) {
     if (floor.x2 < cameraX - 120 || floor.x1 > cameraX + VIEW_W + 120) continue;
     ctx.strokeStyle = activeStage===2
-      ? floor.kind==="moving" ? "#ffcf82" : floor.kind==="secret" ? "#76ffeb" : floor.kind==="platform" ? "#bb91ff" : floor.kind==="finish" ? "#a2f5ff" : "#a47df7"
-      : floor.kind==="secret" ? "#9bfff0" : floor.kind==="boost" ? "#f6ac43" : floor.kind==="finale" ? "#b785ef" : "#38dcd0";
+      ? floor.kind==="moving" ? "#ffcf82" : (floor.kind==="secret"||floor.kind==="secret-moving") ? "#76ffeb" : floor.kind==="platform" ? "#bb91ff" : floor.kind==="finish" ? "#a2f5ff" : "#a47df7"
+      : (floor.kind==="secret"||floor.kind==="secret-moving") ? "#9bfff0" : floor.kind==="boost" ? "#f6ac43" : floor.kind==="finale" ? "#b785ef" : "#38dcd0";
     ctx.lineWidth = 19;
     ctx.beginPath();
     ctx.moveTo(floor.x1, floor.y1);
@@ -2869,11 +2869,11 @@ function drawHud() {
   if(notification.timer>0){
     ctx.save();ctx.globalAlpha=Math.min(1,notification.timer/.4);
     ctx.fillStyle="rgba(13,24,46,.92)";
-    roundRect(240,443,480,67,10);ctx.fill();
+    roundRect(240,notification.subtitle?443:452,480,notification.subtitle?67:45,10);ctx.fill();
     ctx.strokeStyle="#8bffed";ctx.lineWidth=2;ctx.stroke();
     ctx.textAlign="center";
     ctx.fillStyle="#c5fff5";ctx.font="bold 17px system-ui";
-    ctx.fillText(notification.title,VIEW_W/2,468);
+    ctx.fillText(notification.title,VIEW_W/2,notification.subtitle?468:481);
     ctx.fillStyle="#ffe0a5";ctx.font="12px system-ui";
     if(notification.subtitle)ctx.fillText(notification.subtitle,VIEW_W/2,490);
     ctx.textAlign="left";ctx.restore();
