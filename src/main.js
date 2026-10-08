@@ -752,12 +752,12 @@ function guardianHint(){
 function hurtGuardian(){
   guardian.hp--;
   guardian.state="recovery";guardian.timer=0;guardian.cycle++;
-  playSfx("gate");shakeTime=.22;
+  playSfx("boss-hit");shakeTime=.22;
   emitParticles(guardian.x-20,guardian.y+10,"#dcb2ff",38,230);
   if(guardian.hp<=0){
     guardian.hp=0;guardian.defeated=true;guardian.state="defeated";
     emitParticles(guardian.x,guardian.y,"#a8ffe5",48,250);
-    playSfx("finish");
+    playSfx("boss-win");
     return;
   }
   player.x=32970;player.y=groundY(32970)-PLAYER_RADIUS;
@@ -779,7 +779,7 @@ function updateGuardian(dt){
     guardian.state=guardian.state==="telegraph"?"attack":
       guardian.state==="attack"?"exposed":
       guardian.state==="exposed"?"telegraph":"telegraph";
-    if(guardian.state==="attack")playSfx("boost");
+    if(guardian.state==="attack")playSfx("boss-alert");
   }
   if(guardian.state==="attack"&&player.x>32920&&player.x<guardian.arenaRight){
     const low=guardian.cycle%2===0;
@@ -1884,6 +1884,9 @@ function playSfx(kind) {
     gate:       [160, 60, 0.25, "sawtooth", 0.048],
     hit:        [270, 95, 0.12, "square", 0.023],
     spring:     [280, 750, 0.22, "sine", 0.046],
+    "boss-alert": [220, 410, 0.29, "triangle", 0.031],
+    "boss-hit": [600, 140, 0.34, "sawtooth", 0.043],
+    "boss-win": [310, 1050, 0.7, "sine", 0.055],
     hurt:       [270, 115, 0.24, "triangle", 0.045],
     finish:     [530, 1060, 0.65, "sine", 0.06],
   };
