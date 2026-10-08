@@ -669,12 +669,16 @@ function refreshProgressView() {
   document.querySelector("#stageOneProgress").textContent = stage.completed
     ? "Concluída · Melhor " + (stage.bestGrade || "--") + " · " + formatTime(stage.bestTime)
     : "Disponível para jogar";
+  document.querySelector("#stageOneProgress").textContent+=
+    " · Rotas "+progress.secrets.stage1.length+"/3";
   const second=progress.stage2;
   const unlocked=progress.stage1.completed || debugMode;
   document.querySelector("#stageTwoProgress").textContent = !unlocked
     ? "Conclua a fase 1 para desbloquear"
     : second.completed ? "Concluída · Melhor "+(second.bestGrade||"--")+" · "+formatTime(second.bestTime)
     : "Novo desafio disponível";
+  if(unlocked)document.querySelector("#stageTwoProgress").textContent+=
+    " · Rotas "+progress.secrets.stage2.length+"/3";
   document.querySelector("#stageTwoButton").disabled=!unlocked;
   document.querySelector("#stageTwoCard").classList.toggle("stage-card-locked",!unlocked);
   document.querySelector("#stageTwoCard").classList.toggle("stage-card-active",unlocked);
@@ -2685,6 +2689,11 @@ function drawHud() {
   if(activeStage===2){ctx.fillStyle="#ffa2be";ctx.fillText("Quedas "+player.falls,610,80);}
   ctx.fillStyle="#baffed";ctx.font="bold 12px system-ui";
   ctx.fillText("Rotas secretas "+secretTrials.filter(t=>t.completed).length+"/3",335,99);
+  const timedRoute=secretTrials.find(t=>t.active);
+  if(timedRoute){
+    ctx.fillStyle="#ffdd9a";
+    ctx.fillText("DESAFIO "+Math.max(0,timedRoute.limit-timedRoute.elapsed).toFixed(1)+"s",530,99);
+  }
   if(notification.timer>0){
     ctx.save();ctx.globalAlpha=Math.min(1,notification.timer/.4);
     ctx.fillStyle="rgba(13,24,46,.92)";
