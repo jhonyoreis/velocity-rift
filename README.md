@@ -63,6 +63,17 @@ https://github.com/jhonyoreis/velocity-rift
 - Controle **Som ligado / Som desligado** abaixo do jogo ou tecla **M**. A preferência fica salva no navegador quando o armazenamento está disponível.
 - Se o navegador não suportar áudio, a jogabilidade continua funcionando normalmente.
 
+## Fase 2 — Cânion Prisma
+
+- Fase nova, com 17.600 unidades de extensão, cenário violeta/azul de cânion tecnológico e seis seções.
+- Disponível na seleção de fases após concluir **Primeiro Impulso**; a fase 3 continua planejada e indisponível.
+- Sete abismos perigosos: cair provoca queda fatal, reiniciando no começo ou no último checkpoint.
+- Plataformas elevadas e três plataformas que se deslocam horizontalmente, oferecendo trajetórias alternativas sobre os abismos.
+- Novos inimigos: **drones aéreos** que oscilam e patrulham, **sentinelas blindadas** que exigem desvio ou boost e robôs patrulheiros terrestres.
+- Cinco checkpoints, dois portões de boost, dois túneis baixos, eletropulsos, oito áreas de espinhos, molas, orbes de energia, cristais e três núcleos opcionais.
+- HUD específico com contador de quedas, progresso da fase e núcleos; a pontuação, o melhor tempo e as conclusões ficam salvos separadamente da fase 1.
+- As regras de movimento, a velocidade normal, o boost enfraquecido e a aceleração do slide continuam iguais à primeira fase.
+
 ## Circuito Eletro-Neon e trilha original
 
 - Cinco barreiras temporizadas: eletropulso vermelho (perigo), aviso âmbar e janela verde livre.
@@ -75,11 +86,11 @@ https://github.com/jhonyoreis/velocity-rift
 ## Menu e progressão
 
 - Menu principal com início rápido, melhor tempo, melhor classificação e status da primeira fase.
-- Tela de seleção: **Primeiro Impulso** jogável; fases 2 e 3 exibidas como futuras e indisponíveis (sem simular fases prontas).
-- Tela de conclusão com nota S/A/B/C, tempo da tentativa, melhor tempo, cristais coletados e quantidade de conclusões.
-- Progresso salvo localmente no navegador (`velocity-rift-progress-v1`), incluindo melhor nota, recorde, melhor quantidade de cristais e histórico de conclusões. Recordes anteriores são importados da chave antiga quando possível.
+- Tela de seleção: **Primeiro Impulso** jogável, **Cânion Prisma** desbloqueada após concluir a fase 1, e fase 3 ainda planejada.
+- Tela de conclusão com nota S/A/B/C, tempo da tentativa, melhor tempo, cristais coletados, núcleos e quantidade de conclusões por fase.
+- Progresso separado por fase e salvo no navegador (`velocity-rift-progress-v1`), incluindo melhor nota, recorde, cristais, núcleos e conclusões. Recordes antigos da fase 1 são preservados.
 - Menu principal acessível após a fase ou pelo botão **Menu principal**; botão de pausa e tecla **P** durante o jogo.
-- Os resultados não desbloqueiam fases que ainda não foram implementadas.
+- Concluir a fase 1 desbloqueia a fase 2. A fase 3 permanece indisponível até ser desenvolvida.
 
 ## Controles
 
