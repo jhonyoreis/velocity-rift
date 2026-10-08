@@ -706,7 +706,17 @@ function loop(now) {
     accumulator = 0;
   }
 
-  scheduleMusic();
+  // A Web Audio error must never halt the physics and animation loop.
+  try {
+    scheduleMusic();
+  } catch (error) {
+    musicEnabled = false;
+    try { syncMusic(); } catch (_) { /* Unsupported or failing audio backend. */ }
+    syncMusicButton();
+    if (typeof console !== "undefined" && typeof console.warn === "function") {
+      console.warn("Velocity Rift: música desativada após erro de áudio.", error);
+    }
+  }
   draw();
   requestAnimationFrame(loop);
 }
@@ -1774,6 +1784,8 @@ const MUSIC_STEP_SECONDS = 60 / 108 / 4;
 const MUSIC_MELODY=[0,null,3,null,7,null,10,7,5,null,3,0,null,3,7,null,
   0,3,5,null,7,null,10,12,10,null,7,5,3,null,2,null];
 const MUSIC_BASS=[0,0,7,0,5,5,3,7];
+// Supports every one of Prism Canyon's nine sectors, including the finale.
+const MUSIC_SECTOR_SHIFTS=[0,0,3,5,7,10,12,14,17];
 const MUSIC_CHORDS=[[0,3,7],[5,8,12],[7,10,14],[3,7,10]];
 const midiToHz = midi => 440*Math.pow(2,(midi-69)/12);
 function initMusic(){
@@ -1790,7 +1802,8 @@ function syncMusic(){
   if(yes)nextMusicNote=now+.05;
 }
 function synthMusic(hz,at,duration,level,type="sine"){
-  if(!musicBus||!audioContext)return;
+  if(!musicBus||!audioContext||![hz,at,duration,level].every(Number.isFinite)
+    ||hz<=0||duration<=0||level<=0)return;
   const osc=audioContext.createOscillator(),volume=audioContext.createGain();
   osc.type=type;
   osc.frequency.setValueAtTime(hz,at);
@@ -1810,7 +1823,8 @@ function scheduleMusic(){
   while(nextMusicNote < now+.18 && scheduled++<3){
     const step=musicStep%32,beat=step%16,bar=Math.floor(musicStep/16);
     const chapter=Math.max(0,chapters.findLastIndex(ch=>player.x>=ch.x));
-    const shift=[0,0,3,5,7,10][chapter]+(activeStage===2?5:0);
+    const shift=MUSIC_SECTOR_SHIFTS[chapter%MUSIC_SECTOR_SHIFTS.length]
+      +(activeStage===2?5:0);
     if(beat%4===0){
       synthMusic(74,nextMusicNote,.10,.12);
       const bass=38+MUSIC_BASS[(Math.floor(step/4)+chapter)%8];
