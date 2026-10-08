@@ -187,6 +187,10 @@ const guardian={
   aimX:32910,aimY:392,lockAim:false,
   pickups:[],arenaFloor:410
 };
+const GUARDIAN_INTRO_SECONDS=1.85;
+const GUARDIAN_COLLAPSE_SECONDS=2.75;
+const GUARDIAN_SHARD_LIMIT=90;
+const guardianFx={shards:[],rings:[],flash:0,impact:0,entry:0};
 // Switching stages replaces only world data; the physics and Flux controls stay shared.
 const WORLD_KEYS=["tracks","chapters","signs","checkpoints","walls","tunnels",
   "enemies","rings","boostOrbs","springs","boostPads","spikes","pulseGates","memoryCores"];
@@ -778,6 +782,11 @@ function resetGuardian(){
       {x:32965,y:282,r:15,active:true,cooldown:0},
       {x:33520,y:272,r:15,active:true,cooldown:0}
     ]});
+  guardianFx.shards.length=0;
+  guardianFx.rings.length=0;
+  guardianFx.flash=0;
+  guardianFx.impact=0;
+  guardianFx.entry=0;
 }
 function guardianCorePosition(){
   // Three real attack angles; the third core is behind the body.
@@ -789,6 +798,8 @@ function guardianCorePosition(){
   ][slot];
 }
 function guardianHint(){
+  if(guardian.state==="intro")return "ATIVAÇÃO DO GUARDIÃO · PREPARE-SE!";
+  if(guardian.state==="collapse")return "NÚCLEO DESTRUÍDO · PORTAL REATIVANDO";
   if(guardian.state==="telegraph")return guardian.lockAim?"MIRA TRAVADA! SAIA DA LINHA":"LASER MIRANDO O FLUX";
   if(guardian.state==="attack")return "LASER! DESVIE DA LINHA DE DISPARO";
   if(guardian.state==="exposed")
@@ -819,30 +830,47 @@ function distanceToLaser(px,py,line){
   return Math.hypot(px-(line.x1+dx*amount),py-(line.y1+dy*amount));
 }
 function beginGuardianFight(){
-  guardian.active=true;guardian.state="telegraph";guardian.timer=0;
+  guardian.active=true;guardian.state="intro";guardian.timer=0;
   guardian.lockAim=false;
   guardian.aimX=player.x;guardian.aimY=player.y;
+  guardianFx.entry=1;
+  guardianFx.flash=.40;
+  pushGuardianRing(guardian.x,guardian.y,"#bc94ff",105,.9);
+  shakeTime=Math.max(shakeTime,.10);
+  playSfx("boss-enter");
   musicStep=0;
   if(audioContext&&audioContext.state==="running")nextMusicNote=audioContext.currentTime+.07;
   syncTrackLabel();
 }
 function hurtGuardian(){
-  guardian.hp--;
+  // Impacts are phase-specific. Damage rules (boost or downward stomp)
+  // remain in updateGuardian; the extra animations are cosmetic.
+  const previousCore=guardianCorePosition();
+  guardian.hp=Math.max(0,guardian.hp-1);
   guardian.cycle++;
-  guardian.state="recovery";guardian.timer=0;guardian.lockAim=false;
-  playSfx("boss-hit");shakeTime=.25;
-  const core=guardianCorePosition();
-  emitParticles(core.x,core.y,"#b4ffe9",40,230);
-  if(guardian.hp<=0){
-    guardian.hp=0;guardian.defeated=true;guardian.state="defeated";
-    emitParticles(guardian.x,guardian.y,"#a8ffe5",70,250);
-    playSfx("boss-win");
-    musicStep=0;
-    if(audioContext&&audioContext.state==="running")nextMusicNote=audioContext.currentTime+.07;
-    syncTrackLabel();
+  guardian.lockAim=false;
+  guardian.timer=0;
+  guardianFx.impact=1;
+  guardianFx.flash=guardian.hp===0?.82:.46;
+  pushGuardianRing(previousCore.x,previousCore.y,
+    guardian.hp===0?"#fff4bb":"#89ffee",guardian.hp===0?125:76,1);
+  spawnGuardianShards(previousCore.x,previousCore.y,
+    guardian.hp===0?60:28,guardian.hp===0?270:180);
+  emitParticles(previousCore.x,previousCore.y,
+    guardian.hp===0?"#fff0bf":"#9affef",guardian.hp===0?48:24,210);
+  shakeTime=guardian.hp===0?.46:.22;
+  playSfx(guardian.hp===0?"boss-collapse":"boss-hit");
+
+  if(guardian.hp===0){
+    guardian.state="collapse";
+    guardian.defeated=false;
+    // Do not open the portal until the visible 2.75-second sequence ends.
+    // Music and gameplay continue, but the boss can no longer attack.
     return;
   }
-  // Retreat with enough time to re-approach, but don't reset arena progress.
+
+  guardian.state="recovery";
+  // Reposition inside the chamber for the new weak-spot challenge.
   player.x=32915;player.y=guardian.arenaFloor-PLAYER_RADIUS;
   player.prevX=player.x;player.prevY=player.y;
   player.vx=0;player.vy=0;player.onGround=false;player.ground=null;
@@ -851,6 +879,7 @@ function hurtGuardian(){
     if(!item.active)item.cooldown=Math.min(item.cooldown,1.1);
   });
 }
+
 function updateGuardian(dt){
   if(activeStage!==2||guardian.defeated)return;
   if(!guardian.active){
@@ -879,7 +908,26 @@ function updateGuardian(dt){
     }
   }
   guardian.timer+=dt;
-  if(guardian.state==="telegraph"){
+  if(guardian.state==="intro"){
+    // Cinematic introduction, with clear view and no damaging beams.
+    if(guardian.timer>=GUARDIAN_INTRO_SECONDS){
+      guardian.state="telegraph";guardian.timer=0;guardian.lockAim=false;
+      pushGuardianRing(guardian.x,guardian.y,"#8bffe9",85,1);
+      playSfx("boss-alert");
+    }
+  }else if(guardian.state==="collapse"){
+    // During collapse the arena stays sealed and the core stops attacking.
+    if(guardian.timer>=GUARDIAN_COLLAPSE_SECONDS){
+      guardian.state="defeated";guardian.defeated=true;guardian.timer=0;
+      guardianFx.flash=.42;
+      pushGuardianRing(guardian.x,guardian.y,"#c2ffdb",165,1);
+      playSfx("boss-win");
+      musicStep=0;
+      if(audioContext&&audioContext.state==="running")
+        nextMusicNote=audioContext.currentTime+.07;
+      syncTrackLabel();
+    }
+  }else if(guardian.state==="telegraph"){
     // Track during wind-up; lock on 0.48s before the shot for fair reactions.
     if(!guardian.lockAim){
       guardian.aimX=clamp(player.x,guardian.arenaLeft+30,guardian.arenaRight-30);
@@ -1103,6 +1151,7 @@ function update(dt) {
   handleBoostPads();
   handleSprings();
   updateGuardian(dt);
+  updateGuardianVisuals(dt);
   updateFluxFx(dt);
   updateTrail(dt);
   updateParticles(dt);
@@ -2228,6 +2277,8 @@ function playSfx(kind) {
     hit:        [270, 95, 0.12, "square", 0.023],
     spring:     [280, 750, 0.22, "sine", 0.046],
     "boss-alert": [220, 410, 0.29, "triangle", 0.031],
+    "boss-enter": [105, 385, 0.95, "sawtooth", 0.026],
+    "boss-collapse": [625, 75, 1.45, "sawtooth", 0.047],
     "boss-hit": [600, 140, 0.34, "sawtooth", 0.043],
     "boss-win": [310, 1050, 0.7, "sine", 0.055],
     hurt:       [270, 115, 0.24, "triangle", 0.045],
