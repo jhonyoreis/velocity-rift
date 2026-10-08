@@ -252,3 +252,18 @@ button:hover {
   }
   .game-panel.menu-active .touch-controls { display: none; }
 }
+
+/* Prism Canyon stage selector states */
+#stageTwoCard.stage-card-active {
+  border-color: rgba(189, 144, 255, .9);
+  background: linear-gradient(90deg, rgba(112, 67, 176, .42), rgba(36, 37, 82, .94));
+}
+#stageTwoCard.stage-card-active .stage-number { color: #dbb9ff; }
+.stage-play:disabled {
+  opacity: .48;
+  cursor: not-allowed;
+  background: #74909b;
+  color: #d5e0e3;
+}
+.stage-play:disabled:hover { filter: none; }
+#stageTwoLock[hidden] { display:none; }
