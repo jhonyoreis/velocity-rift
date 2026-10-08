@@ -63,6 +63,15 @@ https://github.com/jhonyoreis/velocity-rift
 - Controle **Som ligado / Som desligado** abaixo do jogo ou tecla **M**. A preferência fica salva no navegador quando o armazenamento está disponível.
 - Se o navegador não suportar áudio, a jogabilidade continua funcionando normalmente.
 
+## Menu e progressão
+
+- Menu principal com início rápido, melhor tempo, melhor classificação e status da primeira fase.
+- Tela de seleção: **Primeiro Impulso** jogável; fases 2 e 3 exibidas como futuras e indisponíveis (sem simular fases prontas).
+- Tela de conclusão com nota S/A/B/C, tempo da tentativa, melhor tempo, cristais coletados e quantidade de conclusões.
+- Progresso salvo localmente no navegador (`velocity-rift-progress-v1`), incluindo melhor nota, recorde, melhor quantidade de cristais e histórico de conclusões. Recordes anteriores são importados da chave antiga quando possível.
+- Menu principal acessível após a fase ou pelo botão **Menu principal**; botão de pausa e tecla **P** durante o jogo.
+- Os resultados não desbloqueiam fases que ainda não foram implementadas.
+
 ## Controles
 
 - A/D ou setas: mover
@@ -72,6 +81,7 @@ https://github.com/jhonyoreis/velocity-rift
 - R: reiniciar
 - P: pausar/continuar
 - M: ligar/desligar efeitos sonoros
+- Esc: retornar ao menu principal durante a partida
 - Em dispositivos de toque: botões de direção, pulo, boost e slide
 
 ## O que ja existe
