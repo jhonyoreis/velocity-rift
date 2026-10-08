@@ -2479,6 +2479,53 @@ function drawTracks() {
   ctx.lineJoin = "round";
   for (const floor of tracks) {
     if (floor.x2 < cameraX - 120 || floor.x1 > cameraX + VIEW_W + 120) continue;
+    if(floor.secretId){
+      const trial=secretTrials.find(t=>t.id===floor.secretId);
+      const solid=secretPlatformSolid(floor);
+      const palette={fixed:"#74f8ed",moving:"#ffda84",spring:"#b5ff83",
+        phase:"#c6a3ff","belt-right":"#ffb77b","belt-left":"#ffb77b",
+        crumble:"#ff8fa5"};
+      ctx.save();
+      ctx.globalAlpha=trial?.active&&!solid?.17:1;
+      ctx.strokeStyle=trial?.failed?"#698287":palette[floor.behavior]||"#74f8ed";
+      ctx.lineWidth=15;ctx.lineCap="round";
+      ctx.beginPath();ctx.moveTo(floor.x1,floor.y1);
+      ctx.lineTo(floor.x2,floor.y2);ctx.stroke();
+      ctx.strokeStyle="#1a374b";ctx.lineWidth=5;
+      ctx.beginPath();ctx.moveTo(floor.x1,floor.y1+4);
+      ctx.lineTo(floor.x2,floor.y2+4);ctx.stroke();
+      if(floor.behavior==="spring"){
+        ctx.strokeStyle="#b7ffb8";ctx.lineWidth=2.5;
+        for(let i=0;i<5;i++){
+          const x=floor.x1+22+i*(floor.x2-floor.x1-45)/4;
+          ctx.beginPath();ctx.moveTo(x-9,floor.y1-6);
+          ctx.lineTo(x,floor.y1-16);ctx.lineTo(x+9,floor.y1-6);ctx.stroke();
+        }
+      }else if(floor.behavior.startsWith("belt")){
+        ctx.fillStyle="#ffe6ac";
+        for(let x=floor.x1+14;x<floor.x2-8;x+=24){
+          const dir=floor.belt>0?1:-1;
+          ctx.beginPath();ctx.moveTo(x-dir*6,floor.y1-5);
+          ctx.lineTo(x+dir*4,floor.y1-9);
+          ctx.lineTo(x-dir*6,floor.y1-13);ctx.closePath();ctx.fill();
+        }
+      }else if(floor.behavior==="phase"){
+        ctx.strokeStyle="#e4cfff";ctx.lineWidth=1.5;ctx.setLineDash([5,6]);
+        ctx.strokeRect(floor.x1+6,floor.y1-9,floor.x2-floor.x1-12,13);
+        ctx.setLineDash([]);
+      }else if(floor.behavior==="crumble"){
+        ctx.strokeStyle="#fff0e5";ctx.lineWidth=1.8;
+        for(let i=1;i<=3;i++){
+          const x=floor.x1+(floor.x2-floor.x1)*i/4;
+          ctx.beginPath();ctx.moveTo(x,floor.y1-7);
+          ctx.lineTo(x-8,floor.y1+1);ctx.stroke();
+        }
+      }else if(floor.behavior==="moving"){
+        ctx.fillStyle="#fff0bd";ctx.fillRect(floor.x1+8,floor.y1-9,10,5);
+        ctx.fillRect(floor.x2-18,floor.y1-9,10,5);
+      }
+      ctx.restore();continue;
+    }
     ctx.strokeStyle = activeStage===2
       ? floor.kind==="moving" ? "#ffcf82" : (floor.kind==="secret"||floor.kind==="secret-moving") ? "#76ffeb" : floor.kind==="platform" ? "#bb91ff" : floor.kind==="finish" ? "#a2f5ff" : "#a47df7"
       : (floor.kind==="secret"||floor.kind==="secret-moving") ? "#9bfff0" : floor.kind==="boost" ? "#f6ac43" : floor.kind==="finale" ? "#b785ef" : "#38dcd0";
