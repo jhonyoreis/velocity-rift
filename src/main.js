@@ -9,6 +9,7 @@ const pauseButton = document.querySelector("#pauseButton");
 const menuButton = document.querySelector("#menuButton");
 const screens = [mainMenu, stageMenu, resultMenu];
 const soundToggle = document.querySelector("#soundToggle");
+const musicToggle = document.querySelector("#musicToggle");
 
 const VIEW_W = canvas.width;
 const VIEW_H = canvas.height;
@@ -53,6 +54,12 @@ let sparkleCooldown = 0;
 let pickupSoundCooldown = 0;
 let soundEnabled = true;
 let audioContext = null;
+let musicEnabled = true;
+let musicBus = null;
+let musicStep = 0;
+let nextMusicNote = 0;
+try { musicEnabled = localStorage.getItem("velocity-rift-music") !== "off"; } catch (_) {}
+
 try { soundEnabled = localStorage.getItem("velocity-rift-sound") !== "off"; } catch (_) { /* unavailable storage */ }
 
 const player = {
@@ -72,6 +79,7 @@ const player = {
   sliding: false,
   downhillSliding: false,
   animationPhase: 0,
+  cores: 0,
 };
 
 
@@ -109,6 +117,9 @@ const signs = [
   {x:15370,title:"COMBINE",hint:"PULO + SLIDE"},
   {x:18830,title:"ULTIMO DESAFIO",hint:"GUARDE ENERGIA"},
   {x:21850,title:"CHEGADA",hint:"SIGA EM FRENTE"},
+  {x:5000,title:"ELETROPULSOS",hint:"PARE OU SALTE O FEIXE"},
+  {x:12250,title:"CICLO DE ENERGIA",hint:"LUZ VERMELHA = PERIGO"},
+  {x:17180,title:"REFLEXOS",hint:"OBSERVE A JANELA SEGURA"},
 ];
 const checkpoints = [2900,6600,10100,14200,18300].map(x=>({
   x,y:groundY(x)-PLAYER_RADIUS,active:false
@@ -150,6 +161,13 @@ const springs = [4600,16930].map(x=>({
 const boostPads = [];
 const spikes = [2320,4090,5820,8390,9780,13130,15100,17900,20550,21640]
   .map(x=>({x,y:groundY(x)-22,w:65,h:22}));
+// Five visible rhythmic hazards. Each can be cleared by jumping or timing.
+const pulseGates = [5250,9520,12520,17370,20750].map((x,i)=>({
+  x,y:groundY(x)-105,w:18,h:81,phase:i*.47,period:2.7,live:1.05
+}));
+const memoryCores = [4920,10220,19060].map((x,i)=>({
+  x,y:groundY(x)-91,r:13,id:i,active:true
+}));
 const goal = {x:22550,y:348,w:54,h:72};
 function groundY(x){
   const floor=tracks.find(t=>x>=t.x1&&x<=t.x2);
@@ -205,7 +223,7 @@ function gradeForTime(time) {
 }
 
 function defaultProgress() {
-  return { stage1: { completed: false, clears: 0, bestTime: 0, bestGrade: "", bestCrystals: 0 } };
+  return { stage1: { completed: false, clears: 0, bestTime: 0, bestGrade: "", bestCrystals: 0, bestCores: 0 } };
 }
 
 function loadProgress() {
@@ -217,6 +235,7 @@ function loadProgress() {
       const clears = Number(saved.clears);
       const time = Number(saved.bestTime);
       const crystals = Number(saved.bestCrystals);
+      const cores = Number(saved.bestCores);
       const completed = saved.completed === true;
       const validGrade = GRADE_ORDER.includes(saved.bestGrade) ? saved.bestGrade : "";
       return { stage1: {
@@ -224,12 +243,13 @@ function loadProgress() {
         clears: completed && Number.isFinite(clears) ? Math.max(1, Math.floor(clamp(clears, 0, 1000000))) : 0,
         bestTime: Number.isFinite(time) && time > 0 ? time : 0,
         bestGrade: validGrade,
-        bestCrystals: Number.isFinite(crystals) && crystals > 0 ? Math.floor(clamp(crystals, 0, 1000000)) : 0
+        bestCrystals: Number.isFinite(crystals) && crystals > 0 ? Math.floor(clamp(crystals, 0, 1000000)) : 0,
+        bestCores: Number.isFinite(cores) ? Math.floor(clamp(cores, 0, 3)) : 0
       } };
     }
     // Players from older versions may already have a saved first-stage record.
     if (bestTime > 0 && Number.isFinite(bestTime)) {
-      return { stage1: { completed: true, clears: 1, bestTime, bestGrade: gradeForTime(bestTime), bestCrystals: 0 } };
+      return { stage1: { completed: true, clears: 1, bestTime, bestGrade: gradeForTime(bestTime), bestCrystals: 0, bestCores: 0 } };
     }
   } catch (_) { /* Disabled/corrupt storage: play with in-memory progress. */ }
   return fallback;
@@ -242,7 +262,7 @@ function storeProgress() {
   } catch (_) { /* Progress remains available until refresh. */ }
 }
 
-function recordStageClear(time, crystals) {
+function recordStageClear(time, crystals, cores = 0) {
   const stage = progress.stage1;
   const grade = gradeForTime(time);
   const improvedTime = !stage.bestTime || time < stage.bestTime;
@@ -253,6 +273,7 @@ function recordStageClear(time, crystals) {
     stage.bestGrade = grade;
   }
   stage.bestCrystals = Math.max(stage.bestCrystals, crystals);
+  stage.bestCores = Math.max(stage.bestCores || 0, cores);
   bestTime = stage.bestTime;
   storeProgress();
   return { grade, improvedTime };
@@ -275,6 +296,7 @@ function refreshProgressView() {
 function showScreen(target) {
   gameStarted = false;
   paused = false;
+  syncMusic();
   keys.clear();
   jumpHeld = false;
   screens.forEach(screen => { screen.hidden = screen !== target; });
@@ -290,16 +312,16 @@ function showScreen(target) {
 function showMainMenu() { showScreen(mainMenu); }
 function showStageMenu() { showScreen(stageMenu); }
 
-function showResults(time, crystals) {
-  const result = recordStageClear(time, crystals);
+function showResults(time, crystals, cores = 0) {
+  const result = recordStageClear(time, crystals, cores);
   document.querySelector("#resultGrade").textContent = result.grade;
   document.querySelector("#resultTime").textContent = formatTime(time);
   document.querySelector("#resultBest").textContent = formatTime(progress.stage1.bestTime);
   document.querySelector("#resultCrystals").textContent = String(crystals);
   document.querySelector("#resultClears").textContent = String(progress.stage1.clears);
-  document.querySelector("#resultMessage").textContent = result.improvedTime
-    ? "Novo recorde! Próximo objetivo: melhorar sua classificação."
-    : "Missão concluída. Tente bater seu melhor tempo!";
+  document.querySelector("#resultMessage").textContent =
+    (result.improvedTime ? "Novo recorde!" : "Missão concluída!") +
+    " Núcleos " + cores + "/3 · Melhor " + progress.stage1.bestCores + "/3.";
   playSfx("finish");
   showScreen(resultMenu);
 }
@@ -314,6 +336,7 @@ function togglePause() {
   if (!gameStarted || gameCleared) return;
   paused = !paused;
   accumulator = 0;
+  syncMusic();
   keys.clear();
   jumpHeld = false;
   syncPauseButton();
@@ -334,6 +357,8 @@ function resetGame() {
   player.invulnerable = 0;
   player.trail = [];
   player.animationPhase = 0;
+  player.cores = 0;
+  musicStep = 0;
   particles = [];
   visualTime = 0;
   sparkleCooldown = 0;
@@ -368,6 +393,7 @@ function resetGame() {
   boostOrbs.forEach((boostOrb) => {
     boostOrb.active = true;
   });
+  memoryCores.forEach(core=>{core.active=true});
 }
 
 function startGame() {
@@ -378,6 +404,7 @@ function startGame() {
   document.querySelector(".game-panel").classList.remove("menu-active");
   overlay.classList.add("is-hidden");
   syncPauseButton();
+  syncMusic();
   ensureLoop();
 }
 
@@ -402,6 +429,7 @@ function loop(now) {
     accumulator = 0;
   }
 
+  scheduleMusic();
   draw();
   requestAnimationFrame(loop);
 }
@@ -511,6 +539,7 @@ function update(dt) {
   updateEnemies(dt);
   collectItems();
   handleHazards();
+  handlePulseGates();
   handleBoostPads();
   handleSprings();
   updateTrail(dt);
@@ -530,7 +559,7 @@ function update(dt) {
   if (circleRect(player.x, player.y, PLAYER_RADIUS, goal) && !gameCleared) {
     gameCleared = true;
     emitParticles(player.x, player.y, "#fbc66d", 45, 240);
-    showResults(gameTime, player.rings);
+    showResults(gameTime, player.rings, player.cores);
   }
 
   updateCamera(dt);
@@ -676,6 +705,15 @@ function collectItems() {
     }
   }
 
+  for (const core of memoryCores) {
+    if (!core.active && core.id < 0) continue;
+    if (core.active && distance(player.x, player.y, core.x, core.y) < PLAYER_RADIUS + core.r) {
+      core.active = false;
+      player.cores += 1;
+      emitParticles(core.x,core.y,"#ffcb79",22,150);
+      playSfx("checkpoint");
+    }
+  }
   for (const boostOrb of boostOrbs) {
     if (!boostOrb.active) continue;
     if (distance(player.x, player.y, boostOrb.x, boostOrb.y) < PLAYER_RADIUS + boostOrb.r) {
@@ -691,6 +729,20 @@ function collectItems() {
 function handleHazards() {
   for (const spike of spikes) {
     if (circleRect(player.x, player.y, PLAYER_RADIUS, spike)) {
+      damagePlayer(false);
+      return;
+    }
+  }
+}
+
+function pulseState(gate, t = gameTime) {
+  const phase = ((t + gate.phase) % gate.period + gate.period) % gate.period;
+  return {active:phase < gate.live, warning:phase >= gate.period - .40};
+}
+function handlePulseGates() {
+  for (const gate of pulseGates) {
+    if (!pulseState(gate).active || Math.abs(gate.x-player.x)>55) continue;
+    if (circleRect(player.x,player.y,PLAYER_RADIUS,gate)) {
       damagePlayer(false);
       return;
     }
@@ -753,6 +805,7 @@ function damagePlayer(fall) {
     player.sliding = false;
     player.downhillSliding = false;
     boostOrbs.forEach(item => { if (item.x > respawn.x) item.active = true; });
+    memoryCores.forEach(item => { if (item.x > respawn.x) item.active = true; });
     // A respawn teleports the camera too; it must not pan across half the level.
     cameraAnchorX = VIEW_W * CAMERA_IDLE_ANCHOR;
     cameraX = clamp(player.x - cameraAnchorX, 0, WORLD_W - VIEW_W);
@@ -788,8 +841,10 @@ function draw() {
   drawForest();
   drawTracks();
   drawTunnels();
+  drawPulseGates();
   drawSigns();
   drawObjects();
+  drawMemoryCores();
   drawParticles();
   drawPlayer();
 
@@ -927,6 +982,39 @@ function drawSigns() {
     ctx.fillText(sign.hint, sign.x + 12, ground - 67);
   }
 }
+function drawPulseGates() {
+  for (const gate of pulseGates) {
+    if (gate.x < cameraX-60 || gate.x > cameraX+VIEW_W+60) continue;
+    const state = pulseState(gate);
+    ctx.fillStyle="#244658";
+    roundRect(gate.x-10,gate.y-10,38,15,4);ctx.fill();
+    roundRect(gate.x-10,gate.y+gate.h-5,38,15,4);ctx.fill();
+    if (state.active || state.warning) {
+      ctx.fillStyle = state.active ? "rgba(255,82,126,.23)" : "rgba(248,187,94,.16)";
+      ctx.fillRect(gate.x-11,gate.y,40,gate.h);
+      ctx.strokeStyle=state.active?"#ff527e":"#ffd17c";
+      ctx.lineWidth=state.active?7:3;
+      ctx.beginPath();ctx.moveTo(gate.x+9,gate.y);ctx.lineTo(gate.x+9,gate.y+gate.h);ctx.stroke();
+    } else {
+      ctx.fillStyle="#5ef8da";ctx.fillRect(gate.x+4,gate.y+gate.h/2-3,10,6);
+    }
+    ctx.font="bold 11px system-ui";
+    ctx.fillStyle=state.active?"#ffcbd5":"#b5f5eb";
+    ctx.fillText(state.active?"PULSO":"LIVRE",gate.x-18,gate.y-18);
+  }
+}
+function drawMemoryCores() {
+  for (const core of memoryCores) {
+    if (!core.active || core.x < cameraX-60 || core.x > cameraX+VIEW_W+60) continue;
+    ctx.save();ctx.translate(core.x,core.y+Math.sin(visualTime*5+core.id)*3);
+    ctx.rotate(visualTime*.6);
+    ctx.fillStyle="#a86ff6";ctx.strokeStyle="#ffdf9a";ctx.lineWidth=3;
+    ctx.beginPath();ctx.moveTo(0,-18);ctx.lineTo(18,0);ctx.lineTo(0,18);ctx.lineTo(-18,0);ctx.closePath();
+    ctx.fill();ctx.stroke();
+    ctx.fillStyle="#fff3ce";ctx.fillRect(-3,-3,6,6);ctx.restore();
+  }
+}
+
 function drawObjects() {
   checkpoints.forEach((point, index) => {
     if (point.x < cameraX - 80 || point.x > cameraX + VIEW_W + 80) return;
@@ -1219,6 +1307,7 @@ function drawHud() {
   const section = chapters.slice().reverse().find(part => player.x >= part.x);
   ctx.fillText(section ? section.title : 'PRIMEIRO IMPULSO', 335, 54);
   ctx.fillText(Math.round(progress * 100) + '%', 704, 54);
+  ctx.fillStyle="#f9cb83";ctx.font="bold 13px system-ui";ctx.fillText("Núcleos "+player.cores+"/3",335,80);
   if (paused) {
     ctx.fillStyle = 'rgba(5, 9, 20, .75)';
     ctx.fillRect(0, 0, VIEW_W, VIEW_H);
@@ -1285,6 +1374,7 @@ function unlockAudio() {
   try {
     audioContext = new AudioCtor();
     if (audioContext.state === "suspended") audioContext.resume().catch(() => {});
+    initMusic();
   } catch (_) {
     audioContext = null;
   }
@@ -1339,13 +1429,92 @@ function toggleSound() {
   try { localStorage.setItem("velocity-rift-sound", soundEnabled ? "on" : "off"); } catch (_) {}
   if (soundEnabled) unlockAudio();
   syncSoundButton();
+  syncMusic();
 }
 if (soundToggle) soundToggle.addEventListener("click", toggleSound);
 syncSoundButton();
 
+// Neon Canopy: an original 108 BPM synthesized electronic soundtrack.
+// Lead, bass, harmony and percussive tones change subtly across stage sectors.
+const MUSIC_STEP_SECONDS = 60 / 108 / 4;
+const MUSIC_MELODY=[0,null,3,null,7,null,10,7,5,null,3,0,null,3,7,null,
+  0,3,5,null,7,null,10,12,10,null,7,5,3,null,2,null];
+const MUSIC_BASS=[0,0,7,0,5,5,3,7];
+const MUSIC_CHORDS=[[0,3,7],[5,8,12],[7,10,14],[3,7,10]];
+const midiToHz = midi => 440*Math.pow(2,(midi-69)/12);
+function initMusic(){
+  if(!audioContext || musicBus)return;
+  try{musicBus=audioContext.createGain();musicBus.gain.value=0;musicBus.connect(audioContext.destination)}
+  catch(_){musicBus=null}
+}
+function syncMusic(){
+  if(!musicBus||!audioContext)return;
+  const yes=gameStarted&&!paused&&!gameCleared&&musicEnabled&&soundEnabled;
+  const now=audioContext.currentTime;
+  musicBus.gain.cancelScheduledValues(now);
+  musicBus.gain.setTargetAtTime(yes?.14:0,now,.055);
+  if(yes)nextMusicNote=now+.05;
+}
+function synthMusic(hz,at,duration,level,type="sine"){
+  if(!musicBus||!audioContext)return;
+  const osc=audioContext.createOscillator(),volume=audioContext.createGain();
+  osc.type=type;
+  osc.frequency.setValueAtTime(hz,at);
+  volume.gain.setValueAtTime(.0001,at);
+  volume.gain.linearRampToValueAtTime(level,at+.008);
+  volume.gain.exponentialRampToValueAtTime(.0001,at+duration);
+  osc.connect(volume);volume.connect(musicBus);
+  osc.start(at);osc.stop(at+duration+.02);
+  osc.onended=()=>{osc.disconnect();volume.disconnect()};
+}
+function scheduleMusic(){
+  if(!gameStarted||paused||gameCleared||!soundEnabled||!musicEnabled||
+    !audioContext||!musicBus||audioContext.state!=="running")return;
+  const now=audioContext.currentTime;
+  if(nextMusicNote < now-.15 || nextMusicNote>now+1)nextMusicNote=now+.05;
+  let scheduled=0;
+  while(nextMusicNote < now+.18 && scheduled++<3){
+    const step=musicStep%32,beat=step%16,bar=Math.floor(musicStep/16);
+    const chapter=Math.max(0,chapters.findLastIndex(ch=>player.x>=ch.x));
+    const shift=[0,0,3,5,7,10][chapter];
+    if(beat%4===0){
+      synthMusic(74,nextMusicNote,.10,.12);
+      const bass=38+MUSIC_BASS[(Math.floor(step/4)+chapter)%8];
+      synthMusic(midiToHz(bass),nextMusicNote,MUSIC_STEP_SECONDS*3.4,.12,"triangle");
+    }
+    if(beat%4===2)synthMusic(185,nextMusicNote,.07,.026,"square");
+    if(beat%2===1)synthMusic(1320,nextMusicNote,.034,.014,"triangle");
+    const lead=MUSIC_MELODY[step];
+    if(lead!==null)synthMusic(midiToHz(69+lead+shift),nextMusicNote,
+      MUSIC_STEP_SECONDS*(chapter>=4?1.6:1.2),.078);
+    if(beat===0&&chapter>0){
+      const chord=MUSIC_CHORDS[(bar+Math.floor(chapter/2))%4];
+      for(const note of chord)synthMusic(midiToHz(57+note+shift),
+        nextMusicNote,MUSIC_STEP_SECONDS*6.5,.019);
+    }
+    musicStep=(musicStep+1)%128;
+    nextMusicNote+=MUSIC_STEP_SECONDS;
+  }
+}
+function syncMusicButton(){
+  if(!musicToggle)return;
+  musicToggle.textContent=musicEnabled?"♫ Música ligada":"♫ Música desligada";
+  musicToggle.setAttribute("aria-pressed",String(musicEnabled));
+}
+function toggleMusic(){
+  musicEnabled=!musicEnabled;
+  try{localStorage.setItem("velocity-rift-music",musicEnabled?"on":"off")}catch(_){}
+  if(musicEnabled)unlockAudio();
+  syncMusic();syncMusicButton();
+}
+if(musicToggle)musicToggle.addEventListener("click",toggleMusic);
+syncMusicButton();
+
+
 window.addEventListener("keydown", (event) => {
   const key = event.key.toLowerCase();
   if (key === "m" && !event.repeat) toggleSound();
+  if (key === "n" && !event.repeat) toggleMusic();
   if (gameStarted && soundEnabled) unlockAudio();
   keys.add(key);
   if ([' ', 'arrowup', 'w', 'k'].includes(key) && !jumpHeld) {
@@ -1366,7 +1535,7 @@ window.addEventListener("keyup", (event) => {
   if ([' ', 'arrowup', 'w', 'k'].includes(key)) jumpHeld = false;
 });
 
-window.addEventListener('blur', () => { keys.clear(); jumpHeld = false; if (gameStarted) paused = true; });
+window.addEventListener('blur', () => { keys.clear(); jumpHeld = false; if (gameStarted) {paused = true;syncPauseButton();syncMusic();} });
 startButton.addEventListener("click", startGame);
 document.querySelector("#selectStagesButton").addEventListener("click", showStageMenu);
 document.querySelector("#stageOneButton").addEventListener("click", startGame);
