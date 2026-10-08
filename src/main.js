@@ -10,6 +10,7 @@ const menuButton = document.querySelector("#menuButton");
 const screens = [mainMenu, stageMenu, resultMenu];
 const soundToggle = document.querySelector("#soundToggle");
 const musicToggle = document.querySelector("#musicToggle");
+const trackNowPlaying = document.querySelector("#trackNowPlaying");
 
 const VIEW_W = canvas.width;
 const VIEW_H = canvas.height;
@@ -410,6 +411,7 @@ const STAGES={1:stageOneWorld,2:createStageTwoWorld()};
 function activateStage(stage=1) {
   if(stage!==1&&stage!==2)throw new Error("Unknown level "+stage);
   activeStage=stage;
+  syncTrackLabel();
   const data=STAGES[stage];
   WORLD_W=data.worldW;
   for(const [key,arr] of [
@@ -1780,7 +1782,8 @@ syncSoundButton();
 
 // Neon Canopy: an original 108 BPM synthesized electronic soundtrack.
 // Lead, bass, harmony and percussive tones change subtly across stage sectors.
-const MUSIC_STEP_SECONDS = 60 / 108 / 4;
+const MUSIC_STEP_SECONDS = 60 / 108 / 4; // Neon Canopy: 108 BPM
+const PRISM_STEP_SECONDS = 60 / 126 / 4; // Ecos do Prisma: 126 BPM
 const MUSIC_MELODY=[0,null,3,null,7,null,10,7,5,null,3,0,null,3,7,null,
   0,3,5,null,7,null,10,12,10,null,7,5,3,null,2,null];
 const MUSIC_BASS=[0,0,7,0,5,5,3,7];
@@ -1788,6 +1791,23 @@ const MUSIC_BASS=[0,0,7,0,5,5,3,7];
 const MUSIC_SECTOR_SHIFTS=[0,0,3,5,7,10,12,14,17];
 const MUSIC_CHORDS=[[0,3,7],[5,8,12],[7,10,14],[3,7,10]];
 const midiToHz = midi => 440*Math.pow(2,(midi-69)/12);
+
+// "Ecos do Prisma" is a separate composition, not a transposed Neon Canopy.
+// D Phrygian colour, four-bar harmonic cycle and asymmetrical syncopation.
+// Entries are semitone offsets; null means a deliberate rhythmic rest.
+const PRISM_LEAD=[
+  null,0,null,1, 7,null,5,null, 3,1,null,-2, 0,null,7,null,
+  null,0,1,null, 10,7,null,5, 3,null,1,0, null,-2,1,null,
+  0,null,3,1, null,7,8,null, 7,5,null,3, 1,null,0,null,
+  null,12,10,null, 8,7,null,5, 3,1,0,null, -2,null,0,null
+];
+const PRISM_BASS_PATTERN=[0,null,null,12, null,0,7,null,
+  0,null,12,null, 3,null,7,null];
+const PRISM_ROOTS=[38,39,36,41]; // D, E♭, C, F — independent chord progression.
+const PRISM_SECTION_LIFT=[0,0,0,2,2,3,3,5,5];
+const PRISM_KICKS=new Set([0,6,8,11,14]);
+const PRISM_HATS=new Set([2,5,7,10,13,15]);
+
 function initMusic(){
   if(!audioContext || musicBus)return;
   try{musicBus=audioContext.createGain();musicBus.gain.value=0;musicBus.connect(audioContext.destination)}
@@ -1798,7 +1818,7 @@ function syncMusic(){
   const yes=gameStarted&&!paused&&!gameCleared&&musicEnabled&&soundEnabled;
   const now=audioContext.currentTime;
   musicBus.gain.cancelScheduledValues(now);
-  musicBus.gain.setTargetAtTime(yes?.14:0,now,.055);
+  musicBus.gain.setTargetAtTime(yes?(activeStage===2?.13:.14):0,now,.055);
   if(yes)nextMusicNote=now+.05;
 }
 function synthMusic(hz,at,duration,level,type="sine"){
@@ -1814,36 +1834,136 @@ function synthMusic(hz,at,duration,level,type="sine"){
   osc.start(at);osc.stop(at+duration+.02);
   osc.onended=()=>{osc.disconnect();volume.disconnect()};
 }
+// Prism mallets are dry, pitched and metallic; bass passes through a low-pass
+// filter to avoid drowning the FX or causing harsh sustained sawtooth sound.
+function prismVoice(hz,at,duration,level,voice="glass"){
+  if(!musicBus||!audioContext||![hz,at,duration,level].every(Number.isFinite)
+    ||hz<=0||duration<=0||level<=0)return;
+  const oscillator=audioContext.createOscillator();
+  const envelope=audioContext.createGain();
+  const filter=typeof audioContext.createBiquadFilter==="function"
+    ?audioContext.createBiquadFilter():null;
+  oscillator.type=voice==="bass"?"sawtooth":voice==="pad"?"triangle":"sine";
+  oscillator.frequency.setValueAtTime(hz,at);
+  const attack=voice==="pad"?.10:voice==="bass"?.008:.004;
+  envelope.gain.setValueAtTime(.0001,at);
+  envelope.gain.linearRampToValueAtTime(level,at+Math.min(attack,duration*.3));
+  envelope.gain.exponentialRampToValueAtTime(.0001,at+duration);
+  if(filter){
+    filter.type="lowpass";
+    filter.frequency.setValueAtTime(voice==="bass"?330:voice==="pad"?1100:3600,at);
+    oscillator.connect(filter);
+    filter.connect(envelope);
+  }else oscillator.connect(envelope);
+  envelope.connect(musicBus);
+  oscillator.start(at);oscillator.stop(at+duration+.02);
+  oscillator.onended=()=>{
+    oscillator.disconnect();
+    if(filter)filter.disconnect();
+    envelope.disconnect();
+  };
+}
+
+function scheduleNeonCanopyStep(at,step,chapter){
+  // Retain the first stage's original song and musical arrangement.
+  const beat=step%16,bar=Math.floor(step/16);
+  const shift=MUSIC_SECTOR_SHIFTS[chapter%MUSIC_SECTOR_SHIFTS.length];
+  if(beat%4===0){
+    synthMusic(74,at,.10,.12);
+    const bass=38+MUSIC_BASS[(Math.floor(step/4)+chapter)%8];
+    synthMusic(midiToHz(bass),at,MUSIC_STEP_SECONDS*3.4,.12,"triangle");
+  }
+  if(beat%4===2)synthMusic(185,at,.07,.026,"square");
+  if(beat%2===1)synthMusic(1320,at,.034,.014,"triangle");
+  const lead=MUSIC_MELODY[step%32];
+  if(lead!==null)synthMusic(midiToHz(69+lead+shift),at,
+    MUSIC_STEP_SECONDS*(chapter>=4?1.6:1.2),.078);
+  if(beat===0&&chapter>0){
+    const chord=MUSIC_CHORDS[(bar+Math.floor(chapter/2))%4];
+    for(const note of chord)synthMusic(midiToHz(57+note+shift),
+      at,MUSIC_STEP_SECONDS*6.5,.019);
+  }
+}
+
+function schedulePrismCanyonStep(at,step,chapter){
+  const beat=step%16;
+  const bar=Math.floor(step/16)%4;
+  const root=PRISM_ROOTS[bar]+PRISM_SECTION_LIFT[Math.min(chapter,8)];
+  const advanced=chapter>=4;
+  const finale=chapter>=7;
+  const sixteenth=PRISM_STEP_SECONDS;
+
+  // A broken-beat motor: unlike Neon Canopy's straight quarter-note kick.
+  if(PRISM_KICKS.has(beat)){
+    synthMusic(57,at,.088,beat===0?.14:.105,"sine");
+  }
+  if(beat===4||beat===12){
+    synthMusic(170,at,.105,advanced?.043:.031,"triangle");
+    if(advanced)synthMusic(340,at,.045,.012,"square");
+  }
+  if(PRISM_HATS.has(beat) && (chapter>=2 || beat===7||beat===15)){
+    synthMusic(1850,at,.027,finale?.02:.012,"triangle");
+  }
+
+  // Pulsating low end: syncopated octave motion with an occasional fifth.
+  const bass=PRISM_BASS_PATTERN[beat];
+  if(bass!==null){
+    prismVoice(midiToHz(root+bass),at,sixteenth*(bass===0?2.3:1.45),
+      advanced?.087:.064,"bass");
+  }
+
+  // A distinctive rising/falling crystal motif and subtle inharmonic shimmer.
+  const lead=PRISM_LEAD[step%PRISM_LEAD.length];
+  if(lead!==null && (chapter>=2 || beat%4!==1)){
+    const hz=midiToHz(root+36+lead);
+    prismVoice(hz,at,sixteenth*1.48,advanced?.098:.080);
+    prismVoice(hz*2.89,at,sixteenth*.83,.014,"glass");
+    if(finale && beat%4===0){
+      prismVoice(hz*2,at+.019,sixteenth*.95,.034,"glass");
+    }
+  }
+
+  // Sparse wide harmonies slowly become full pads by the final sectors.
+  if(beat===0 && chapter>=1){
+    const harmony=[0,3,7];
+    for(const note of harmony){
+      prismVoice(midiToHz(root+24+note),at,
+        sixteenth*(advanced?9:6.5),advanced?.022:.013,"pad");
+    }
+  }
+  if(chapter>=5 && beat===10){
+    // Echo arpeggio on an offbeat; enough movement without extra files.
+    for(let i=0;i<2;i++){
+      prismVoice(midiToHz(root+36+[7,15][i]),
+        at+i*sixteenth*.66,sixteenth*.9,.028,"glass");
+    }
+  }
+}
+
 function scheduleMusic(){
   if(!gameStarted||paused||gameCleared||!soundEnabled||!musicEnabled||
     !audioContext||!musicBus||audioContext.state!=="running")return;
   const now=audioContext.currentTime;
-  if(nextMusicNote < now-.15 || nextMusicNote>now+1)nextMusicNote=now+.05;
+  const stepDuration=activeStage===2?PRISM_STEP_SECONDS:MUSIC_STEP_SECONDS;
+  if(!Number.isFinite(now)||!Number.isFinite(nextMusicNote))return;
+  if(nextMusicNote<now-.15||nextMusicNote>now+1)nextMusicNote=now+.05;
   let scheduled=0;
-  while(nextMusicNote < now+.18 && scheduled++<3){
-    const step=musicStep%32,beat=step%16,bar=Math.floor(musicStep/16);
+  while(nextMusicNote<now+.18&&scheduled++<3){
     const chapter=Math.max(0,chapters.findLastIndex(ch=>player.x>=ch.x));
-    const shift=MUSIC_SECTOR_SHIFTS[chapter%MUSIC_SECTOR_SHIFTS.length]
-      +(activeStage===2?5:0);
-    if(beat%4===0){
-      synthMusic(74,nextMusicNote,.10,.12);
-      const bass=38+MUSIC_BASS[(Math.floor(step/4)+chapter)%8];
-      synthMusic(midiToHz(bass),nextMusicNote,MUSIC_STEP_SECONDS*3.4,.12,"triangle");
-    }
-    if(beat%4===2)synthMusic(185,nextMusicNote,.07,.026,"square");
-    if(beat%2===1)synthMusic(1320,nextMusicNote,.034,.014,"triangle");
-    const lead=MUSIC_MELODY[step];
-    if(lead!==null)synthMusic(midiToHz(69+lead+shift),nextMusicNote,
-      MUSIC_STEP_SECONDS*(chapter>=4?1.6:1.2),.078);
-    if(beat===0&&chapter>0){
-      const chord=MUSIC_CHORDS[(bar+Math.floor(chapter/2))%4];
-      for(const note of chord)synthMusic(midiToHz(57+note+shift),
-        nextMusicNote,MUSIC_STEP_SECONDS*6.5,.019);
-    }
+    if(activeStage===2) schedulePrismCanyonStep(nextMusicNote,musicStep,chapter);
+    else scheduleNeonCanopyStep(nextMusicNote,musicStep,chapter);
     musicStep=(musicStep+1)%128;
-    nextMusicNote+=MUSIC_STEP_SECONDS;
+    nextMusicNote+=stepDuration;
   }
 }
+
+function syncTrackLabel(){
+  if(!trackNowPlaying)return;
+  trackNowPlaying.textContent=activeStage===2
+    ?"♫ Trilha original: Ecos do Prisma · 126 BPM"
+    :"♫ Trilha original: Neon Canopy · 108 BPM";
+}
+
 function syncMusicButton(){
   if(!musicToggle)return;
   musicToggle.textContent=musicEnabled?"♫ Música ligada":"♫ Música desligada";
@@ -1857,6 +1977,7 @@ function toggleMusic(){
 }
 if(musicToggle)musicToggle.addEventListener("click",toggleMusic);
 syncMusicButton();
+syncTrackLabel();
 
 
 window.addEventListener("keydown", (event) => {
