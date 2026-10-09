@@ -600,3 +600,18 @@ body {
   .v3-main .v3-action{min-height:28px;padding:5px 11px;}
   .v31-pause {gap:4px;}
 }
+
+/* Velocity Rift 3.2 — next stage button on the completion screen. */
+.result-menu-actions {gap:9px;width:min(100%,690px);align-items:center;}
+.result-menu-actions #nextStageButton {font-weight:900;letter-spacing:.01em;}
+.result-menu-actions #nextStageButton:disabled {
+  opacity:.58;cursor:not-allowed;
+  color:#a6c7cc;background:rgba(18,52,69,.78);
+  box-shadow:none;border:1px dashed rgba(132,198,208,.34);
+}
+.result-menu-actions #nextStageButton:disabled:hover {filter:none;}
+.result-menu-actions button:focus-visible {outline:2px solid #fff1aa;outline-offset:3px;}
+@media(max-width:710px){
+  .result-menu-actions {gap:6px;}
+  .result-menu-actions button {font-size:.72rem;padding:8px 10px;min-height:34px;}
+}
