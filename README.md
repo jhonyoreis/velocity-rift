@@ -1,4 +1,4 @@
-# Velocity Rift — versão 3.1 (em desenvolvimento)
+# Velocity Rift — versão 3.2 (em desenvolvimento)
 
 Um prototipo web 2D inspirado em jogos de plataforma de alta velocidade. Ele usa
 HTML, CSS e Canvas, sem assets oficiais. O Vite é uma dependência de desenvolvimento.
@@ -32,6 +32,14 @@ com JavaScript, sem precisar migrar a engine.
 ## Repositório
 
 https://github.com/jhonyoreis/velocity-rift
+
+## Velocity Rift 3.2 — próxima fase na tela de resultados
+
+- A conclusão do **Primeiro Impulso** agora exibe um botão principal **“Próxima fase: Cânion Prisma”**, iniciando diretamente a segunda fase com um único clique.
+- O botão preserva a gravação de resultado, recordes, núcleos e conquistas antes da transição, e inicia a próxima fase com seu estado normal reiniciado.
+- Depois do **Cânion Prisma**, o botão aparece desativado, indicando que a **Cidade das Fendas** ainda está em desenvolvimento. As opções Jogar novamente, Ver fases, Conquistas e Menu principal continuam disponíveis.
+- A conclusão da fase 1 com DEBUG não desbloqueia a fase 2 de forma permanente; a navegação direta só fica disponível se a campanha já estiver liberada ou se o modo DEBUG permanecer ativo.
+- Os saves da 2.0 e da campanha 3.0, o sistema de áudio, as conquistas e as rotas opcionais não foram alterados.
 
 ## Velocity Rift 3.1 — menu widescreen e pausa integrada
 
