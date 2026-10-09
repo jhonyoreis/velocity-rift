@@ -1692,8 +1692,10 @@ function finishStageArrival(){
   player.prevY=spawn.y;
   player.vx=0;player.vy=0;
   player.facing=1;
-  player.onGround=true;
-  player.ground=tracks[0]||null;
+  // Match resetGame() exactly: the first playable physics frame will
+  // resolve floor contact and acceleration, just as in version 3.5.1.
+  player.onGround=false;
+  player.ground=null;
   player.boosting=false;player.sliding=false;player.downhillSliding=false;
   cameraX=0;cameraY=0;
   cameraAnchorX=VIEW_W*CAMERA_IDLE_ANCHOR;
