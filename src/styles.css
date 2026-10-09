@@ -913,3 +913,20 @@ body {
 @media(max-width:700px){
   .rift-map-node-final{left:80.9%;top:77.7%;}
 }
+
+/* Velocity Rift 3.7.2 — defeat screen */
+.vr-death{max-width:480px;padding:24px 22px;gap:13px;
+ border:1px solid rgba(250,134,111,.6);
+ border-radius:20px;background:linear-gradient(150deg,rgba(42,16,37,.97),rgba(14,19,43,.98));
+ box-shadow:0 20px 80px rgba(0,0,0,.52);}
+.vr-death-label{font-size:.68rem;letter-spacing:.22em;font-weight:900;color:#ffcb9b;}
+.vr-death h2{font-size:clamp(2rem,7vw,3.7rem);color:#fff3eb;line-height:1;text-shadow:0 0 32px rgba(255,86,99,.5);}
+.vr-death-stage{font-size:.95rem!important;font-weight:800;color:#f7a6ce!important;}
+.vr-death-reason{font-size:.95rem;max-width:360px;color:#dce5ef!important;}
+.vr-death-loss{font-weight:900;color:#ffc17e!important;}
+.vr-death-actions{display:grid;gap:10px;width:min(100%,315px);}
+.vr-death-actions button{width:100%;min-height:44px;font-weight:900;letter-spacing:.03em;}
+.vr-death-actions .primary-action{background:#80f5de;color:#09283a;}
+.vr-death-actions .secondary-action{background:#293450;color:#e5f9ff;border:1px solid #9bdfe655;}
+.vr-death-actions button:focus-visible{outline:3px solid #fff2ad;outline-offset:3px;}
+@media(max-width:700px){.vr-death{padding:18px 15px;gap:9px;max-height:100%;overflow:auto;}}

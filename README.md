@@ -1,4 +1,4 @@
-# Velocity Rift — Cidade das Fendas (versão 3.7.1 — estabilização)
+# Velocity Rift — Cidade das Fendas (versão 3.7.2 em teste)
 
 Um prototipo web 2D inspirado em jogos de plataforma de alta velocidade. Ele usa
 HTML, CSS e Canvas, sem assets oficiais. O Vite é uma dependência de desenvolvimento.
@@ -32,6 +32,15 @@ com JavaScript, sem precisar migrar a engine.
 ## Repositório
 
 https://github.com/jhonyoreis/velocity-rift
+
+## Velocity Rift 3.7.2 — Arquiteto, cristais e tela de derrota
+
+- O **portal final** da Cidade das Fendas tem renderização própria após a derrota do Arquiteto, com brilho, símbolo central e legenda. Foi aproximado no final da arena para aparecer mais claramente quando a câmera revela a saída.
+- O Arquiteto escala de **2 para 5 projéteis por rajada** à medida que perde vida, com velocidade crescente e janelas de vulnerabilidade menores. Com 2 HP surgem fendas temporárias no chão, e com 1 HP surgem duas. Há um aviso visível antes da fase perigosa.
+- **Cristais**: ao sofrer dano comum, perde-se no mínimo 8 ou 35% do total atual (limitado pelo saldo). Se Flux sofrer dano sem cristais, a tentativa acaba. Se cair em um abismo, **perde 100% dos cristais** e a tentativa acaba, mesmo que ainda tivesse cristais.
+- A nova tela **VOCÊ MORREU** oferece **Reiniciar fase** (recomeça o capítulo, sem repetir cutscene) e **Menu principal**. Recordes e progresso permanente continuam preservados.
+- Os coletáveis de todas as três fases deixam de ser anéis e ganham desenho vetorial procedural de **cristal facetado vermelho/laranja**, inspirado na referência visual fornecida.
+- **Validar** no navegador a dificuldade da luta, o portal, os controles e a interface mobile; os testes automatizados não substituem a experiência real.
 
 ## Velocity Rift 3.7.1 — manutenção e organização
 

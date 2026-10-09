@@ -14,6 +14,9 @@ import {riftPlatformPhase,riftElevatorY} from "./game/riftPlatforms.js";
 import {renderRiftCorridorBackground} from "./rendering/riftCorridorBackground.js";
 import {createEnemy as enemy,isCityEnemyType} from "./game/enemies.js";
 import {resolveAirDashDirection} from "./game/dashDirection.js";
+import {calculateCrystalDamage} from "./game/crystals.js";
+import {renderCrystal} from "./rendering/crystals.js";
+import {architectPhase,architectBarrageDuration,spawnArchitectRifts,architectRiftState} from "./bosses/architectPatterns.js";
 
 const canvas = document.querySelector("#game");
 const ctx = canvas.getContext("2d");
@@ -28,9 +31,10 @@ const achievementsMenu=document.querySelector("#achievementsMenu");
 const settingsMenu=document.querySelector("#settingsMenu");
 const newGameConfirm=document.querySelector("#newGameConfirm");
 const pauseMenu=document.querySelector("#pauseMenu");
+const deathMenu=document.querySelector("#deathMenu");
 const cinematicMenu=document.querySelector("#cinematicMenu");
 const galleryMenu=document.querySelector("#galleryMenu");
-const screens=[mainMenu,stageMenu,resultMenu,achievementsMenu,settingsMenu,newGameConfirm,pauseMenu,cinematicMenu,galleryMenu];
+const screens=[mainMenu,stageMenu,resultMenu,achievementsMenu,settingsMenu,newGameConfirm,pauseMenu,deathMenu,cinematicMenu,galleryMenu];
 let selectedMapStage=1;
 const soundToggle = document.querySelector("#soundToggle");
 const musicToggle = document.querySelector("#musicToggle");
@@ -1293,6 +1297,19 @@ function showScreen(target) {
   target.querySelector?.('button:not([disabled]),input')?.focus?.();
 }
 
+function showDeathScreen(fell, lost){
+  // End the current run; permanent campaign progress is not reset.
+  gameStarted=false;gameCleared=false;paused=false;accumulator=0;
+  airDash.active=false;airDash.time=0;
+  document.querySelector("#deathStageLabel").textContent=
+    ["","Floresta Neon","Cânion Prisma","Cidade das Fendas"][activeStage];
+  document.querySelector("#deathReason").textContent=fell
+    ?"Flux caiu na fenda. Todos os cristais foram perdidos."
+    :"Flux ficou sem cristais para resistir ao impacto.";
+  document.querySelector("#deathCrystalLoss").textContent=
+    lost+" cristal"+(lost===1?" perdido":"is perdidos");
+  showScreen(deathMenu);
+}
 function showMainMenu() {showScreen(mainMenu);}
 function showSettingsMenu(){showScreen(settingsMenu);refreshAudioSettings();}
 function showStageMenu(){
@@ -1607,7 +1624,7 @@ function loop(now) {
 
   if (gameStarted && !gameCleared && !paused) {
     accumulator += dt;
-    while (accumulator >= FIXED_DT) {
+    while (accumulator >= FIXED_DT && gameStarted && !paused && !gameCleared) {
       update(FIXED_DT);
       accumulator -= FIXED_DT;
     }
@@ -1637,30 +1654,80 @@ function loop(now) {
 // a twin-shot telegraph, guarded and exposed windows, cinematic collapse.
 const cityBoss={x:RIFT_BOSS_ARENA_LEFT+750,y:324,
  arenaLeft:RIFT_BOSS_ARENA_LEFT,arenaRight:RIFT_WORLD_WIDTH,
- active:false,defeated:false,state:"intro",timer:0,hp:4,maxHp:4,shot:0,fx:0};
+ active:false,defeated:false,state:"intro",timer:0,hp:4,maxHp:4,shot:0,fx:0,
+ rifts:[]};
 const cityShards=[];
 function resetCityBoss(){
  Object.assign(cityBoss,{active:false,defeated:false,state:"intro",
-   timer:0,hp:4,shot:0,fx:0});
+   timer:0,hp:4,shot:0,fx:0,rifts:[]});
  cityShards.length=0;
 }
 function beginCityBoss(){
- Object.assign(cityBoss,{active:true,state:"intro",timer:0,shot:0});
+ Object.assign(cityBoss,{active:true,state:"intro",timer:0,shot:0,rifts:[]});
  musicStep=0;
  if(audioContext&&audioContext.state==="running")
    nextMusicNote=audioContext.currentTime+.07;
  syncTrackLabel();playSfx("boss-enter");
 }
+function beginCityBossTelegraph(){
+ cityBoss.timer=0;cityBoss.shot=0;cityBoss.state="telegraph";
+ cityBoss.rifts=spawnArchitectRifts({
+   phase:architectPhase(cityBoss.hp),playerX:player.x,facing:player.facing,
+   arenaLeft:cityBoss.arenaLeft,arenaRight:cityBoss.arenaRight
+ });
+}
 function cityBossFire(){
+ const config=architectPhase(cityBoss.hp);
  const x=cityBoss.x-65,y=cityBoss.y-19;
  const a=Math.atan2(player.y-y,player.x-x);
- for(const delta of [-.14,.14]){
+ for(let i=0;i<config.projectiles;i++){
    if(sentryShots.length>=42)break;
-   const v=cityBoss.hp<=2?515:455;
-   sentryShots.push({x,y,vx:Math.cos(a+delta)*v,vy:Math.sin(a+delta)*v,
-     life:3,r:10,unblockable:true,cityShot:true});
+   const offset=(i-(config.projectiles-1)/2)*.105;
+   sentryShots.push({x,y,vx:Math.cos(a+offset)*config.speed,
+     vy:Math.sin(a+offset)*config.speed,life:3,r:9,
+     unblockable:true,cityShot:true});
  }
  playSfx("boss-alert");
+}
+function updateArchitectGroundRifts(dt){
+ if(!cityBoss.active||cityBoss.defeated)return;
+ for(const rift of cityBoss.rifts){
+   rift.age+=dt;
+   if(architectRiftState(rift.age)!=="active")continue;
+   if(circleRect(player.x,player.y,PLAYER_RADIUS,
+     {x:rift.x-rift.width/2,y:317,w:rift.width,h:96})){
+     damagePlayer(false);
+     if(!gameStarted)return;
+   }
+ }
+ cityBoss.rifts=cityBoss.rifts.filter(rift=>architectRiftState(rift.age)!=="expired");
+}
+function drawArchitectGroundRifts(){
+ if(activeStage!==3||!cityBoss.active||cityBoss.defeated)return;
+ for(const rift of cityBoss.rifts){
+   const state=architectRiftState(rift.age);
+   if(state==="expired")continue;
+   ctx.save();
+   ctx.strokeStyle=state==="warning"?"#ffd08b":"#ff5bba";
+   ctx.lineWidth=state==="warning"?4:8;
+   ctx.shadowColor=state==="warning"?"#ffe498":"#ff51a8";
+   ctx.shadowBlur=state==="warning"?10:25;
+   const left=rift.x-rift.width/2,right=rift.x+rift.width/2;
+   ctx.beginPath();
+   ctx.moveTo(left,410);ctx.lineTo(rift.x-23,397);
+   ctx.lineTo(rift.x,408);ctx.lineTo(rift.x+21,396);
+   ctx.lineTo(right,410);ctx.stroke();
+   if(state==="active"){
+     ctx.fillStyle="rgba(240,64,178,.27)";
+     ctx.beginPath();ctx.moveTo(left,410);
+     ctx.lineTo(rift.x-17,326);ctx.lineTo(rift.x+14,335);
+     ctx.lineTo(right,410);ctx.closePath();ctx.fill();
+     ctx.strokeStyle="#ffc4ef";ctx.lineWidth=2;
+     ctx.beginPath();ctx.moveTo(rift.x-17,326);
+     ctx.lineTo(rift.x,350);ctx.lineTo(rift.x+14,335);ctx.stroke();
+   }
+   ctx.restore();
+ }
 }
 function hurtCityBoss(){
  if(cityBoss.state!=="exposed"||!airDash.active)return;
@@ -1672,7 +1739,10 @@ function hurtCityBoss(){
      vx:Math.cos(angle)*v,vy:Math.sin(angle)*v,life:1.5});
  }
  if(cityShards.length>66)cityShards.splice(0,cityShards.length-66);
- if(cityBoss.hp===0)sentryShots=sentryShots.filter(p=>!p.cityShot);
+ if(cityBoss.hp===0){
+   sentryShots=sentryShots.filter(p=>!p.cityShot);
+   cityBoss.rifts=[];
+ }
  airDash.active=false;airDash.time=0;
  player.vy=-230;player.vx=-420;
  playSfx(cityBoss.hp===0?"boss-collapse":"boss-crack");
@@ -1680,7 +1750,7 @@ function hurtCityBoss(){
  cityBoss.state=cityBoss.hp===0?"collapse":"recovery";
 }
 function updateCityBoss(dt){
- if(activeStage!==3||cityBoss.defeated)return;
+ if(activeStage!==3||cityBoss.defeated||!gameStarted)return;
  if(!cityBoss.active){
    if(player.x<cityBoss.arenaLeft)return;
    beginCityBoss();
@@ -1692,28 +1762,36 @@ function updateCityBoss(dt){
    player.x=cityBoss.arenaRight-PLAYER_RADIUS;player.vx=Math.min(0,player.vx);
  }
  cityBoss.timer+=dt;
+ updateArchitectGroundRifts(dt);
+ if(!gameStarted)return;
+ const phase=architectPhase(cityBoss.hp);
  if(cityBoss.state==="intro"&&cityBoss.timer>=2.55){
-   cityBoss.timer=0;cityBoss.state="telegraph";
- }else if(cityBoss.state==="telegraph"&&cityBoss.timer>=.95){
+   beginCityBossTelegraph();
+ }else if(cityBoss.state==="telegraph"&&cityBoss.timer>=phase.telegraph){
    cityBoss.timer=0;cityBoss.shot=0;cityBoss.state="barrage";
  }else if(cityBoss.state==="barrage"){
-   if(cityBoss.shot===0&&cityBoss.timer>.06){cityBossFire();cityBoss.shot++;}
-   if(cityBoss.shot===1&&cityBoss.timer>.51){cityBossFire();cityBoss.shot++;}
-   if(cityBoss.timer>1.15){cityBoss.timer=0;cityBoss.state="exposed";}
+   if(cityBoss.shot<phase.volleys&&cityBoss.timer>=.06+cityBoss.shot*phase.gap){
+     cityBossFire();cityBoss.shot++;
+   }
+   if(cityBoss.timer>architectBarrageDuration(phase)){
+     cityBoss.timer=0;cityBoss.state="exposed";
+   }
  }else if(cityBoss.state==="exposed"){
    if(distance(player.x,player.y,cityBoss.x,cityBoss.y)<PLAYER_RADIUS+52&&airDash.active)
      hurtCityBoss();
-   else if(cityBoss.timer>3.1){cityBoss.timer=0;cityBoss.state="telegraph";}
- }else if(cityBoss.state==="recovery"&&cityBoss.timer>1.05){
-   cityBoss.timer=0;cityBoss.state="telegraph";
+   else if(cityBoss.timer>phase.exposed)beginCityBossTelegraph();
+ }else if(cityBoss.state==="recovery"&&cityBoss.timer>phase.recovery){
+   beginCityBossTelegraph();
  }else if(cityBoss.state==="collapse"&&cityBoss.timer>2.65){
    cityBoss.defeated=true;cityBoss.state="defeated";cityBoss.timer=0;
+   cityBoss.rifts=[];
    playSfx("portal-open");musicStep=0;syncTrackLabel();
  }
  if(["telegraph","barrage"].includes(cityBoss.state)&&circleRect(
    player.x,player.y,PLAYER_RADIUS,
    {x:cityBoss.x-49,y:cityBoss.y-70,w:98,h:132}))damagePlayer(false);
 }
+
 function updateCityBossFX(dt){
  cityBoss.fx=Math.max(0,cityBoss.fx-dt*1.6);
  for(const p of cityShards){p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;}
@@ -1729,7 +1807,7 @@ function drawCityBoss(){
  for(let x=cityBoss.arenaLeft;x<cityBoss.arenaRight;x+=115){
    ctx.beginPath();ctx.moveTo(x,102);ctx.lineTo(x+45,410);ctx.stroke();
  }
- if(cityBoss.defeated){ctx.restore();drawCityExit();return;}
+ if(cityBoss.defeated){ctx.restore();return;}
  ctx.translate(cityBoss.x,cityBoss.y+Math.sin(visualTime*3)*4);
  if(cityBoss.state==="intro"){
    const v=clamp(cityBoss.timer/2.55,0,1);
@@ -1771,15 +1849,37 @@ function drawCityBoss(){
 }
 function drawCityExit(){
  if(activeStage!==3||!cityBoss.defeated)return;
- ctx.save();ctx.translate(goal.x+goal.w/2,goal.y+goal.h*.45);
- for(let i=0;i<5;i++){
+ const cx=goal.x+goal.w/2,cy=goal.y+goal.h*.45;
+ ctx.save();ctx.translate(cx,cy);
+ const breathe=1+Math.sin(visualTime*3.2)*.065;
+ ctx.scale(breathe,breathe);
+ const glow=ctx.createRadialGradient(0,0,10,0,0,140);
+ glow.addColorStop(0,"rgba(141,255,234,.52)");
+ glow.addColorStop(.65,"rgba(192,116,255,.22)");
+ glow.addColorStop(1,"rgba(156,80,250,0)");
+ ctx.fillStyle=glow;ctx.fillRect(-145,-145,290,290);
+ ctx.shadowBlur=28;ctx.shadowColor="#9affed";
+ for(let i=4;i>=0;i--){
    ctx.strokeStyle=i%2?"#bda7ff":"#70ffe8";
-   ctx.globalAlpha=.22+i*.12;ctx.lineWidth=7-i;
-   ctx.beginPath();ctx.ellipse(0,0,35+i*5,52+i*5,
-     visualTime*.15+i*.1,0,0,Math.PI*2);ctx.stroke();
+   ctx.globalAlpha=.42+(4-i)*.115;ctx.lineWidth=5;
+   ctx.beginPath();ctx.ellipse(0,0,33+i*5,51+i*5,
+     Math.sin(visualTime*.35+i)*.16,0,Math.PI*2);ctx.stroke();
  }
+ ctx.globalAlpha=1;ctx.shadowBlur=14;
+ ctx.fillStyle="rgba(147,108,235,.66)";
+ ctx.beginPath();ctx.ellipse(0,0,36,57,0,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle="#b3fffa";
+ ctx.beginPath();ctx.moveTo(0,-45);ctx.lineTo(28,0);
+ ctx.lineTo(0,45);ctx.lineTo(-28,0);ctx.closePath();ctx.fill();
+ ctx.fillStyle="#151247";
+ ctx.beginPath();ctx.moveTo(0,-32);ctx.lineTo(19,0);
+ ctx.lineTo(0,32);ctx.lineTo(-19,0);ctx.closePath();ctx.fill();
+ ctx.shadowBlur=0;ctx.textAlign="center";
+ ctx.font="bold 16px system-ui";ctx.fillStyle="#e1fff5";
+ ctx.fillText("ENTRE NA FENDA",0,-98);
  ctx.restore();
 }
+
 function drawCityBossCinematic(){
  if(activeStage!==3||!cityBoss.active||cityBoss.defeated)return;
  if(!["intro","collapse"].includes(cityBoss.state))return;
@@ -2449,13 +2549,18 @@ function update(dt) {
   resolveCityRiftGates();
   updateCheckpoints();
   updateEnemies(dt);
+  if(!gameStarted)return;
   updateSentryShots(dt);
+  if(!gameStarted)return;
   updateCityBoss(dt);
+  if(!gameStarted)return;
   updateCityBossFX(dt);
   collectItems();
   collectCityDashCore();
   handleHazards();
+  if(!gameStarted)return;
   handlePulseGates();
+  if(!gameStarted)return;
   handleBoostPads();
   handleSprings();
   updateGuardian(dt);
@@ -2480,7 +2585,7 @@ function update(dt) {
     player.x=guardian.arenaRight-PLAYER_RADIUS;player.vx=Math.min(0,player.vx);
   }
 
-  if(!debugMode&&player.y>720){damagePlayer(true);}
+  if(!debugMode&&player.y>720){damagePlayer(true);if(!gameStarted)return;}
 
   // Stage 1 keeps its original exit. Stage 2 requires entering a fully open
   // dimensional portal; touching the inactive spawn point cannot win.
@@ -3125,66 +3230,26 @@ function updateCheckpoints() {
   });
 }
 function damagePlayer(fall) {
-  if (debugMode || (player.invulnerable > 0 && !fall)) return;
-  // Taking a hit interrupts aerial momentum: a dash never grants a shield.
-  if(airDash.active){
-    airDash.active=false;airDash.time=0;
-  }
-  runDamageCount++;
-  interruptSecretTrials();
-  if(activeStage===2&&guardian.active&&!guardian.defeated)bossDamagedThisRun=true;
-  if (fall) player.falls += 1;
-  shakeTime = 0.22;
-  triggerFluxFx("hurt");
-  emitParticles(player.x, player.y, "#ff896d", 13, 155);
-  playSfx("hurt");
-
-  if (fall || player.rings <= 0) {
-    const respawn = checkpointIndex >= 0 ? checkpoints[checkpointIndex] : spawn;
-    player.x = respawn.x;
-    player.y = respawn.y;
-    player.prevX = respawn.x;
-    player.prevY = respawn.y;
-    player.onGround = false;
-    player.ground = null;
-    player.vx = 0;
-    player.vy = 0;
-    player.rings = Math.max(0, Math.floor(player.rings / 2));
-    resetAirDash();
-    player.boost = 0;
-    player.sliding = false;
-    player.downhillSliding = false;
-    resetFluxFx();
-    boostOrbs.forEach(item => { if (item.x > respawn.x) item.active = true; });
-    memoryCores.forEach(item => { if (item.x > respawn.x) item.active = true; });
-    // A respawn teleports the camera too; it must not pan across half the level.
-    cameraAnchorX = VIEW_W * CAMERA_IDLE_ANCHOR;
-    cameraX = clamp(player.x - cameraAnchorX, 0, WORLD_W - VIEW_W);
-    cameraY = clamp(player.y - VIEW_H * 0.56, 0, WORLD_H - VIEW_H);
-    coyoteTimer = 0;
-    jumpBuffer = 0;
-    player.invulnerable = 1.3;
-    if(activeStage===3&&cityBoss.active&&!cityBoss.defeated){
-      player.x=cityBoss.arenaLeft+75;player.y=410-PLAYER_RADIUS;
-      player.prevX=player.x;player.prevY=player.y;
-      cameraX=cityBoss.arenaLeft;cameraY=0;
-      resetCityBoss();beginCityBoss();
-    }
-    if(activeStage===2&&guardian.active&&!guardian.defeated) {
-      // Restart inside the room, not beyond its locked entrance.
-      player.x=guardian.arenaLeft+65;player.y=guardian.arenaFloor-PLAYER_RADIUS;
-      player.prevX=player.x;player.prevY=player.y;
-      cameraX=guardian.arenaLeft;cameraY=0;
-      resetGuardian();
-      beginGuardianFight(true);
-    }
-    return;
-  }
-
-  player.rings = Math.max(0, player.rings - 8);
-  player.vx = -player.facing * 250;
-  player.vy = -450;
-  player.invulnerable = 1.1;
+ if(debugMode||(player.invulnerable>0&&!fall)||!gameStarted)return;
+ if(airDash.active){airDash.active=false;airDash.time=0;}
+ runDamageCount++;
+ interruptSecretTrials();
+ if(activeStage===2&&guardian.active&&!guardian.defeated)bossDamagedThisRun=true;
+ if(fall)player.falls+=1;
+ shakeTime=.22;
+ triggerFluxFx("hurt");
+ emitParticles(player.x,player.y,"#ff896d",13,155);
+ playSfx("hurt");
+ const result=calculateCrystalDamage(player.rings,{fall});
+ player.rings=result.remaining;
+ if(result.dead){
+   showDeathScreen(fall,result.lost);
+   return;
+ }
+ // Surviving a normal collision: lose substantial crystals and bounce away.
+ player.vx=-player.facing*250;
+ player.vy=-450;
+ player.invulnerable=1.1;
 }
 
 function updateTrail(dt) {
@@ -3217,6 +3282,8 @@ function draw() {
   drawCityDashCore();
   drawSentryShots();
   drawCityBoss();
+  drawArchitectGroundRifts();
+  drawCityExit();
   drawGuardian();
   drawGuardianVisuals();
   drawRiftPortal();
@@ -3617,13 +3684,8 @@ function drawObjects() {
     }
   }
 
-  for (const ring of rings) {
-    if (!ring.active) continue;
-    ctx.strokeStyle = "#ffd75a";
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.arc(ring.x, ring.y, ring.r, 0, Math.PI * 2);
-    ctx.stroke();
+  for(const ring of rings){
+    if(ring.active)renderCrystal(ctx,ring,visualTime);
   }
 
   for (const boostOrb of boostOrbs) {
@@ -4071,7 +4133,7 @@ function drawHud() {
     ctx.fillStyle="#f7b7df";ctx.fillRect(326,138,320*cityBoss.hp/4,12);
     ctx.font="12px system-ui";ctx.fillStyle="#fff2b5";
     ctx.fillText(cityBoss.state==="exposed"?"NÚCLEO ABERTO · USE O DASH":
-      "DESVIE DAS RAJADAS DUPLAS",326,168);
+      (cityBoss.hp<=2?"CUIDADO COM AS FENDAS DO CHÃO":"DESVIE DOS PROJÉTEIS"),326,168);
   }
   if(activeStage===3&&dashUnlocked()){
     ctx.fillStyle="#fff0b4";ctx.font="bold 12px system-ui";
@@ -4749,6 +4811,8 @@ menuButton.addEventListener("click",showMainMenu);
 pauseButton.addEventListener("click",togglePause);
 document.querySelector("#resumeButton").addEventListener("click",resumeGame);
 document.querySelector("#restartPauseButton").addEventListener("click",()=>startGame(activeStage));
+document.querySelector("#deathRestartButton").addEventListener("click",()=>startGame(activeStage,true,false));
+document.querySelector("#deathMainButton").addEventListener("click",showMainMenu);
 // All menu button feedback uses the existing SFX bus and stored effect volume.
 document.querySelectorAll("button:not([data-key])").forEach(button=>{
   button.addEventListener("click",()=>{

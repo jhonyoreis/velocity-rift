@@ -55,7 +55,7 @@ export function createStageThreeWorld({track,rect,enemy,orb,PLAYER_RADIUS,WORLD_
     [13720,"RITMO FINAL","ENCADEIE SALTO E DASH"],
     [17290,"ZONA DE TRANSIÇÃO","CORREDOR DAS FENDAS À FRENTE"]
   ].map(([x,title,hint])=>({x,title,hint}));
-  return {worldW:RIFT_WORLD_WIDTH,spawn:{x:90,y:404},goal:{x:RIFT_WORLD_WIDTH-160,y:338,w:54,h:72},
+  return {worldW:RIFT_WORLD_WIDTH,spawn:{x:90,y:404},goal:{x:RIFT_WORLD_WIDTH-345,y:338,w:54,h:72},
     riftCorridor:{start:RIFT_CORRIDOR_START,end:corridor.end},
     tracks:[...ground,...roofs,...lifts,...corridor.tracks],
     chapters:[{x:0,title:"01 / LUZES DA METRÓPOLE"},
