@@ -180,6 +180,82 @@ try { musicEnabled = localStorage.getItem("velocity-rift-music") !== "off"; } ca
 try { soundEnabled = localStorage.getItem("velocity-rift-sound") !== "off"; } catch (_) { /* unavailable storage */ }
 const audioLevels=loadAudioLevels();
 
+// Air dash: one mid-air charge, refreshed on landing. The pointer controls
+// the direction; keyboard-only users dash toward Flux's facing direction.
+const airDash={active:false,available:true,time:0,dx:1,dy:0,trail:0,
+  aimX:0,aimY:0,hasAim:false};
+const DASH_SECONDS=.255,DASH_SPEED=1140;
+const cityDashCore={x:3730,y:396};
+let dashUnlockFlash=0;
+function dashUnlocked(){
+  return campaign.aerialDash||(debugMode&&activeStage===3);
+}
+function resetAirDash(){
+  Object.assign(airDash,{active:false,available:true,time:0,trail:0,hasAim:false});
+  dashUnlockFlash=0;
+}
+function startAirDash(){
+  if(!gameStarted||paused||cinematic.active||stageArrival.active||gameCleared||
+    !dashUnlocked()||player.onGround||!airDash.available||debugMode)return false;
+  const dx=airDash.hasAim?airDash.aimX-(player.x-cameraX):player.facing;
+  const dy=airDash.hasAim?airDash.aimY-(player.y-cameraY):0;
+  const len=Math.hypot(dx,dy)||1;
+  airDash.dx=dx/len;airDash.dy=dy/len;
+  // Prefer stable horizontal movement when a pointer is nearly vertical.
+  if(!airDash.hasAim){airDash.dx=player.facing;airDash.dy=0;}
+  airDash.active=true;airDash.available=false;
+  airDash.time=DASH_SECONDS;airDash.trail=1;
+  player.vx=airDash.dx*DASH_SPEED;
+  player.vy=airDash.dy*DASH_SPEED;
+  triggerFluxFx("boost");
+  emitParticles(player.x,player.y,"#fff2aa",17,185);
+  playSfx("air-dash");
+  return true;
+}
+function updateAirDash(dt){
+  if(airDash.active){
+    airDash.time=Math.max(0,airDash.time-dt);
+    player.vx=airDash.dx*DASH_SPEED;
+    player.vy=airDash.dy*DASH_SPEED;
+    if(airDash.time===0){
+      airDash.active=false;
+      player.vx=airDash.dx*560;
+      player.vy=Math.min(220,airDash.dy*390);
+    }
+  }
+  if(player.onGround&&!airDash.active)airDash.available=true;
+  airDash.trail=Math.max(0,airDash.trail-dt*2.4);
+  dashUnlockFlash=Math.max(0,dashUnlockFlash-dt);
+}
+function collectCityDashCore(){
+  if(activeStage!==3||campaign.aerialDash||player.x<cityDashCore.x-32||
+    player.x>cityDashCore.x+32||Math.abs(player.y-cityDashCore.y)>60)return;
+  if(!debugUsedThisRun){campaign.aerialDash=true;saveCampaign();}
+  airDash.available=true;dashUnlockFlash=2;
+  notification.title="NÚCLEO DE ÍMPETO RECUPERADO";
+  notification.subtitle="PULE E APERTE PULO NOVAMENTE · MIRE COM CURSOR";
+  notification.timer=3.4;
+  emitParticles(cityDashCore.x,cityDashCore.y,"#ffe89c",42,250);
+  playSfx("dash-unlock");
+}
+function drawCityDashCore(){
+  if(activeStage!==3||campaign.aerialDash)return;
+  const t=visualTime;
+  ctx.save();ctx.translate(cityDashCore.x,cityDashCore.y);
+  ctx.shadowColor="#ffe09c";ctx.shadowBlur=25;
+  ctx.rotate(t*.8);ctx.fillStyle="#fff2b5";ctx.strokeStyle="#8ffff3";
+  ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(0,-24);ctx.lineTo(21,0);
+  ctx.lineTo(0,24);ctx.lineTo(-21,0);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.restore();
+}
+function drawAirDashFX(){
+  if(!airDash.active&&airDash.trail<=0)return;
+  ctx.save();ctx.globalAlpha=.12+airDash.trail*.25;
+  ctx.strokeStyle="#b5fff0";ctx.lineWidth=16;
+  ctx.beginPath();ctx.moveTo(player.x-airDash.dx*80,player.y-airDash.dy*80);
+  ctx.lineTo(player.x,player.y);ctx.stroke();ctx.restore();
+}
+
 const player = {
   x: 90,
   y: 402,
@@ -1880,6 +1956,7 @@ function drawStageArrivalOverlay(){
 
 function resetGame() {
   stageArrival.active=false;stageArrival.elapsed=0;
+  resetAirDash();
   player.x = spawn.x;
   player.y = spawn.y;
   player.prevX = spawn.x;
@@ -2537,6 +2614,10 @@ function drawGuardian(){
 
 function update(dt) {
   if(stageArrival.active){updateStageArrival(dt);return;}
+  if(activeStage===3&&cityBoss.active&&cityBoss.state==="intro"){
+    // Scene is visible in the world and cannot consume race time.
+    updateCityBoss(dt);updateCityBossFX(dt);return;
+  }
   gameTime += dt;
   visualTime += dt;
   sparkleCooldown = Math.max(0, sparkleCooldown - dt);
@@ -2567,20 +2648,20 @@ function update(dt) {
   const boostMax = BOOST_MAX_SPEED;
   const speedBeforeInput = Math.abs(player.vx);
 
-  if (left) {
+  if (left&&!airDash.active) {
     player.vx -= accel * dt;
     player.facing = -1;
   }
-  if (right) {
+  if (right&&!airDash.active) {
     player.vx += accel * dt;
     player.facing = 1;
   }
-  if (!left && !right && player.onGround) {
+  if (!left && !right && player.onGround&&!airDash.active) {
     player.vx = approach(player.vx, 0, friction * dt);
   }
 
   if(debugMode)player.boost=100;
-  const boosting = boost && player.boost > 0 && Math.abs(player.vx) > 50;
+  const boosting = boost && !airDash.active && player.boost > 0 && Math.abs(player.vx) > 50;
   player.boosting = boosting;
   if (boosting && !wasBoosting) { playSfx("boost"); triggerFluxFx("boost"); }
   if (boosting) {
@@ -2603,19 +2684,19 @@ function update(dt) {
   const maxSpeed = boosting ? boostMax : normalMax;
   if (downhill) {
     player.vx = clamp(player.vx, -SLIDE_DOWNHILL_CAP, SLIDE_DOWNHILL_CAP);
-  } else if (Math.abs(player.vx) > maxSpeed) {
+  } else if (!airDash.active&&Math.abs(player.vx) > maxSpeed) {
     // Preserve momentum inherited from a downhill slide, but never generate
     // speed above the boost cap through input/boost acceleration alone.
     const braking = player.sliding ? 880 : 1800;
     const carriedSpeed = Math.max(maxSpeed, speedBeforeInput - braking * dt);
     player.vx = Math.sign(player.vx) *
       Math.min(Math.abs(player.vx), carriedSpeed);
-  } else {
+  } else if(!airDash.active){
     player.vx = clamp(player.vx, -maxSpeed, maxSpeed);
   }
 
   const underTunnel = tunnels.some(t => player.x > t.x && player.x < t.x + t.w);
-  if (jumpBuffer > 0 && coyoteTimer > 0 && !underTunnel) {
+  if (jumpBuffer > 0 && coyoteTimer > 0 && !underTunnel&&!airDash.active) {
     const springJump=player.ground?.behavior==="spring"&&
       secretTrials.some(t=>t.active&&t.id===player.ground.secretId);
     player.sliding = false;
@@ -2640,14 +2721,21 @@ function update(dt) {
     player.onGround=false;player.ground=null;player.sliding=false;
     player.downhillSliding=false;
   }else{
+    if(airDash.active){
+      player.vx=airDash.dx*DASH_SPEED;player.vy=airDash.dy*DASH_SPEED;
+      player.x+=player.vx*dt;player.y+=player.vy*dt;
+    }else{
     if(!jump&&player.vy<-160)player.vy+=1450*dt;
     player.vy+=1850*dt;
     player.vy=Math.min(player.vy,1250);
     player.x+=player.vx*dt;
     player.y+=player.vy*dt;
+    }
   }
   updateMovingPlatforms(dt);
   if(!debugMode)resolveTracks();
+  if(player.onGround&&airDash.active){airDash.active=false;airDash.time=0;}
+  updateAirDash(dt);
   if(!debugMode&&player.onGround&&player.ground?.secretId&&
     Math.abs(player.ground.belt||0)>0&&
     secretTrials.some(t=>t.active&&t.id===player.ground.secretId)){
@@ -2665,7 +2753,10 @@ function update(dt) {
   updateCheckpoints();
   updateEnemies(dt);
   updateSentryShots(dt);
+  updateCityBoss(dt);
+  updateCityBossFX(dt);
   collectItems();
+  collectCityDashCore();
   handleHazards();
   handlePulseGates();
   handleBoostPads();
@@ -2693,9 +2784,11 @@ function update(dt) {
 
   // Stage 1 keeps its original exit. Stage 2 requires entering a fully open
   // dimensional portal; touching the inactive spawn point cannot win.
-  const exitReached=activeStage===2
-    ? riftPortal.open && playerTouchesRift()
-    : circleRect(player.x,player.y,PLAYER_RADIUS,goal);
+  const exitReached=activeStage===2?
+      riftPortal.open&&playerTouchesRift():
+      activeStage===3?
+      cityBoss.defeated&&circleRect(player.x,player.y,PLAYER_RADIUS,goal):
+      circleRect(player.x,player.y,PLAYER_RADIUS,goal);
   if(exitReached && !gameCleared){
     gameCleared=true;
     emitParticles(player.x,player.y,activeStage===2?"#a6ffeb":"#fbc66d",45,240);
@@ -3396,7 +3489,9 @@ function draw() {
   drawPulseGates();
   drawSigns();
   drawObjects();
+  drawCityDashCore();
   drawSentryShots();
+  drawCityBoss();
   drawGuardian();
   drawGuardianVisuals();
   drawRiftPortal();
@@ -3405,6 +3500,7 @@ function draw() {
   drawFluxWaves();
   drawParticles();
   drawFluxGhosts();
+  drawAirDashFX();
   drawPlayer();
 
   ctx.restore();
@@ -4162,6 +4258,7 @@ function drawHud() {
       "PORTAL DA FENDA SE MATERIALIZANDO...",329,115);
   }
   drawGuardianCinematic();
+  drawCityBossCinematic();
   if (paused) {
     ctx.fillStyle = 'rgba(5, 9, 20, .75)';
     ctx.fillRect(0, 0, VIEW_W, VIEW_H);
@@ -4244,6 +4341,8 @@ function playSfx(kind) {
     "cin-rupture": [92,340,1.18,"sawtooth",.037],
     "cin-ominous": [145,65,.95,"triangle",.054],
     "cin-chase": [360,750,.42,"triangle",.041],
+    "air-dash": [265,1160,.26,"sawtooth",.038],
+    "dash-unlock": [390,1580,.8,"triangle",.054],
     jump:       [440, 680, 0.16, "sine", 0.038],
     land:       [125, 65, 0.095, "triangle", 0.024],
     crystal:    [850, 1260, 0.12, "sine", 0.023],
@@ -4659,6 +4758,13 @@ function warpToGuardian(){
 }
 if(debugToggle)debugToggle.addEventListener("click",toggleDebugMode);
 
+canvas.addEventListener?.("pointermove",event=>{
+  const rect=canvas.getBoundingClientRect?.();
+  if(!rect||!rect.width||!rect.height)return;
+  airDash.aimX=(event.clientX-rect.left)/rect.width*VIEW_W;
+  airDash.aimY=(event.clientY-rect.top)/rect.height*VIEW_H;
+  airDash.hasAim=true;
+});
 window.addEventListener("keydown",(event)=>{
   const key=event.key.toLowerCase();
   if(cinematic.active){
@@ -4686,6 +4792,10 @@ window.addEventListener("keydown",(event)=>{
     if([" ","arrowup","arrowdown","arrowleft","arrowright"].includes(key)
       &&event.target?.tagName!=="INPUT")event.preventDefault();
     return;
+  }
+  if([" ","w","arrowup","k"].includes(key)&&!event.repeat&&
+    !jumpHeld&&!player.onGround&&dashUnlocked()){
+    if(startAirDash()){event.preventDefault();jumpHeld=true;return;}
   }
   if(key==="m"&&!event.repeat)toggleSound();
   if(key==="n"&&!event.repeat)toggleMusic();
