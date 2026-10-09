@@ -753,6 +753,38 @@ function loadProgress() {
 
 // 3.0 campaign pointer: legacy progress/achievements remain a separate archive.
 // This creates a safe migration from v2 on first use without modifying its key.
+// Completion is based on 14 milestones currently in the game:
+// 2 cleared stages (20% each), 6 memory cores (5% each) and
+// 6 secret routes (5% each). Permanent records remain a separate archive.
+const GAME_COMPLETION_STAGES=2;
+const GAME_COMPLETION_CORES_PER_STAGE=3;
+const GAME_COMPLETION_ROUTES_PER_STAGE=3;
+function emptyCampaignExtras(){
+  return {cores:{stage1:[],stage2:[]},secrets:{stage1:[],stage2:[]}};
+}
+function sanitizedCampaignExtras(saved,stage1Done,stage2Done){
+  const extras=emptyCampaignExtras();
+  const hasExtras=saved?.extras&&typeof saved.extras==="object";
+  for(const stage of [1,2]){
+    const key="stage"+stage;
+    const stageDone=stage===1?stage1Done:stage2Done;
+    // Pre-3.4 saves contain no collection identifiers. Preserve the
+    // historically recorded count on completed stages as a best-effort
+    // migration; never import archival extras into a freshly reset campaign.
+    const legacyCores=stageDone?
+      Math.floor(clamp(progress[key].bestCores||0,0,3)):0;
+    const oldCores=Array.from({length:legacyCores},(_,i)=>i);
+    const oldRoutes=stageDone?progress.secrets[key].slice():[];
+    const rawCores=hasExtras? saved.extras.cores?.[key] : oldCores;
+    const rawRoutes=hasExtras? saved.extras.secrets?.[key] : oldRoutes;
+    extras.cores[key]=Array.isArray(rawCores)?
+      [...new Set(rawCores.filter(n=>Number.isInteger(n)&&n>=0&&n<3))]:[];
+    const validIds=SECRET_DEFS[stage].map(route=>route.id);
+    extras.secrets[key]=Array.isArray(rawRoutes)?
+      [...new Set(rawRoutes.filter(id=>validIds.includes(id)))]:[];
+  }
+  return extras;
+}
 function loadCampaign(){
   let saved=null;
   try{saved=JSON.parse(localStorage.getItem(CAMPAIGN_KEY)||"null");}catch(_){}
@@ -761,20 +793,47 @@ function loadCampaign(){
     const completed2=completed1&&saved.stage2Completed===true;
     const started=saved.started===true||completed1||completed2;
     return {started,stage1Completed:completed1,
-      stage2Completed:completed2,lastStage:saved.lastStage===2&&completed1?2:1};
+      stage2Completed:completed2,lastStage:saved.lastStage===2&&completed1?2:1,
+      extras:sanitizedCampaignExtras(saved,completed1,completed2)};
   }
   const completed1=progress.stage1.completed||progress.stage2.completed;
   const completed2=progress.stage2.completed;
   return {started:completed1,stage1Completed:completed1,
-    stage2Completed:completed2,lastStage:completed1?2:1};
+    stage2Completed:completed2,lastStage:completed1?2:1,
+    extras:sanitizedCampaignExtras(null,completed1,completed2)};
 }
 function saveCampaign(){
   try{localStorage.setItem(CAMPAIGN_KEY,JSON.stringify(campaign));}catch(_){}
 }
 function resetCampaign(){
   Object.assign(campaign,{started:false,stage1Completed:false,
-    stage2Completed:false,lastStage:1});
+    stage2Completed:false,lastStage:1,extras:emptyCampaignExtras()});
   saveCampaign();
+}
+function recordCampaignCore(stage,index){
+  if(debugUsedThisRun||stage!==1&&stage!==2)return false;
+  if(!Number.isInteger(index)||index<0||index>=GAME_COMPLETION_CORES_PER_STAGE)return false;
+  const found=campaign.extras.cores["stage"+stage];
+  if(found.includes(index))return false;
+  found.push(index);
+  saveCampaign();
+  return true;
+}
+function recordCampaignSecret(stage,id){
+  if(debugUsedThisRun||stage!==1&&stage!==2||
+    !SECRET_DEFS[stage].some(route=>route.id===id))return false;
+  const found=campaign.extras.secrets["stage"+stage];
+  if(found.includes(id))return false;
+  found.push(id);
+  saveCampaign();
+  return true;
+}
+function campaignCompletion(){
+  const stages=Number(campaign.stage1Completed)+Number(campaign.stage2Completed);
+  const cores=campaign.extras.cores.stage1.length+campaign.extras.cores.stage2.length;
+  const secrets=campaign.extras.secrets.stage1.length+
+    campaign.extras.secrets.stage2.length;
+  return {stages,cores,secrets,percent:stages*20+cores*5+secrets*5};
 }
 function nextCampaignStage(){
   return campaign.stage1Completed&&campaign.lastStage===2?2:1;
@@ -856,6 +915,13 @@ function recordStageClear(time, crystals, cores = 0) {
     campaign.stage2Completed=true;
     campaign.lastStage=2;
   }
+  // Backstop for legacy clears and automated results; normal gameplay
+  // already records exact core identities at pickup time.
+  const collected=campaign.extras.cores["stage"+activeStage];
+  for(let i=0;i<Math.min(3,Math.max(0,cores));i++){
+    if(collected.length>=cores)break;
+    if(!collected.includes(i))collected.push(i);
+  }
   saveCampaign();
   if (improvedTime) stage.bestTime = time;
   if (!stage.bestGrade || GRADE_ORDER.indexOf(grade) > GRADE_ORDER.indexOf(stage.bestGrade)) {
@@ -889,13 +955,13 @@ function selectMapStage(stage){
 }
 function refreshMapView(){
   const unlocked=campaign.stage1Completed||debugMode;
-  const completed=Number(campaign.stage1Completed)+Number(campaign.stage2Completed);
+  const completion=campaignCompletion();
   document.querySelector("#mapCampaignSummary").textContent=
-    "Campanha "+completed+"/2";
+    "Conclusão "+completion.percent+"%";
   document.querySelector("#mapCoresSummary").textContent=
-    "Núcleos "+(progress.stage1.bestCores+progress.stage2.bestCores)+"/6";
+    "Núcleos "+completion.cores+"/6";
   document.querySelector("#mapSecretsSummary").textContent=
-    "Segredos "+(progress.secrets.stage1.length+progress.secrets.stage2.length)+"/6";
+    "Segredos "+completion.secrets+"/6";
   document.querySelector("#mapAchievementsSummary").textContent=
     "Conquistas "+Object.values(progress.achievements).filter(Boolean).length+
     "/"+ACHIEVEMENTS.length;
@@ -933,11 +999,14 @@ function refreshMapView(){
 
 function refreshProgressView() {
   const stage = progress.stage1;
-  // Only the two currently playable stages count toward completion.
-  const campaignPercent=(Number(campaign.stage1Completed)+Number(campaign.stage2Completed))*50;
-  document.querySelector("#menuProgress").textContent=campaignPercent+"%";
-  document.querySelector("#campaignProgressTrack").setAttribute("aria-valuenow",String(campaignPercent));
-  document.querySelector("#campaignProgressFill").style.width=campaignPercent+"%";
+  const completion=campaignCompletion();
+  document.querySelector("#menuProgress").textContent=completion.percent+"%";
+  document.querySelector("#campaignProgressTrack").setAttribute(
+    "aria-valuenow",String(completion.percent));
+  document.querySelector("#campaignProgressFill").style.width=completion.percent+"%";
+  document.querySelector("#campaignCompletionBreakdown").textContent=
+    "Fases "+completion.stages+"/2  ·  Núcleos "+completion.cores+
+    "/6  ·  Rotas secretas "+completion.secrets+"/6";
   const continueButton=document.querySelector("#startButton");
   continueButton.disabled=!campaign.started;
   document.querySelector("#continueDescription").textContent=campaign.started
@@ -2224,6 +2293,7 @@ function updateSecretTrials(dt){
       announce("ROTA DESCOBERTA: "+trial.name,
         "Fragmento recuperado · +8 cristais · +20 boost");
       if(!debugUsedThisRun){
+        recordCampaignSecret(activeStage,trial.id);
         const key="stage"+activeStage;
         if(!progress.secrets[key].includes(trial.id))
           progress.secrets[key].push(trial.id);
@@ -2420,6 +2490,7 @@ function collectItems() {
     if (core.active && distance(player.x, player.y, core.x, core.y) < PLAYER_RADIUS + core.r) {
       core.active = false;
       player.cores += 1;
+      recordCampaignCore(activeStage,memoryCores.indexOf(core));
       emitParticles(core.x,core.y,"#ffcb79",22,150);
       playSfx("checkpoint");
     }
