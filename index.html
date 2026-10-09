@@ -15,7 +15,7 @@
           <section id="mainMenu" class="menu-screen v3-main" aria-labelledby="menuHeading">
             <div class="v3-ambient-orb orb-one" aria-hidden="true"></div>
             <div class="v3-ambient-orb orb-two" aria-hidden="true"></div>
-            <div class="v3-edition">VELOCITY RIFT <span>3.3 // ALÉM DAS FENDAS</span></div>
+            <div class="v3-edition">VELOCITY RIFT <span>3.5 // ALÉM DAS FENDAS</span></div>
             <div class="v3-crest" aria-hidden="true">◇</div>
             <div class="menu-eyebrow">ENCONTRE ALICIA ALÉM DAS FENDAS</div>
             <h1 id="menuHeading">VELOCITY <span>RIFT</span></h1>
@@ -37,8 +37,50 @@
               <button id="selectStagesButton" class="v3-action" type="button"><span>SELEÇÃO DE FASES</span><span aria-hidden="true">⌁</span></button>
               <button id="settingsButton" class="v3-action" type="button"><span>CONFIGURAÇÕES</span><span aria-hidden="true">⚙</span></button>
               <button id="achievementsButton" class="v3-action" type="button"><span>CONQUISTAS</span><span aria-hidden="true">✦</span></button>
+              <button id="galleryButton" class="v3-action" type="button"><span>GALERIA DE CENAS</span><span aria-hidden="true">▣</span></button>
             </div>
             <div class="v3-footer"><span>FLUX // O CORREDOR DA FENDA</span><span>SALVAMENTO AUTOMÁTICO</span></div>
+          </section>
+          <section id="galleryMenu" class="menu-screen vr-gallery" aria-labelledby="galleryHeading" hidden>
+            <div class="menu-eyebrow">MEMÓRIAS ENTRE DIMENSÕES // 3.5</div>
+            <h2 id="galleryHeading">Galeria de cenas</h2>
+            <p class="vr-gallery-subtitle">Reviva as cenas da jornada. Novas memórias surgem quando são assistidas.</p>
+            <div class="vr-gallery-list">
+              <button id="galleryOpening" class="vr-gallery-entry" type="button" disabled>
+                <span class="vr-gallery-number">PRÓLOGO</span><strong>A Flor e a Ruptura</strong>
+                <small id="galleryOpeningState">Ainda não assistida</small>
+              </button>
+              <button id="galleryStageOne" class="vr-gallery-entry" type="button" disabled>
+                <span class="vr-gallery-number">CAPÍTULO 01</span><strong>Primeiro Impulso</strong>
+                <small id="galleryStageOneState">Ainda não assistida</small>
+              </button>
+              <button id="galleryStageTwo" class="vr-gallery-entry" type="button" disabled>
+                <span class="vr-gallery-number">CAPÍTULO 02</span><strong>Ecos do Prisma</strong>
+                <small id="galleryStageTwoState">Ainda não assistida</small>
+              </button>
+            </div>
+            <button id="galleryBackButton" class="secondary-action" type="button">← Voltar ao menu</button>
+          </section>
+          <section id="cinematicMenu" class="menu-screen vr-cinematic-ui" aria-label="Cutscene" hidden>
+            <div class="vr-film-top">
+              <div class="vr-film-header">
+                <span class="vr-film-mark">VELOCITY RIFT // MEMÓRIAS</span>
+                <span id="cinematicChapter">PRÓLOGO</span>
+              </div>
+              <div id="cinematicProgress" class="vr-film-progress" aria-hidden="true"><span id="cinematicProgressFill"></span></div>
+            </div>
+            <div class="vr-film-bottom">
+              <div class="vr-film-dialogue" aria-live="polite">
+                <div id="cinematicSpeaker" class="vr-film-speaker">UM DIA TRANQUILO</div>
+                <h2 id="cinematicTitle">A Flor e a Ruptura</h2>
+                <p id="cinematicText">Uma história está prestes a começar.</p>
+              </div>
+              <div class="vr-film-actions">
+                <button id="cinematicNextButton" type="button" class="vr-film-next">Avançar <span aria-hidden="true">➜</span></button>
+                <button id="cinematicSkipButton" type="button" class="vr-film-skip">Pular cena</button>
+              </div>
+              <small class="vr-film-hint">Enter / Espaço: avançar · Esc: pular · cenas revistáveis na galeria</small>
+            </div>
           </section>
           <section id="settingsMenu" class="menu-screen v3-settings" aria-labelledby="settingsHeading" hidden>
             <div class="menu-eyebrow">CENTRAL DE CONTROLE // 3.0</div>
@@ -212,7 +254,7 @@
           </section>
 
           <section id="pauseMenu" class="menu-screen v31-pause" aria-labelledby="pauseHeading" hidden>
-            <div class="v31-pause-eyebrow">VELOCITY RIFT 3.3 // INTERVALO</div>
+            <div class="v31-pause-eyebrow">VELOCITY RIFT 3.5 // INTERVALO</div>
             <h2 id="pauseHeading">JOGO PAUSADO</h2>
             <p id="pauseStageLabel" class="v31-pause-stage">Flux está a um passo de encontrar Alicia.</p>
             <div class="v31-pause-body">
