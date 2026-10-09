@@ -4749,7 +4749,7 @@ function syncMusic(resetSchedule=true){
   if(!musicBus||!audioContext)return;
   const level=cinematic.active?.115*effectiveAudioGain("music"):
     gameStarted&&!paused&&!gameCleared?
-      (activeStage===2?.13:.14)*effectiveAudioGain("music"):0;
+      (activeStage===3?.13:activeStage===2?.13:.14)*effectiveAudioGain("music"):0;
   const now=audioContext.currentTime;
   musicBus.gain.cancelScheduledValues(now);
   musicBus.gain.setTargetAtTime(level,now,.055);
@@ -4969,13 +4969,71 @@ function scheduleCinematicMusic(at,step){
     prismVoice(midiToHz(root+31),at,unit*2,.022,"glass");
 }
 
+// Two original scores: "Cidade Entre Estrelas" (136 BPM) and
+// "Coroa do Vazio" (158 BPM). Synthesized in real time, no external assets.
+const CITY_STEP_SECONDS=60/136/4,CITY_BOSS_STEP_SECONDS=60/158/4;
+const CITY_ROOTS=[45,40,47,42,45,52,49,44];
+const CITY_BASS=[0,null,7,12,null,7,3,null,0,12,null,7,10,null,3,7];
+const CITY_LEAD=[12,null,16,19,null,23,19,null,16,14,null,12,7,null,9,11,
+  12,16,null,19,23,null,26,23,19,null,16,14,12,11,9,null];
+const CITY_BOSS_RIFF=[0,1,6,null,12,7,6,1,0,10,6,null,13,12,7,null];
+function scheduleCityTheme(at,step,chapter){
+  const beat=step%16,bar=Math.floor(step/16)%8;
+  const root=CITY_ROOTS[bar],unit=CITY_STEP_SECONDS;
+  if([0,4,7,8,11,14].includes(beat))
+    synthMusic(52,at,.09,beat===0?.135:.095,"sine");
+  if(beat===4||beat===12){
+    synthMusic(170,at,.09,.044,"triangle");
+    synthMusic(760,at+.025,.025,.009,"square");
+  }
+  if(beat%2===1||chapter>=3)
+    synthMusic(2100,at,.026,chapter>=3?.019:.011,"triangle");
+  const bass=CITY_BASS[beat];
+  if(bass!==null)prismVoice(midiToHz(root+bass),at,unit*1.7,.086,"bass");
+  const melody=CITY_LEAD[step%CITY_LEAD.length];
+  if(melody!==null){
+    const hz=midiToHz(root+24+melody);
+    prismVoice(hz,at,unit*(chapter>=4?1.9:1.4),.091,"glass");
+    if(beat%4===0)prismVoice(hz*2,at+.038,unit*.8,.019,"glass");
+  }
+  if(beat===0)
+    for(const n of [0,4,7,11])
+      prismVoice(midiToHz(root+24+n),at,unit*11,.021,"pad");
+  if(chapter>=4&&beat===14)
+    prismVoice(midiToHz(root+43),at,unit*2.7,.051,"glass");
+}
+function scheduleCityBossTheme(at,step){
+  const beat=step%16,bar=Math.floor(step/16)%4,unit=CITY_BOSS_STEP_SECONDS;
+  const root=[38,39,44,37][bar],rage=cityBoss.hp<=2;
+  if([0,3,6,8,10,13].includes(beat)){
+    synthMusic(52,at,.10,rage?.166:.138,"sine");
+    if(beat===0)synthMusic(76,at,.12,.029,"triangle");
+  }
+  if(beat===4||beat===12)synthMusic(200,at,.09,.067,"square");
+  if(beat%2===1||rage)synthMusic(1950,at,.02,rage?.024:.013,"triangle");
+  if(beat%4===0)
+    for(const n of [0,1,7,10])
+      prismVoice(midiToHz(root+24+n),at,unit*5.7,.016,"pad");
+  const riff=CITY_BOSS_RIFF[step%CITY_BOSS_RIFF.length];
+  if(riff!==null){
+    prismVoice(midiToHz(root+36+riff),at,unit*1.15,rage?.105:.079,"glass");
+    if(rage&&beat%4===2)
+      prismVoice(midiToHz(root+48+riff),at+.019,unit*.6,.025,"glass");
+  }
+  if(cityBoss.state==="telegraph"&&beat%4===3)
+    synthMusic(465+beat*27,at,.1,.029,"sawtooth");
+}
+
 function scheduleMusic(){
   if((!gameStarted&&!cinematic.active)||paused||
     (gameCleared&&!cinematic.active)||effectiveAudioGain("music")===0||
     !audioContext||!musicBus||audioContext.state!=="running")return;
   const now=audioContext.currentTime;
   const bossTheme=activeStage===2&&guardian.active&&!guardian.defeated;
+  const cityBossTheme=activeStage===3&&cityBoss.active&&!cityBoss.defeated;
   const stepDuration=cinematic.active?CINEMA_STEP_SECONDS:
+    cityBossTheme?CITY_BOSS_STEP_SECONDS:
+    activeStage===3?CITY_STEP_SECONDS:
     bossTheme?GUARDIAN_STEP_SECONDS:
     activeStage===2?PRISM_STEP_SECONDS:MUSIC_STEP_SECONDS;
   if(!Number.isFinite(now)||!Number.isFinite(nextMusicNote))return;
@@ -4993,7 +5051,9 @@ function scheduleMusic(){
       continue;
     }
     const chapter=Math.max(0,chapters.findLastIndex(ch=>player.x>=ch.x));
-    if(bossTheme)scheduleGuardianTheme(nextMusicNote,musicStep);
+    if(cityBossTheme)scheduleCityBossTheme(nextMusicNote,musicStep);
+    else if(activeStage===3)scheduleCityTheme(nextMusicNote,musicStep,chapter);
+    else if(bossTheme)scheduleGuardianTheme(nextMusicNote,musicStep);
     else if(activeStage===2)schedulePrismCanyonStep(nextMusicNote,musicStep,chapter);
     else scheduleNeonCanopyStep(nextMusicNote,musicStep,chapter);
     musicStep=(musicStep+1)%128;
@@ -5003,7 +5063,11 @@ function scheduleMusic(){
 
 function syncTrackLabel(){
   if(!trackNowPlaying)return;
-  trackNowPlaying.textContent=activeStage===2
+  trackNowPlaying.textContent=activeStage===3
+    ?cityBoss.active&&!cityBoss.defeated
+      ?"♫ CHEFE: Coroa do Vazio · 158 BPM"
+      :"♫ Cidade Entre Estrelas · 136 BPM"
+    :activeStage===2
     ?guardian.active&&!guardian.defeated
       ?"♫ CHEFE: Ruptura do Prisma · 142 BPM"
       :"♫ Trilha original: Ecos do Prisma · 126 BPM"
