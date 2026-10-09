@@ -2187,6 +2187,7 @@ function hurtCityBoss(){
      vx:Math.cos(angle)*v,vy:Math.sin(angle)*v,life:1.5});
  }
  if(cityShards.length>66)cityShards.splice(0,cityShards.length-66);
+ if(cityBoss.hp===0)sentryShots=sentryShots.filter(p=>!p.cityShot);
  airDash.active=false;airDash.time=0;
  player.vy=-230;player.vx=-420;
  playSfx(cityBoss.hp===0?"boss-collapse":"boss-crack");
@@ -3675,6 +3676,7 @@ function damagePlayer(fall) {
     player.vx = 0;
     player.vy = 0;
     player.rings = Math.max(0, Math.floor(player.rings / 2));
+    resetAirDash();
     player.boost = 0;
     player.sliding = false;
     player.downhillSliding = false;
@@ -4588,7 +4590,8 @@ function drawHud() {
   }
   if(activeStage===3&&dashUnlocked()){
     ctx.fillStyle="#fff0b4";ctx.font="bold 12px system-ui";
-    ctx.fillText("DASH AÉREO: "+(airDash.available?"PRONTO":"RECARREGUE NO CHÃO"),330,122);
+    ctx.fillText("DASH AÉREO: "+(airDash.available?"PRONTO":"RECARREGUE NO CHÃO"),
+      335,cityBoss.active&&!cityBoss.defeated?193:121);
   }
   if(activeStage===2&&guardian.active&&!guardian.defeated){
     ctx.fillStyle="rgba(15,8,35,.86)";roundRect(310,102,355,68,9);ctx.fill();
@@ -5157,7 +5160,17 @@ function setDebugMode(enabled){
 }
 function toggleDebugMode(){setDebugMode(!debugMode);}
 function warpToGuardian(){
-  if(!debugMode||!gameStarted||activeStage!==2||gameCleared)return;
+  if(!debugMode||!gameStarted||gameCleared)return;
+  if(activeStage===3){
+    player.x=cityBoss.arenaLeft+95;player.y=410-PLAYER_RADIUS;
+    player.prevX=player.x;player.prevY=player.y;player.vx=0;player.vy=0;
+    player.onGround=false;player.ground=null;
+    cameraX=cityBoss.x-VIEW_W*.6;cameraY=0;
+    checkpointIndex=checkpoints.length-1;
+    checkpoints.forEach((p,i)=>p.active=i<=checkpointIndex);
+    resetCityBoss();debugUsedThisRun=true;return;
+  }
+  if(activeStage!==2)return;
   player.x=guardian.arenaLeft+90;
   player.y=groundY(player.x)-PLAYER_RADIUS;
   player.prevX=player.x;player.prevY=player.y;
