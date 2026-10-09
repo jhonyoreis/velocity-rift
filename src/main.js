@@ -1976,6 +1976,7 @@ function resetGame() {
   player.falls = 0;
   musicStep = 0;
   resetGuardian();
+  resetCityBoss();
   particles = [];
   visualTime = 0;
   sparkleCooldown = 0;
@@ -2101,6 +2102,168 @@ function loop(now) {
 // The arena is at the end of level 2. Three hits and alternated telegraphed
 // beams reward jumping, sliding, and timed attacks on the exposed energy core.
 // ----------------- Guardian of the Prism: arena fight -----------------
+// The Void Architect: four weak-point hits with the *aerial* dash,
+// a twin-shot telegraph, guarded and exposed windows, cinematic collapse.
+const cityBoss={x:18510,y:324,arenaLeft:17640,arenaRight:19200,
+ active:false,defeated:false,state:"intro",timer:0,hp:4,maxHp:4,shot:0,fx:0};
+const cityShards=[];
+function resetCityBoss(){
+ Object.assign(cityBoss,{active:false,defeated:false,state:"intro",
+   timer:0,hp:4,shot:0,fx:0});
+ cityShards.length=0;
+}
+function beginCityBoss(){
+ Object.assign(cityBoss,{active:true,state:"intro",timer:0,shot:0});
+ musicStep=0;
+ if(audioContext&&audioContext.state==="running")
+   nextMusicNote=audioContext.currentTime+.07;
+ syncTrackLabel();playSfx("boss-enter");
+}
+function cityBossFire(){
+ const x=cityBoss.x-65,y=cityBoss.y-19;
+ const a=Math.atan2(player.y-y,player.x-x);
+ for(const delta of [-.14,.14]){
+   if(sentryShots.length>=42)break;
+   const v=cityBoss.hp<=2?515:455;
+   sentryShots.push({x,y,vx:Math.cos(a+delta)*v,vy:Math.sin(a+delta)*v,
+     life:3,r:10,unblockable:true,cityShot:true});
+ }
+ playSfx("boss-alert");
+}
+function hurtCityBoss(){
+ if(cityBoss.state!=="exposed"||!airDash.active)return;
+ cityBoss.hp--;cityBoss.fx=1;shakeTime=Math.max(shakeTime,.22);
+ emitParticles(cityBoss.x,cityBoss.y,"#ffc3ef",24,175);
+ for(let i=0;i<23;i++){
+   const angle=i*2.399,v=80+i%5*45;
+   cityShards.push({x:cityBoss.x,y:cityBoss.y,
+     vx:Math.cos(angle)*v,vy:Math.sin(angle)*v,life:1.5});
+ }
+ if(cityShards.length>66)cityShards.splice(0,cityShards.length-66);
+ airDash.active=false;airDash.time=0;
+ player.vy=-230;player.vx=-420;
+ playSfx(cityBoss.hp===0?"boss-collapse":"boss-crack");
+ cityBoss.timer=0;
+ cityBoss.state=cityBoss.hp===0?"collapse":"recovery";
+}
+function updateCityBoss(dt){
+ if(activeStage!==3||cityBoss.defeated)return;
+ if(!cityBoss.active){
+   if(player.x<cityBoss.arenaLeft)return;
+   beginCityBoss();
+ }
+ if(player.x<cityBoss.arenaLeft+PLAYER_RADIUS){
+   player.x=cityBoss.arenaLeft+PLAYER_RADIUS;player.vx=Math.max(0,player.vx);
+ }
+ if(player.x>cityBoss.arenaRight-PLAYER_RADIUS){
+   player.x=cityBoss.arenaRight-PLAYER_RADIUS;player.vx=Math.min(0,player.vx);
+ }
+ cityBoss.timer+=dt;
+ if(cityBoss.state==="intro"&&cityBoss.timer>=2.55){
+   cityBoss.timer=0;cityBoss.state="telegraph";
+ }else if(cityBoss.state==="telegraph"&&cityBoss.timer>=.95){
+   cityBoss.timer=0;cityBoss.shot=0;cityBoss.state="barrage";
+ }else if(cityBoss.state==="barrage"){
+   if(cityBoss.shot===0&&cityBoss.timer>.06){cityBossFire();cityBoss.shot++;}
+   if(cityBoss.shot===1&&cityBoss.timer>.51){cityBossFire();cityBoss.shot++;}
+   if(cityBoss.timer>1.15){cityBoss.timer=0;cityBoss.state="exposed";}
+ }else if(cityBoss.state==="exposed"){
+   if(distance(player.x,player.y,cityBoss.x,cityBoss.y)<PLAYER_RADIUS+52&&airDash.active)
+     hurtCityBoss();
+   else if(cityBoss.timer>3.1){cityBoss.timer=0;cityBoss.state="telegraph";}
+ }else if(cityBoss.state==="recovery"&&cityBoss.timer>1.05){
+   cityBoss.timer=0;cityBoss.state="telegraph";
+ }else if(cityBoss.state==="collapse"&&cityBoss.timer>2.65){
+   cityBoss.defeated=true;cityBoss.state="defeated";cityBoss.timer=0;
+   playSfx("portal-open");musicStep=0;syncTrackLabel();
+ }
+ if(["telegraph","barrage"].includes(cityBoss.state)&&circleRect(
+   player.x,player.y,PLAYER_RADIUS,
+   {x:cityBoss.x-49,y:cityBoss.y-70,w:98,h:132}))damagePlayer(false);
+}
+function updateCityBossFX(dt){
+ cityBoss.fx=Math.max(0,cityBoss.fx-dt*1.6);
+ for(const p of cityShards){p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;}
+ for(let i=cityShards.length-1;i>=0;i--)
+   if(cityShards[i].life<=0)cityShards.splice(i,1);
+}
+function drawCityBoss(){
+ if(activeStage!==3||(!cityBoss.active&&player.x<cityBoss.arenaLeft-560))return;
+ ctx.save();
+ ctx.fillStyle="rgba(7,12,40,.86)";
+ ctx.fillRect(cityBoss.arenaLeft,100,cityBoss.arenaRight-cityBoss.arenaLeft,310);
+ ctx.strokeStyle="rgba(233,142,220,.27)";ctx.lineWidth=2;
+ for(let x=cityBoss.arenaLeft;x<cityBoss.arenaRight;x+=115){
+   ctx.beginPath();ctx.moveTo(x,102);ctx.lineTo(x+45,410);ctx.stroke();
+ }
+ if(cityBoss.defeated){ctx.restore();drawCityExit();return;}
+ ctx.translate(cityBoss.x,cityBoss.y+Math.sin(visualTime*3)*4);
+ if(cityBoss.state==="intro"){
+   const v=clamp(cityBoss.timer/2.55,0,1);
+   ctx.translate(0,-(1-v)*250);
+ }
+ if(cityBoss.state==="collapse"){
+   ctx.globalAlpha=Math.max(0,1-cityBoss.timer/2.65);
+   ctx.rotate(cityBoss.timer*.3);
+ }
+ ctx.fillStyle="#1e1537";ctx.strokeStyle="#c676f0";ctx.lineWidth=5;
+ ctx.beginPath();ctx.moveTo(0,-110);ctx.lineTo(92,-52);
+ ctx.lineTo(77,72);ctx.lineTo(0,104);ctx.lineTo(-77,72);
+ ctx.lineTo(-92,-52);ctx.closePath();ctx.fill();ctx.stroke();
+ ctx.fillStyle="#443060";
+ for(const side of [-1,1]){
+   ctx.beginPath();ctx.moveTo(side*61,-78);ctx.lineTo(side*113,-142);
+   ctx.lineTo(side*101,-12);ctx.lineTo(side*82,52);
+   ctx.lineTo(side*54,14);ctx.closePath();ctx.fill();
+ }
+ const shield=cityBoss.state!=="exposed";
+ ctx.shadowBlur=16;ctx.shadowColor=shield?"#ae80ff":"#fff3b0";
+ ctx.fillStyle=shield?"#8960c3":"#fff1a4";
+ ctx.beginPath();ctx.arc(0,0,35,0,Math.PI*2);ctx.fill();
+ ctx.shadowBlur=0;ctx.fillStyle="#190c38";
+ ctx.beginPath();ctx.arc(0,0,20,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle=shield?"#eebeff":"#e1fff1";
+ ctx.beginPath();ctx.arc(0,0,12,0,Math.PI*2);ctx.fill();
+ for(let i=0;i<4;i++){
+   const angle=visualTime*(shield?1.3:3)+i*Math.PI/2;
+   ctx.fillStyle="#bd86f9";ctx.beginPath();
+   ctx.arc(Math.cos(angle)*58,Math.sin(angle)*58,9,0,Math.PI*2);ctx.fill();
+ }
+ ctx.restore();
+ for(const p of cityShards){
+   ctx.save();ctx.globalAlpha=Math.max(0,p.life/1.5);
+   ctx.fillStyle="#e9b1ff";ctx.beginPath();ctx.arc(p.x,p.y,3,0,Math.PI*2);
+   ctx.fill();ctx.restore();
+ }
+}
+function drawCityExit(){
+ if(activeStage!==3||!cityBoss.defeated)return;
+ ctx.save();ctx.translate(goal.x+goal.w/2,goal.y+goal.h*.45);
+ for(let i=0;i<5;i++){
+   ctx.strokeStyle=i%2?"#bda7ff":"#70ffe8";
+   ctx.globalAlpha=.22+i*.12;ctx.lineWidth=7-i;
+   ctx.beginPath();ctx.ellipse(0,0,35+i*5,52+i*5,
+     visualTime*.15+i*.1,0,0,Math.PI*2);ctx.stroke();
+ }
+ ctx.restore();
+}
+function drawCityBossCinematic(){
+ if(activeStage!==3||!cityBoss.active||cityBoss.defeated)return;
+ if(!["intro","collapse"].includes(cityBoss.state))return;
+ const progress=cityBoss.state==="intro"?cityBoss.timer/2.55:cityBoss.timer/2.65;
+ ctx.save();ctx.globalAlpha=Math.max(0,Math.min(1,progress*4,(1-progress)*4));
+ ctx.fillStyle="rgba(12,8,31,.92)";roundRect(160,173,640,135,14);ctx.fill();
+ ctx.strokeStyle="#d5aaff";ctx.lineWidth=3;ctx.stroke();
+ ctx.fillStyle="#faf0ff";ctx.textAlign="center";ctx.font="bold 29px system-ui";
+ ctx.fillText(cityBoss.state==="intro"?"O ARQUITETO DO VAZIO":"NÚCLEO EM COLAPSO",480,224);
+ ctx.fillStyle="#ffe2af";ctx.font="bold 14px system-ui";
+ ctx.fillText(cityBoss.state==="intro"?
+  "QUATRO DASHES · ESPERE A BLINDAGEM ABRIR":
+  "A FENDA PARA O CAPÍTULO FINAL ESTÁ SURGINDO",480,252);
+ ctx.fillStyle="#bfa0f1";ctx.fillRect(210,285,540*clamp(progress,0,1),4);
+ ctx.restore();
+}
+
 function resetGuardian(){
   Object.assign(guardian,{hp:guardian.maxHp,active:false,defeated:false,
     state:"telegraph",timer:0,cycle:0,lockAim:false,
@@ -2776,6 +2939,9 @@ function update(dt) {
   }
 
   player.x = clamp(player.x, PLAYER_RADIUS, WORLD_W - PLAYER_RADIUS);
+  if(activeStage===3&&cityBoss.active&&!cityBoss.defeated&&player.x>cityBoss.arenaRight){
+    player.x=cityBoss.arenaRight-PLAYER_RADIUS;player.vx=Math.min(0,player.vx);
+  }
   if(activeStage===2&&!guardian.defeated&&player.x>guardian.arenaRight){
     player.x=guardian.arenaRight-PLAYER_RADIUS;player.vx=Math.min(0,player.vx);
   }
@@ -3446,6 +3612,12 @@ function damagePlayer(fall) {
     coyoteTimer = 0;
     jumpBuffer = 0;
     player.invulnerable = 1.3;
+    if(activeStage===3&&cityBoss.active&&!cityBoss.defeated){
+      player.x=cityBoss.arenaLeft+75;player.y=410-PLAYER_RADIUS;
+      player.prevX=player.x;player.prevY=player.y;
+      cameraX=cityBoss.arenaLeft;cameraY=0;
+      resetCityBoss();beginCityBoss();
+    }
     if(activeStage===2&&guardian.active&&!guardian.defeated) {
       // Restart inside the room, not beyond its locked entrance.
       player.x=guardian.arenaLeft+65;player.y=guardian.arenaFloor-PLAYER_RADIUS;
@@ -4243,6 +4415,20 @@ function drawHud() {
     ctx.fillText("DEBUG: BOOST ∞ · VOO · INVENCÍVEL",20,119);
     ctx.fillText("F3: alternar · B: ir ao chefe",20,135);
   }
+  if(activeStage===3&&cityBoss.active&&!cityBoss.defeated){
+    ctx.fillStyle="rgba(14,8,39,.87)";roundRect(310,108,355,72,9);ctx.fill();
+    ctx.fillStyle="#f4d6ff";ctx.font="bold 15px system-ui";
+    ctx.fillText("ARQUITETO DO VAZIO",326,130);
+    ctx.fillStyle="#37254c";ctx.fillRect(326,138,320,12);
+    ctx.fillStyle="#f7b7df";ctx.fillRect(326,138,320*cityBoss.hp/4,12);
+    ctx.font="12px system-ui";ctx.fillStyle="#fff2b5";
+    ctx.fillText(cityBoss.state==="exposed"?"NÚCLEO ABERTO · USE O DASH":
+      "DESVIE DAS RAJADAS DUPLAS",326,168);
+  }
+  if(activeStage===3&&dashUnlocked()){
+    ctx.fillStyle="#fff0b4";ctx.font="bold 12px system-ui";
+    ctx.fillText("DASH AÉREO: "+(airDash.available?"PRONTO":"RECARREGUE NO CHÃO"),330,122);
+  }
   if(activeStage===2&&guardian.active&&!guardian.defeated){
     ctx.fillStyle="rgba(15,8,35,.86)";roundRect(310,102,355,68,9);ctx.fill();
     ctx.fillStyle="#e7ceff";ctx.font="bold 15px system-ui";
@@ -4251,6 +4437,10 @@ function drawHud() {
     ctx.fillStyle="#bc93ff";ctx.fillRect(325,131,322*guardian.hp/guardian.maxHp,12);
     ctx.font="12px system-ui";ctx.fillStyle="#ffe3ac";
     ctx.fillText(guardianHint(),325,161);
+  }
+  if(activeStage===3&&cityBoss.defeated&&player.x>=cityBoss.arenaLeft){
+    ctx.fillStyle="#afffea";ctx.font="bold 14px system-ui";
+    ctx.fillText("O ARQUITETO CAIU · PORTAL FINAL LIBERADO",329,111);
   }
   if(activeStage===2&&guardian.defeated&&player.x>=guardian.arenaLeft){
     ctx.fillStyle="#adffd8";ctx.font="bold 15px system-ui";
