@@ -1013,6 +1013,59 @@ function cinemaForest(clock,running=false){
     ctx.globalAlpha=1;
   }
 }
+function cinemaNewWorld(clock){
+  // A clear silhouette/reveal: Flux is facing away from the viewer
+  // and looking at the unfamiliar mountains he must cross.
+  cinemaGradient("#081930","#de8b9f");
+  ctx.save();
+  const glow=ctx.createLinearGradient(0,85,0,335);
+  glow.addColorStop(0,"#f4a8ab");
+  glow.addColorStop(1,"#ffe2a9");
+  ctx.fillStyle=glow;
+  ctx.beginPath();ctx.arc(670,167,81,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+  cinemaStars(clock,"#f6e7ff",48);
+  ctx.fillStyle="#473e74";
+  ctx.beginPath();ctx.moveTo(0,373);
+  for(let i=0;i<=8;i++){
+    const x=i*130-40;
+    ctx.lineTo(x,360);
+    ctx.lineTo(x+75,134+(i%3)*37);
+    ctx.lineTo(x+155,368);
+  }
+  ctx.lineTo(VIEW_W,VIEW_H);ctx.lineTo(0,VIEW_H);ctx.fill();
+  ctx.fillStyle="#34375f";
+  ctx.beginPath();ctx.moveTo(0,410);
+  for(let i=0;i<=8;i++){
+    const x=i*142-56;
+    ctx.lineTo(x,405);
+    ctx.lineTo(x+63,235+(i%4)*30);
+    ctx.lineTo(x+155,405);
+  }
+  ctx.lineTo(VIEW_W,VIEW_H);ctx.lineTo(0,VIEW_H);ctx.fill();
+  ctx.strokeStyle="#bfeaff";ctx.lineWidth=3;
+  ctx.globalAlpha=.43;
+  for(let i=0;i<6;i++){
+    const x=i*154+20,top=280+(i%3)*23;
+    ctx.beginPath();ctx.moveTo(x,top);
+    ctx.lineTo(x+13,top-32);ctx.lineTo(x+32,top+8);ctx.stroke();
+  }
+  ctx.globalAlpha=1;
+  ctx.fillStyle="#172f3b";
+  ctx.beginPath();ctx.moveTo(0,456);
+  ctx.quadraticCurveTo(420,405,VIEW_W,465);
+  ctx.lineTo(VIEW_W,VIEW_H);ctx.lineTo(0,VIEW_H);ctx.fill();
+  ctx.strokeStyle="#69e6d7";ctx.lineWidth=4;
+  ctx.beginPath();ctx.moveTo(0,456);
+  ctx.quadraticCurveTo(420,405,VIEW_W,465);ctx.stroke();
+  // Entrance glow fades behind the newly arrived traveler.
+  const intensity=Math.max(0,1-Math.min(1,clock/5));
+  if(intensity>0){
+    ctx.save();ctx.globalAlpha=intensity*.42;
+    cinemaPortal(238,305,clock,.43);ctx.restore();
+  }
+  cinemaFluxBack(471,432,1.8,clock);
+}
 function drawCinematic(){
   if(!cinematic.active)return;
   const frame=CINEMATICS[cinematic.key].frames[cinematic.frameIndex],
@@ -1054,6 +1107,8 @@ function drawCinematic(){
       cinemaSovereign(710,405,t,.43);
       cinemaFlux(270+ratio*450,450-ratio*45,1.04-ratio*.35,t,true);
       cinemaFlower(310,447,t,.65);break;
+    case "arrival":
+      cinemaNewWorld(elapsed);break;
     case "forest":
       cinemaForest(t);cinemaPortal(165,267,t,.43);
       cinemaFlux(270,409,.85,t);break;
@@ -1084,20 +1139,21 @@ function drawCinematic(){
 // third-party imagery, or game-physics mutations.
 const CINEMATICS={
   opening:{chapter:"PRÓLOGO · A FLOR E A RUPTURA",frames:[
-    {speaker:"O ÚLTIMO DIA DE PAZ",title:"Antes das fendas",text:"No alto de um vale tranquilo, Flux e Alicia contemplavam o pôr do sol.",duration:5,art:"peace"},
-    {speaker:"UM PRESENTE SIMPLES",title:"Uma flor para Alicia",text:"Flux oferece uma flor. Alicia a recebe, e por um instante o mundo parece perfeito.",duration:5.5,art:"flower",sound:"cin-flower"},
-    {speaker:"ALGO DESPERTA",title:"O céu se rompe",text:"Uma rachadura violeta atravessa o horizonte. A luz começa a desaparecer.",duration:4.5,art:"rift",sound:"cin-rupture"},
-    {speaker:"O SENHOR DAS FENDAS",title:"O Soberano da Ruptura",text:"Uma presença colossal surge da abertura. Até as montanhas parecem pequenas diante dele.",duration:6.2,art:"sovereign",sound:"cin-ominous"},
-    {speaker:"A DISTÂNCIA ENTRE MUNDOS",title:"Alicia desaparece",text:"A energia da fenda envolve Alicia e a leva para além da dimensão. A flor permanece.",duration:5.2,art:"taken",sound:"cin-rupture"},
-    {speaker:"A PROMESSA DO FLUX",title:"Eu vou encontrar você",text:"Flux avança em direção ao portal. Não importa quantas fendas precise atravessar.",duration:5.5,art:"pursuit",sound:"cin-chase"}
+    {speaker:"O ÚLTIMO DIA DE PAZ",title:"Antes das fendas",text:"No alto de um vale tranquilo, Flux e Alicia contemplavam o pôr do sol.",duration:3.9,art:"peace"},
+    {speaker:"UM PRESENTE SIMPLES",title:"Uma flor para Alicia",text:"Flux oferece uma flor. Alicia a recebe, e por um instante o mundo parece perfeito.",duration:4.1,art:"flower",sound:"cin-flower"},
+    {speaker:"ALGO DESPERTA",title:"O céu se rompe",text:"Uma rachadura violeta atravessa o horizonte. A luz começa a desaparecer.",duration:3.6,art:"rift",sound:"cin-rupture"},
+    {speaker:"O SENHOR DAS FENDAS",title:"O Soberano da Ruptura",text:"Uma presença colossal surge da abertura. Até as montanhas parecem pequenas diante dele.",duration:4.9,art:"sovereign",sound:"cin-ominous"},
+    {speaker:"A DISTÂNCIA ENTRE MUNDOS",title:"Alicia desaparece",text:"A energia da fenda envolve Alicia e a leva para além da dimensão. A flor permanece.",duration:4.1,art:"taken",sound:"cin-rupture"},
+    {speaker:"A PROMESSA DO FLUX",title:"Eu vou encontrar você",text:"Flux avança em direção ao portal. Não importa quantas fendas precise atravessar.",duration:4.2,art:"pursuit",sound:"cin-chase"},
+    {speaker:"ALÉM DO PORTAL",title:"Um novo mundo à frente",text:"Do outro lado da fenda, Flux para e observa montanhas desconhecidas. A jornada para resgatar Alicia está apenas começando.",duration:4.5,art:"arrival",sound:"cin-flower"}
   ]},
   intro1:{chapter:"CAPÍTULO 01 · FLORESTA NEON",frames:[
-    {speaker:"PRIMEIRO IMPULSO",title:"Atravessar o impossível",text:"O portal lança Flux no coração de uma floresta desconhecida, iluminada por energia viva.",duration:4.6,art:"forest"},
-    {speaker:"O CAMINHO COMEÇA",title:"A velocidade é a resposta",text:"Flux dispara entre copas luminosas. Cada salto o aproxima de Alicia.",duration:4.5,art:"forestRun",sound:"cin-chase"}
+    {speaker:"PRIMEIRO IMPULSO",title:"Atravessar o impossível",text:"O portal lança Flux no coração de uma floresta desconhecida, iluminada por energia viva.",duration:3.8,art:"forest"},
+    {speaker:"O CAMINHO COMEÇA",title:"A velocidade é a resposta",text:"Flux dispara entre copas luminosas. Cada salto o aproxima de Alicia.",duration:3.6,art:"forestRun",sound:"cin-chase"}
   ]},
   intro2:{chapter:"CAPÍTULO 02 · CÂNION PRISMA",frames:[
-    {speaker:"ECOS DO PRISMA",title:"O cânion desperta",text:"Cristais gigantes erguem-se sobre abismos sem fim. Algo está guardando o próximo portal.",duration:4.8,art:"canyon"},
-    {speaker:"UMA NOVA AMEAÇA",title:"O Guardião observa",text:"Entre raios violeta, o Guardião do Prisma desperta. A jornada precisa continuar.",duration:5,art:"canyonBoss",sound:"cin-ominous"}
+    {speaker:"ECOS DO PRISMA",title:"O cânion desperta",text:"Cristais gigantes erguem-se sobre abismos sem fim. Algo está guardando o próximo portal.",duration:3.9,art:"canyon"},
+    {speaker:"UMA NOVA AMEAÇA",title:"O Guardião observa",text:"Entre raios violeta, o Guardião do Prisma desperta. A jornada precisa continuar.",duration:4,art:"canyonBoss",sound:"cin-ominous"}
   ]}
 };
 const cinematic={active:false,key:null,frameIndex:0,elapsed:0,
