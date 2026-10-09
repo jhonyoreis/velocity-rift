@@ -1563,10 +1563,10 @@ function formatTime(seconds) {
 // Rift atlas stays UI-only: the campaign save controls access and the
 // permanent 2.0 archive provides medals, cores, secrets and best times.
 function selectMapStage(stage){
-  if(![1,2,3].includes(stage))return;
+  if(![1,2,3,4].includes(stage))return;
   selectedMapStage=stage;
-  for(const id of [1,2,3]){
-    const names=["One","Two","Three"];
+  for(const id of [1,2,3,4]){
+    const names=["One","Two","Three","Four"];
     const suffix=names[id-1];
     const node=document.querySelector("#mapNodeStage"+suffix);
     const details=document.querySelector("#stage"+suffix+"Card");
@@ -1581,16 +1581,20 @@ function refreshMapView(){
   document.querySelector("#mapCampaignSummary").textContent=
     "Conclusão "+completion.percent+"%";
   document.querySelector("#mapCoresSummary").textContent=
-    "Núcleos "+completion.cores+"/6";
+    "Núcleos "+completion.cores+"/9";
   document.querySelector("#mapSecretsSummary").textContent=
-    "Segredos "+completion.secrets+"/6";
+    "Segredos "+completion.secrets+"/9";
   document.querySelector("#mapAchievementsSummary").textContent=
     "Conquistas "+Object.values(progress.achievements).filter(Boolean).length+
     "/"+ACHIEVEMENTS.length;
-  // Future regions are selectable for lore only, never playable.
-  document.querySelector("#stageThreeButton").disabled=true;
-  for(const stage of [1,2]){
-    const suffix=stage===1?"One":"Two";
+  const cityUnlocked=campaign.stage2Completed||debugMode;
+  document.querySelector("#stageThreeButton").disabled=!cityUnlocked;
+  document.querySelector("#mapPathToCity").classList.toggle("rift-map-path-open",cityUnlocked);
+  document.querySelector("#mapPathToCity").classList.toggle("rift-map-path-locked",!cityUnlocked);
+  document.querySelector("#mapNodeStageThree").classList.toggle("is-locked",!cityUnlocked);
+  document.querySelector("#stageFourButton").disabled=true;
+  for(const stage of [1,2,3]){
+    const suffix=stage===1?"One":stage===2?"Two":"Three";
     const stageProgress=progress["stage"+stage];
     document.querySelector("#mapStage"+suffix+"Best").textContent=
       formatTime(stageProgress.bestTime);
@@ -1607,8 +1611,16 @@ function refreshMapView(){
     campaign.stage1Completed?"LIBERADA":debugMode?"ACESSO DEBUG":"BLOQUEADA";
   document.querySelector("#mapNodeStageOneStatus").textContent=forestStatus;
   document.querySelector("#mapNodeStageTwoStatus").textContent=canyonStatus;
+  const cityStatus=campaign.stage3Completed?"CONCLUÍDA":
+    cityUnlocked?"LIBERADA":"BLOQUEADA";
+  document.querySelector("#mapNodeStageThreeStatus").textContent=cityStatus;
+  document.querySelector("#mapStageThreeBadge").textContent=cityStatus;
+  document.querySelector("#stageThreeProgress").textContent=campaign.stage3Completed?
+    "Campanha concluída · Núcleo de Ímpeto recuperado":
+    cityUnlocked?"Nova habilidade e desafios aguardam":"Conclua o Cânion para desbloquear";
   document.querySelector("#mapStageOneBadge").textContent=forestStatus;
   document.querySelector("#mapStageTwoBadge").textContent=canyonStatus;
+  document.querySelector("#mapNodeStageThree").classList.toggle("is-completed",campaign.stage3Completed);
   const firstNode=document.querySelector("#mapNodeStageOne");
   const secondNode=document.querySelector("#mapNodeStageTwo");
   firstNode.classList.toggle("is-completed",campaign.stage1Completed);
@@ -1627,12 +1639,12 @@ function refreshProgressView() {
     "aria-valuenow",String(completion.percent));
   document.querySelector("#campaignProgressFill").style.width=completion.percent+"%";
   document.querySelector("#campaignCompletionBreakdown").textContent=
-    "Fases "+completion.stages+"/2  ·  Núcleos "+completion.cores+
-    "/6  ·  Rotas secretas "+completion.secrets+"/6";
+    "Fases "+completion.stages+"/3  ·  Núcleos "+completion.cores+
+    "/9  ·  Rotas secretas "+completion.secrets+"/9";
   const continueButton=document.querySelector("#startButton");
   continueButton.disabled=!campaign.started;
   document.querySelector("#continueDescription").textContent=campaign.started
-    ? "Retomar: "+(nextCampaignStage()===2?"Cânion Prisma":"Primeiro Impulso")+
+    ? "Retomar: "+(["","Primeiro Impulso","Cânion Prisma","Cidade das Fendas"][nextCampaignStage()])+
       " · início da fase"
     : "Comece uma nova jornada para liberar Continuar";
   document.querySelector("#stageOneProgress").textContent = campaign.stage1Completed
@@ -1681,8 +1693,7 @@ function showScreen(target) {
 function showMainMenu() {showScreen(mainMenu);}
 function showSettingsMenu(){showScreen(settingsMenu);refreshAudioSettings();}
 function showStageMenu(){
-  selectedMapStage=campaign.stage1Completed?
-    (activeStage===2||campaign.lastStage===2?2:1):1;
+  selectedMapStage=campaign.stage2Completed?3:campaign.stage1Completed?2:1;
   showScreen(stageMenu);
   selectMapStage(selectedMapStage);
 }
@@ -1693,7 +1704,7 @@ function showResults(time, crystals, cores = 0) {
     ? {grade:gradeForTime(time,activeStage),improvedTime:false}
     : recordStageClear(time,crystals,cores);
   document.querySelector("#resultGrade").textContent = result.grade;
-  document.querySelector("#resultHeading").textContent = activeStage===2 ? "Cânion Prisma" : "Primeiro Impulso";
+  document.querySelector("#resultHeading").textContent = ["","Primeiro Impulso","Cânion Prisma","Cidade das Fendas"][activeStage];
   document.querySelector("#resultTime").textContent = formatTime(time);
   document.querySelector("#resultBest").textContent = formatTime(progress["stage"+activeStage].bestTime);
   document.querySelector("#resultCrystals").textContent = String(crystals);
@@ -1707,15 +1718,16 @@ function showResults(time, crystals, cores = 0) {
   const nextStageButton=document.querySelector("#nextStageButton");
   // Only stage 2 is playable after stage 1. A debug-only clear must
   // never unlock it permanently, although active debug mode can test it.
-  const nextPlayable=activeStage===1&&(campaign.stage1Completed||debugMode);
+  const nextPlayable=(activeStage===1&&(campaign.stage1Completed||debugMode))||
+    (activeStage===2&&(campaign.stage2Completed||debugMode));
   nextStageButton.disabled=!nextPlayable;
   nextStageButton.textContent=nextPlayable
-    ?"Próxima fase: Cânion Prisma ➜"
-    :activeStage===2?"Cidade das Fendas — em desenvolvimento"
+    ?("Próxima fase: "+(activeStage===1?"Cânion Prisma":"Cidade das Fendas")+" ➜")
+    :activeStage===3?"Fase final — em desenvolvimento"
     :"Próxima fase bloqueada";
   nextStageButton.title=nextPlayable
-    ?"Começar o Cânion Prisma"
-    :activeStage===2?"A terceira fase ainda não está disponível"
+    ?("Começar "+(activeStage===1?"Cânion Prisma":"Cidade das Fendas"))
+    :activeStage===3?"A quarta fase ainda está em desenvolvimento"
     :"Conclua a primeira fase sem DEBUG para desbloquear a próxima";
   nextStageButton.classList.toggle("primary-action",nextPlayable);
   nextStageButton.classList.toggle("secondary-action",!nextPlayable);
@@ -1737,7 +1749,7 @@ function showPauseMenu(){
   paused=true;accumulator=0;keys.clear();jumpHeld=false;
   syncMusic();
   document.querySelector("#pauseStageLabel").textContent=
-    (activeStage===2?"Cânion Prisma":"Primeiro Impulso")+
+    (["","Primeiro Impulso","Cânion Prisma","Cidade das Fendas"][activeStage])+
     " · "+formatTime(gameTime)+" de jornada";
   screens.forEach(screen=>{screen.hidden=screen!==pauseMenu;});
   overlay.classList.remove("is-hidden");
@@ -4716,30 +4728,31 @@ document.querySelector("#galleryStageTwo").addEventListener("click",()=>replayCi
 document.querySelector("#cinematicNextButton").addEventListener("click",nextCinematicFrame);
 document.querySelector("#cinematicSkipButton").addEventListener("click",finishCinematic);
 document.querySelector("#cinematicExitButton").addEventListener("click",()=>cancelCinematic(true));
-for(const [index,name] of ["One","Two","Three"].entries()){
+for(const [index,name] of ["One","Two","Three","Four"].entries()){
   const button=document.querySelector("#mapNodeStage"+name);
   button.addEventListener("click",()=>selectMapStage(index+1));
   button.addEventListener("keydown",event=>{
     const next=event.key==="ArrowRight"||event.key==="ArrowDown"?
-      Math.min(3,index+2):
+      Math.min(4,index+2):
       event.key==="ArrowLeft"||event.key==="ArrowUp"?Math.max(1,index):
-      event.key==="Home"?1:event.key==="End"?3:0;
+      event.key==="Home"?1:event.key==="End"?4:0;
     if(!next)return;
     event.preventDefault();
     selectMapStage(next);
-    document.querySelector("#mapNodeStage"+["One","Two","Three"][next-1]).focus?.();
+    document.querySelector("#mapNodeStage"+["One","Two","Three","Four"][next-1]).focus?.();
   });
 }
 document.querySelector("#stageOneButton").addEventListener("click", ()=>startGame(1));
- document.querySelector("#stageTwoButton").addEventListener("click", ()=>{if(campaign.stage1Completed||debugMode)startGame(2)});
+ document.querySelector("#stageTwoButton").addEventListener("click",()=>{if(campaign.stage1Completed||debugMode)startGame(2)});
+document.querySelector("#stageThreeButton").addEventListener("click",()=>{if(campaign.stage2Completed||debugMode)startGame(3)});
 document.querySelector("#backToMainButton").addEventListener("click", showMainMenu);
 document.querySelector("#achievementsButton").addEventListener("click",showAchievementsMenu);
 document.querySelector("#stageAchievementsButton").addEventListener("click",showAchievementsMenu);
 document.querySelector("#resultsAchievementsButton").addEventListener("click",showAchievementsMenu);
 document.querySelector("#achievementsBackButton").addEventListener("click",showMainMenu);
 document.querySelector("#nextStageButton").addEventListener("click",()=>{
-  if(activeStage===1&&gameCleared&&(campaign.stage1Completed||debugMode))
-    startGame(2);
+  if(gameCleared&&activeStage===1&&(campaign.stage1Completed||debugMode))startGame(2);
+  else if(gameCleared&&activeStage===2&&(campaign.stage2Completed||debugMode))startGame(3);
 });
 document.querySelector("#retryButton").addEventListener("click", ()=>startGame(activeStage));
 document.querySelector("#resultsStagesButton").addEventListener("click", showStageMenu);
