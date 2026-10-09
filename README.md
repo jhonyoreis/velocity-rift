@@ -1,4 +1,4 @@
-# Velocity Rift — A Flor e a Ruptura (versão 3.5.2 em desenvolvimento)
+# Velocity Rift — Cidade das Fendas (versão 3.7 em desenvolvimento)
 
 Um prototipo web 2D inspirado em jogos de plataforma de alta velocidade. Ele usa
 HTML, CSS e Canvas, sem assets oficiais. O Vite é uma dependência de desenvolvimento.
@@ -32,6 +32,39 @@ com JavaScript, sem precisar migrar a engine.
 ## Repositório
 
 https://github.com/jhonyoreis/velocity-rift
+
+## Velocity Rift 3.7 — Cidade das Fendas (terceira de quatro fases)
+
+**O jogo está planejado em quatro fases:** Floresta Neon, Cânion Prisma, Cidade das Fendas e **Fenda Original**, a futura etapa final com o Soberano da Ruptura e o resgate de Alicia. A quarta região já aparece no mapa como prévia, sem acesso antecipado.
+
+### A terceira fase — caminhos elevados ou ruas perigosas
+
+- Cenário original de metrópole dimensional, com **19 prédios acessíveis pelos telhados**, linhas de energia, janelas iluminadas, passagens baixas e plataformas de manutenção que se movem.
+- Seis setores ao longo de **19.200 unidades**. A via superior permite caminhos de maior precisão; o percurso inferior reúne mais inimigos e tiros.
+- **21 patrulhas** formadas por drones de assalto, torres de disparo e caçadores. Drones e torres atiram **pares de projéteis** com intervalos curtos, e **o boost não anula esses tiros**.
+- Três vãos dimensionais de **430, 480 e 490 unidades**, projetados para exigir o dash aéreo. O dash também causa dano por contato em novos inimigos, mas **não fornece imunidade a espinhos nem projéteis**.
+- **3 núcleos de memória** e **3 novas rotas secretas de escalada**: Antenas Perdidas, Subsolo Fantasma e Coroa dos Arranha-céus. Cada uma combina plataformas e inimigos diferentes, com limite de 30–32 segundos e somente uma tentativa até reiniciar a fase.
+
+### Núcleo de Ímpeto e dash aéreo
+
+Flux recolhe o **Núcleo de Ímpeto** ainda no começo da cidade. A coleta desbloqueia permanentemente o dash na campanha, inclusive ao voltar às fases anteriores. O dash funciona ao **apertar o pulo pela segunda vez durante um salto** (Espaço, W, ↑ ou K). No computador, o impulso segue a direção do **cursor na área de jogo**; sem cursor apontado, segue a direção em que Flux está olhando. Cada salto concede um dash, recarregado ao tocar uma plataforma.
+
+O artefato é salvo em `velocity-rift-campaign-v3`, sem apagar os recordes antigos. O DEBUG permite testar o deslocamento e o chefe sem registrar a obtenção.
+
+### Arquiteto do Vazio — novo chefe
+
+O **Arquiteto do Vazio** surge em uma pequena entrada cinematográfica dentro da arena final da cidade e exige **quatro golpes de dash aéreo** em seu núcleo. O escudo fica vulnerável depois de cada **rajada de dois disparos**; o chefe passa por introdução, mira, duas salvas, abertura da defesa, recuperação e colapso. A vitória libera um portal para concluir a terceira fase.
+
+O Arquiteto é diferente do **Soberano da Ruptura**: o Soberano continua reservado para o confronto definitivo da quarta fase.
+
+### Trilha sonora e cutscenes
+
+- **Cidade Entre Estrelas (136 BPM):** composição original sintetizada, com linhas de baixo sincopadas, arpejos cristalinos e acordes luminosos de sétima, tornando-se mais intensa nos últimos setores.
+- **Coroa do Vazio (158 BPM):** trilha de chefe original, mais pesada e dissonante, com segunda camada rítmica quando o Arquiteto perde parte da vida.
+- Antes de entrar no cenário, a introdução mostra Flux contemplando a metrópole e correndo por prédios. A curta chegada automática ao nível agora inclui pequenos saltos. As cutscenes podem ser revisitadas na galeria.
+
+A nova fase tem **7 conquistas próprias**, incluindo habilidade, vitória, nota, núcleos, chefe e rotas secretas (20 no total). A porcentagem da versão atual acompanha **3 fases, 9 núcleos e 9 rotas**, e a quarta etapa será adicionada ao cálculo quando estiver jogável.
+
 
 ## Velocity Rift 3.5.2 — Chegada natural às fases
 
