@@ -42,8 +42,16 @@ https://github.com/jhonyoreis/velocity-rift
 - Cenário original de metrópole dimensional, com **19 prédios acessíveis pelos telhados**, linhas de energia, janelas iluminadas, passagens baixas e plataformas de manutenção que se movem.
 - Seis setores ao longo de **19.200 unidades**. A via superior permite caminhos de maior precisão; o percurso inferior reúne mais inimigos e tiros.
 - **21 patrulhas** formadas por drones de assalto, torres de disparo e caçadores. Drones e torres atiram **pares de projéteis** com intervalos curtos, e **o boost não anula esses tiros**.
-- Três vãos dimensionais de **430, 480 e 490 unidades**, projetados para exigir o dash aéreo. O dash também causa dano por contato em novos inimigos, mas **não fornece imunidade a espinhos nem projéteis**.
+- Três vãos dimensionais de **430, 480 e 490 unidades** com **barreiras luminosas verticais** que só podem ser atravessadas durante o dash aéreo, tanto pelo caminho das ruas quanto pelos telhados. O dash também causa dano por contato nos inimigos, mas **não fornece imunidade a espinhos nem projéteis**.
 - **3 núcleos de memória** e **3 novas rotas secretas de escalada**: Antenas Perdidas, Subsolo Fantasma e Coroa dos Arranha-céus. Cada uma combina plataformas e inimigos diferentes, com limite de 30–32 segundos e somente uma tentativa até reiniciar a fase.
+
+### Como testar os novos desafios
+
+Acesse a Cidade das Fendas pelo mapa após concluir o Cânion Prisma, ou use DEBUG apenas para testes. O Núcleo de Ímpeto aparece no começo da cidade; pule normalmente, solte o botão e aperte **pulo novamente no ar** para impulsionar Flux na direção do cursor (sem cursor, na direção para a qual ele olha). O comando também funciona com o botão de pulo na tela.
+
+O dash recarrega quando Flux aterrissa. Três membranas dimensionais exigem um dash ativo para passar. Os drones disparam projéteis em pares; boost e dash não bloqueiam esses tiros. O chefe Arquiteto do Vazio precisa de quatro colisões com dash durante janelas em que o escudo está aberto. O chefe possui introdução e música próprias.
+
+**Validação:** verificações simuladas do percurso integral, dos três vãos com/sem dash, das 27 ligações entre plataformas nos desafios secretos, das regras de dano e dos quatro acertos do chefe; comparação das fases 1 e 2 com diferença zero na física. O build real e testes de navegador ainda precisam ser executados em um ambiente com acesso ao repositório e às dependências.
 
 ### Núcleo de Ímpeto e dash aéreo
 
