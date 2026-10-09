@@ -1,4 +1,4 @@
-# Velocity Rift — A Flor e a Ruptura (versão 3.5 em desenvolvimento)
+# Velocity Rift — A Flor e a Ruptura (versão 3.5.1 em desenvolvimento)
 
 Um prototipo web 2D inspirado em jogos de plataforma de alta velocidade. Ele usa
 HTML, CSS e Canvas, sem assets oficiais. O Vite é uma dependência de desenvolvimento.
@@ -32,6 +32,15 @@ com JavaScript, sem precisar migrar a engine.
 ## Repositório
 
 https://github.com/jhonyoreis/velocity-rift
+
+## Velocity Rift 3.5.1 — Flux nas cutscenes, montanhas e trilha cinematográfica
+
+- O **Flux cinematográfico agora reutiliza exatamente o desenho do personagem jogável**, com o mesmo capacete branco, crista e visor cianos, corpo escuro, cachecol e pés laranjas. A posição e a escala são ajustadas para as cenas sem modificar a física nem o sprite de jogo; a corrida usa os mesmos movimentos de braços, pernas e cachecol.
+- O prólogo ganhou a última cena **“Um novo mundo à frente”**. Logo depois de Flux atravessar o portal, a câmera mostra uma vista das montanhas e um desenho do personagem **de costas, contemplando o caminho que deverá percorrer**.
+- As cenas ficaram aproximadamente **20% mais rápidas por quadro**: o prólogo original de 31,9 segundos foi reequilibrado para 29,3 segundos mesmo com o novo quadro de chegada; as introduções das fases também foram encurtadas.
+- Uma **trilha sonora original sintetizada no Web Audio**, chamada **“A Flor e a Ruptura”**, acompanha as cutscenes em 88 BPM. O arranjo muda entre três climas: sereno na entrega da flor, sombrio na aparição do Soberano e esperançoso na chegada ao mundo novo. A entrada na fase retorna à música original da região.
+- A trilha obedece aos controles já existentes de **música, volume geral e mute**, sem interferir no volume independente dos efeitos sonoros. Nenhum arquivo de áudio externo foi adicionado.
+- A **Galeria de Cenas** mostra a mesma abertura revisada; avançar ou pular cenas segue funcionando e não altera o registro de conquistas, núcleos, fases ou rotas secretas.
 
 ## Velocity Rift 3.5 — A Flor e a Ruptura
 
