@@ -41,5 +41,5 @@ test("rift corridor has six dash-gated gaps, moving elevators, vanishing platfor
   assert.equal(w.pits.length,9);
   assert.ok(w.enemies.every(e=>e.x<area.start));
   assert.deepEqual(w.checkpoints.slice(-2).map(c=>c.x),[17770,21820]);
-  assert.equal(w.goal.x,RIFT_WORLD_WIDTH-160);
+  assert.equal(w.goal.x,RIFT_WORLD_WIDTH-345);
 });
