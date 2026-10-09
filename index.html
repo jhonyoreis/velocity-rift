@@ -15,7 +15,7 @@
           <section id="mainMenu" class="menu-screen v3-main" aria-labelledby="menuHeading">
             <div class="v3-ambient-orb orb-one" aria-hidden="true"></div>
             <div class="v3-ambient-orb orb-two" aria-hidden="true"></div>
-            <div class="v3-edition">VELOCITY RIFT <span>3.5.2 // ALÉM DAS FENDAS</span></div>
+            <div class="v3-edition">VELOCITY RIFT <span>3.6 // ALÉM DAS FENDAS</span></div>
             <div class="v3-crest" aria-hidden="true">◇</div>
             <div class="menu-eyebrow">ENCONTRE ALICIA ALÉM DAS FENDAS</div>
             <h1 id="menuHeading">VELOCITY <span>RIFT</span></h1>
@@ -26,7 +26,7 @@
                    aria-label="Progresso da campanha" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
                 <div id="campaignProgressFill" class="v31-progress-fill"></div>
               </div>
-              <p id="campaignCompletionBreakdown" class="v34-progress-breakdown">Fases 0/2 · Núcleos 0/6 · Rotas secretas 0/6</p>
+              <p id="campaignCompletionBreakdown" class="v34-progress-breakdown">Fases 0/3 · Núcleos 0/9 · Rotas secretas 0/9</p>
             </div>
             <div class="v3-main-actions">
               <button id="startButton" class="v3-action v3-continue" type="button" disabled>
@@ -131,7 +131,7 @@
                 <h2 id="stageHeading">Mapa das Fendas</h2>
                 <p class="rift-map-intro">Escolha uma região para acompanhar a jornada de Flux até Alicia.</p>
               </div>
-              <span class="rift-map-mark" aria-hidden="true">◇ 03 REGIÕES</span>
+              <span class="rift-map-mark" aria-hidden="true">◇ 04 REGIÕES</span>
             </header>
             <div class="rift-map-layout">
               <div class="rift-map-world" role="group" aria-label="Mapa interativo com as três regiões">
@@ -146,6 +146,7 @@
                   </defs>
                   <path id="mapPathToCanyon" class="rift-map-path rift-map-path-locked" d="M 110 236 C 177 222, 198 148, 277 145" stroke="url(#riftMapLinkA)"/>
                   <path id="mapPathToCity" class="rift-map-path rift-map-path-locked" d="M 277 145 C 346 146, 378 72, 437 63" stroke="url(#riftMapLinkB)"/>
+                  <path class="rift-map-path rift-map-path-locked" d="M 437 63 C 498 122, 488 176, 435 252" stroke="url(#riftMapLinkB)"/>
                 </svg>
                 <button id="mapNodeStageOne" type="button" class="rift-map-node rift-map-node-forest is-selected" aria-pressed="true" aria-label="Selecionar região Primeiro Impulso">
                   <span class="rift-node-emblem" aria-hidden="true">✦</span>
@@ -163,7 +164,13 @@
                   <span class="rift-node-emblem" aria-hidden="true">▥</span>
                   <span class="rift-node-number">03</span>
                   <span class="rift-node-title">CIDADE DAS FENDAS</span>
-                  <small>EM DESENVOLVIMENTO</small>
+                  <small id="mapNodeStageThreeStatus">BLOQUEADA</small>
+                </button>
+                <button id="mapNodeStageFour" type="button" class="rift-map-node rift-map-node-final is-future" aria-pressed="false" aria-label="Prévia da fase final">
+                  <span class="rift-node-emblem" aria-hidden="true">♛</span>
+                  <span class="rift-node-number">04</span>
+                  <span class="rift-node-title">FENDA ORIGINAL</span>
+                  <small>CAPÍTULO FINAL</small>
                 </button>
                 <div class="rift-map-coordinate" aria-hidden="true">RIFT // COORDENADAS INSTÁVEIS</div>
               </div>
@@ -198,20 +205,34 @@
                   <span id="stageTwoLock" class="rift-map-locked-label">🔒 Conclua Primeiro Impulso para acessar</span>
                 </article>
                 <article id="stageThreeCard" class="rift-map-details rift-detail-city" hidden>
-                  <div class="rift-detail-heading"><span class="rift-detail-index">DESTINO 03</span><span class="rift-detail-state">EM DESENVOLVIMENTO</span></div>
+                  <div class="rift-detail-heading"><span class="rift-detail-index">DESTINO 03</span><span id="mapStageThreeBadge" class="rift-detail-state">BLOQUEADA</span></div>
                   <h3>Cidade das Fendas</h3>
-                  <p class="rift-detail-region">METRÓPOLE SUSPENSA · EM BREVE</p>
-                  <p class="rift-detail-story">Torres entre dimensões, inimigos inéditos e o Núcleo de Ímpeto, que permitirá a Flux desbloquear o dash aéreo.</p>
-                  <div class="rift-detail-coming">◇ A PRÓXIMA FENDA AINDA NÃO FOI ABERTA</div>
-                  <button id="stageThreeButton" class="rift-map-launch" type="button" disabled>FASE EM DESENVOLVIMENTO</button>
+                  <p class="rift-detail-region">METRÓPOLE SUSPENSA · 6 SETORES</p>
+                  <p class="rift-detail-story">Telhados, ruas perigosas e o Núcleo de Ímpeto. Domine o dash aéreo para enfrentar o Arquiteto do Vazio.</p>
+                  <div class="rift-detail-stats">
+                    <div><small>Melhor tempo</small><strong id="mapStageThreeBest">--</strong></div>
+                    <div><small>Melhor nota</small><strong id="mapStageThreeGrade">--</strong></div>
+                    <div><small>Núcleos</small><strong id="mapStageThreeCores">0/3</strong></div>
+                    <div><small>Rotas secretas</small><strong id="mapStageThreeSecrets">0/3</strong></div>
+                  </div>
+                  <p id="stageThreeProgress" class="rift-stage-progress">Conclua o Cânion para desbloquear.</p>
+                  <button id="stageThreeButton" class="rift-map-launch" type="button" disabled>INICIAR FASE 03 ➜</button>
+                </article>
+                <article id="stageFourCard" class="rift-map-details rift-detail-city" hidden>
+                  <div class="rift-detail-heading"><span class="rift-detail-index">DESTINO 04</span><span class="rift-detail-state">CAPÍTULO FINAL</span></div>
+                  <h3>Fenda Original</h3>
+                  <p class="rift-detail-region">DOMÍNIO DO SOBERANO · FUTURA EXPANSÃO</p>
+                  <p class="rift-detail-story">A dimensão de origem das fendas. Aqui acontecerá o encontro definitivo com o Soberano da Ruptura e o resgate de Alicia.</p>
+                  <div class="rift-detail-coming">◇ O ÚLTIMO PORTAL AINDA ESTÁ FECHADO</div>
+                  <button id="stageFourButton" class="rift-map-launch" type="button" disabled>FASE FINAL EM DESENVOLVIMENTO</button>
                 </article>
               </div>
             </div>
             <footer class="rift-map-footer">
               <div class="rift-map-collection" aria-label="Resumo do progresso">
                 <span id="mapCampaignSummary">Campanha 0/2</span>
-                <span id="mapCoresSummary">Núcleos 0/6</span>
-                <span id="mapSecretsSummary">Segredos 0/6</span>
+                <span id="mapCoresSummary">Núcleos 0/9</span>
+                <span id="mapSecretsSummary">Segredos 0/9</span>
                 <span id="mapAchievementsSummary">Conquistas 0/13</span>
               </div>
               <div class="rift-map-navigation">
@@ -288,7 +309,7 @@
               <div class="v31-pause-subtitle">⌨ CONTROLES</div>
               <div class="v31-control-grid">
                 <span><strong>Mover</strong>A/D ou ← →</span>
-                <span><strong>Pular</strong>Espaço, W ou ↑</span>
+                <span><strong>Pular / Dash</strong>Espaço, W ou ↑ (duas vezes no ar)</span>
                 <span><strong>Boost</strong>Shift ou J</span>
                 <span><strong>Deslizar</strong>S ou ↓</span>
                 <span><strong>Pausar</strong>P ou Esc</span>
