@@ -1137,7 +1137,9 @@ function refreshCinematicText(){
   document.querySelector("#cinematicText").textContent=frame.text;
   const next=document.querySelector("#cinematicNextButton");
   next.textContent=cinematic.frameIndex===scene.frames.length-1?
-    (cinematic.replay?"Encerrar cena ➜":"Iniciar jornada ➜"):"Avançar ➜";
+    (cinematic.replay?"Voltar à galeria ➜":
+      cinematic.key==="opening"?"Continuar história ➜":"Começar fase ➜")
+    :"Avançar ➜";
 }
 function updateCinematic(dt){
   if(!cinematic.active)return;
