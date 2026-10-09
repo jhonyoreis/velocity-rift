@@ -788,3 +788,15 @@ body {
   .rift-map-launch{min-height:34px;padding:7px;}
   .rift-detail-canyon .rift-map-locked-label{line-height:1;}
 }
+
+/* Overall completion: main story, hidden routes and memory cores. */
+.v34-progress-breakdown {
+  margin:7px 0 0!important;
+  font-size:clamp(.59rem,1.05vw,.74rem);
+  font-weight:750;letter-spacing:.035em;
+  color:#baf9e9;text-align:center;
+  font-variant-numeric:tabular-nums;
+}
+@media(max-width:700px){
+  .v34-progress-breakdown{font-size:.66rem;}
+}
