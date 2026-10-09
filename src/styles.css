@@ -779,3 +779,12 @@ body {
   .rift-map-mark{display:none;}
   .rift-map-collection span{font-size:.53rem;padding:6px;}
 }
+
+/* Keep destination dossiers inside a 540px-tall widescreen view. */
+@media(min-width:701px){
+  .rift-map-details{padding:12px;gap:6px;}
+  .rift-detail-story{min-height:39px;font-size:.7rem;}
+  .rift-detail-stats>div{padding:5px 8px;gap:1px;}
+  .rift-map-launch{min-height:34px;padding:7px;}
+  .rift-detail-canyon .rift-map-locked-label{line-height:1;}
+}
