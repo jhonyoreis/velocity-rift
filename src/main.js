@@ -9,6 +9,7 @@ import {computeCampaignCompletion} from "./game/completion.js";
 import {yOnTrack,circleRect,distance,approach,clamp,lerp} from "./game/geometry.js";
 import {renderCityBackground,renderForest} from "./rendering/scenery.js";
 import {renderSecretBackdrop} from "./rendering/secretBackdrop.js";
+import {createEnemy as enemy,isCityEnemyType} from "./game/enemies.js";
 
 const canvas = document.querySelector("#game");
 const ctx = canvas.getContext("2d");
@@ -333,20 +334,6 @@ function track(x1, y1, x2, y2, kind) {
 
 function rect(x, y, w, h, kind) {
   return { x, y, w, h, kind, active: true };
-}
-
-function enemy(x, y, patrol) {
-  return {
-    x,
-    y,
-    baseX: x,
-    yBase: y,
-    w: 38,
-    h: 28,
-    patrol,
-    phase: Math.random() * Math.PI * 2,
-    alive: true,
-  };
 }
 
 function orb(x, y) {
@@ -2693,7 +2680,7 @@ function updateEnemies(dt) {
     const box = { x: bad.x - bad.w / 2, y: bad.y - bad.h, w: bad.w, h: bad.h };
     if (!circleRect(player.x, player.y, PLAYER_RADIUS, box)) continue;
 
-    const cityEnemy=bad.type.startsWith("city-");
+    const cityEnemy=isCityEnemyType(bad.type);
     const stomp=bad.type!=="sentry"&&bad.type!=="city-turret"&&
       player.prevY+PLAYER_RADIUS<=box.y+8&&player.vy>80&&!airDash.active;
     const smash=player.boosting&&!cityEnemy&&

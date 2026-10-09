@@ -37,6 +37,8 @@ https://github.com/jhonyoreis/velocity-rift
 
 - Extração de módulos para layouts das três fases, desafios, conquistas, geometria, classificação, progresso e cenários.
 - As três rotas secretas da Cidade das Fendas receberam paletas próprias, eliminando uma falha de renderização.
+- Inimigos comuns agora recebem o tipo padrão `walker`; a identificação de inimigos da cidade tolera registros antigos sem `type`, evitando congelamentos em colisões.
+- Ícone local do jogo para evitar a requisição automática sem recurso `/favicon.ico` em navegadores.
 - A rotina de desenho da Floresta Neon passou a ser executada apenas na primeira fase.
 - Testes automáticos e guia de regressão adicionados. Execute `npm install`, `npm test` e `npm run build`.
 - A física, a campanha, os chefes e os controles foram preservados; a quarta fase continua indisponível.

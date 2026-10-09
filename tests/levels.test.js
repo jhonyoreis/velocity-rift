@@ -7,10 +7,10 @@ import {installSecretRoutes} from "../src/levels/secretChallenges.js";
 import {SECRET_DEFS} from "../src/data/secretRoutes.js";
 import {ACHIEVEMENTS} from "../src/data/achievements.js";
 import {yOnTrack} from "../src/game/geometry.js";
+import {createEnemy as enemy} from "../src/game/enemies.js";
 
 const track=(x1,y1,x2,y2,kind)=>({x1,y1,x2,y2,kind});
 const rect=(x,y,w,h,kind)=>({x,y,w,h,kind,active:true});
-const enemy=(x,y,patrol)=>({x,y,baseX:x,yBase:y,patrol,w:38,h:28,phase:0,alive:true});
 const orb=(x,y)=>({x,y,r:15,active:true});
 const common={track,rect,enemy,orb,yOnTrack,PLAYER_RADIUS:18,WORLD_H:820};
 
@@ -22,6 +22,8 @@ test("original stage sizes, checkpoints and obstacles are preserved",()=>{
   ];
   assert.deepEqual(stages.map(s=>s.worldW),[22700,34000,19200]);
   assert.deepEqual(stages.map(s=>s.checkpoints.length),[5,9,6]);
+  assert.ok(stages[0].enemies.every(e=>e.type==="walker"),"stage one foes need a type");
+  assert.ok(stages.every(stage=>stage.enemies.every(e=>typeof e.type==="string"&&e.type.length>0)), "all stage foes need valid types");
   assert.equal(stages[2].enemies.length,21);
   assert.equal(stages[2].tracks.filter(t=>t.kind==="city-roof").length,19);
   assert.deepEqual(stages[2].pits.map(([a,b])=>b-a),[430,480,490]);
