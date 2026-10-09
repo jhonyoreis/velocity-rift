@@ -1,4 +1,4 @@
-# Velocity Rift — versão 3.2 (em desenvolvimento)
+# Velocity Rift — Mapa das Fendas (versão 3.3 em desenvolvimento)
 
 Um prototipo web 2D inspirado em jogos de plataforma de alta velocidade. Ele usa
 HTML, CSS e Canvas, sem assets oficiais. O Vite é uma dependência de desenvolvimento.
@@ -32,6 +32,16 @@ com JavaScript, sem precisar migrar a engine.
 ## Repositório
 
 https://github.com/jhonyoreis/velocity-rift
+
+## Mapa das Fendas — Etapa 2 da expansão 3.0 (versão 3.3)
+
+- A antiga seleção em cartões foi substituída por um **mapa dimensional interativo**, com três nós ligados por trilhas luminosas: Floresta Neon, Cânion Prisma e Cidade das Fendas.
+- Selecione uma região clicando no nó, por teclado com **Tab/Enter** ou usando as setas enquanto um nó está selecionado. O painel lateral apresenta identidade da área, descrição e, nas fases disponíveis, **melhor tempo, melhor nota, núcleos e rotas secretas descobertas**.
+- **Bloqueios reais da campanha:** a fase 1 está sempre disponível; a fase 2 libera somente após concluir a primeira fase na campanha atual (ou enquanto o DEBUG está ativo). Registros arquivados continuam visíveis mesmo após usar **Novo Jogo**, mas não desbloqueiam fases novamente.
+- A terceira região, **Cidade das Fendas**, já aparece como prévia da próxima expansão. Pode ser selecionada para conhecer o cenário, porém **não inicia uma fase inexistente**; o botão está desativado, e o motor também rejeita fases ainda não implementadas.
+- O rodapé do mapa mostra o resumo da campanha atual (até 2/2 fases) e da coleção permanente: até **6 núcleos, 6 rotas secretas e 13 conquistas**.
+- **Nenhuma migração adicional:** mantém `velocity-rift-progress-v1`, `velocity-rift-campaign-v3` e as preferências de áudio anteriores. A navegação **Próxima fase** introduzida na 3.2 continua ativa.
+- Layout pensado para o **widescreen 16:9**, com disposição vertical em telas menores e suporte à preferência do sistema por movimento reduzido.
 
 ## Velocity Rift 3.2 — próxima fase na tela de resultados
 
