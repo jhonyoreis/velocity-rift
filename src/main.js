@@ -2973,6 +2973,7 @@ function update(dt) {
   }
   if(!debugMode)resolveTunnels();
   resolveWalls();
+  resolveCityRiftGates();
   updateCheckpoints();
   updateEnemies(dt);
   updateSentryShots(dt);
@@ -3221,7 +3222,7 @@ function updateEnemies(dt) {
       player.prevY+PLAYER_RADIUS<=box.y+8&&player.vy>80&&!airDash.active;
     const smash=player.boosting&&!cityEnemy&&
       Math.abs(player.vx)>BOOST_SMASH_MIN_SPEED;
-    const cut=cityEnemy&&airDash.active;
+    const cut=airDash.active;
     if(stomp||smash||cut){
       bad.alive = false;
       emitParticles(bad.x, bad.y - 12, "#ff956f", 12, 145);
@@ -3755,7 +3756,7 @@ function draw() {
   drawForest();
   drawStageArrivalRunway();
   if(activeStage===2)drawChasms();
-  if(activeStage===3)drawCityChasms();
+  if(activeStage===3){drawCityChasms();drawCityRiftGates();}
   if(activeStage===2)drawGuardianBackdrop();
   drawTracks();
   drawTunnels();
@@ -3907,6 +3908,45 @@ function drawCanyonBackground() {
   }
 }
 
+// Three luminous rift barriers span rooftops AND streets. Unlike a normal
+// pit, these gates must be crossed while the aerial dash is actually active.
+function cityRiftGates(){
+  return STAGES[3].pits.map(([left,right])=>Math.round((left+right)/2));
+}
+function resolveCityRiftGates(){
+  if(activeStage!==3||debugMode)return;
+  for(const x of cityRiftGates()){
+    const intersects=Math.abs(player.x-x)<PLAYER_RADIUS+9||
+      (player.prevX<x&&player.x>=x)||(player.prevX>x&&player.x<=x);
+    if(!intersects||airDash.active)continue;
+    const fromLeft=player.prevX<=x;
+    player.x=x+(fromLeft?-1:1)*(PLAYER_RADIUS+10);
+    player.prevX=player.x;
+    player.vx=0;
+  }
+}
+function drawCityRiftGates(){
+  if(activeStage!==3)return;
+  for(const x of cityRiftGates()){
+    if(x<cameraX-60||x>cameraX+VIEW_W+60)continue;
+    const wave=Math.sin(visualTime*7+x*.004);
+    ctx.save();
+    ctx.globalAlpha=.74+.14*wave;
+    ctx.fillStyle="rgba(116,73,205,.2)";
+    ctx.fillRect(x-23,cameraY-100,46,VIEW_H+220);
+    ctx.strokeStyle="#f2afff";ctx.lineWidth=5;
+    ctx.beginPath();ctx.moveTo(x,cameraY-100);
+    ctx.lineTo(x,cameraY+VIEW_H+120);ctx.stroke();
+    ctx.strokeStyle="#75fff1";ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(x-13,cameraY-100);
+    ctx.lineTo(x-13,cameraY+VIEW_H+120);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x+13,cameraY-100);
+    ctx.lineTo(x+13,cameraY+VIEW_H+120);ctx.stroke();
+    ctx.fillStyle="#fff2ce";ctx.font="bold 12px system-ui";
+    ctx.textAlign="center";ctx.fillText("DASH",x,320);ctx.textAlign="left";
+    ctx.restore();
+  }
+}
 function drawCityChasms(){
  for(const [from,to] of STAGES[3].pits){
    if(to<cameraX-40||from>cameraX+VIEW_W+40)continue;
