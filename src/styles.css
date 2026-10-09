@@ -451,3 +451,123 @@ button:hover {
   .v3-edition{font-size:.54rem;}
   .v3-campaign-panel .menu-stat-grid strong{font-size:.73rem;}
 }
+
+/* =================== Velocity Rift 3.1: widescreen =================== */
+html,body {min-height:100%;margin:0;}
+body {
+  min-height:100dvh;
+  display:grid;place-items:center;
+  background:radial-gradient(circle at 50% 40%,#193755,#060b1b 83%);
+}
+.shell {
+  width:min(100vw,177.7778dvh);
+  max-width:none;padding:0;margin:auto;
+}
+.game-panel {
+  width:100%;border:0;border-radius:0;
+  box-shadow:0 12px 75px #000a;
+}
+.game-panel canvas {width:100%;height:auto;aspect-ratio:16/9;}
+.game-panel.menu-active .touch-controls,
+.game-panel.pause-active .touch-controls {display:none;}
+.game-panel.pause-active .overlay {
+  background:linear-gradient(120deg,rgba(4,10,26,.93),rgba(20,19,56,.92) 60%,rgba(4,39,48,.92));
+}
+.v3-main {
+  overflow:visible;max-height:none;
+  gap:clamp(3px,.9vh,7px);
+  padding:clamp(3px,.8vh,9px) 12px;
+}
+.v3-main .v3-crest {width:35px;height:35px;font-size:1.65rem;}
+.v3-main h1 {font-size:clamp(2rem,min(6.3vw,8vh),4.15rem);}
+.v3-main .v3-campaign-panel {padding:8px 12px;}
+.v3-campaign-heading {align-items:center;}
+.v3-campaign-heading strong {color:#a4fff0;letter-spacing:.04em;font-size:1.15rem;font-variant-numeric:tabular-nums;}
+.v31-progress-track {
+  height:12px;width:100%;border:1px solid rgba(113,241,226,.4);
+  border-radius:100px;overflow:hidden;background:rgba(3,19,34,.85);
+  box-shadow:inset 0 1px 7px #0008;
+}
+.v31-progress-fill {
+  height:100%;width:0%;border-radius:inherit;
+  background:linear-gradient(90deg,#48dab9,#91ffee 75%,#fff1ad);
+  box-shadow:0 0 15px #65ffdf70;transition:width .4s ease;
+}
+.v3-main-actions {gap:clamp(3px,.6vh,6px);}
+.v3-main .v3-action {min-height:clamp(32px,6.6vh,41px);}
+.v31-in-game-pause {
+  position:absolute;z-index:4;top:21.5%;right:1.5%;
+  min-width:74px;padding:7px 12px;
+  border:1px solid #9effe2a6;border-radius:8px;
+  background:rgba(9,27,51,.9);color:#e4fff8;
+  box-shadow:0 2px 13px #0007;
+  font-weight:900;font-size:clamp(9px,.95vw,13px);letter-spacing:.07em;
+}
+.v31-in-game-pause:hover {background:rgba(38,95,111,.94);}
+.v31-in-game-pause:focus-visible {outline:3px solid #ffde9b;outline-offset:3px;}
+.v31-in-game-pause[hidden] {display:none;}
+.v31-pause {gap:clamp(5px,1vh,9px);width:min(100%,710px);max-height:100%;
+  overflow:auto;padding:6px 9px;scrollbar-width:thin;}
+.v31-pause h2 {font-size:clamp(1.6rem,4vw,2.4rem);color:#e9fcfa;}
+.v31-pause-eyebrow {font-size:.63rem;font-weight:900;letter-spacing:.2em;color:#90fff0;}
+.v31-pause-stage {font-size:.73rem;color:#e4c8fb;margin:0!important;}
+.v31-pause-body {
+  display:grid;grid-template-columns:.85fr 1.15fr;gap:13px;
+  width:100%;align-items:stretch;text-align:left;
+}
+.v31-pause-actions {display:flex;flex-direction:column;gap:9px;justify-content:center;}
+.v31-pause-actions button {
+  width:100%;border-radius:7px;min-height:44px;padding:9px 12px;
+  text-align:center;font-weight:900;font-size:.81rem;letter-spacing:.07em;
+}
+.v31-pause-primary {background:linear-gradient(100deg,#72edd4,#bbfff1);color:#082d39;}
+.v31-pause-action {background:#233453;color:#e9ffff;border:1px solid #83e2df60;}
+.v31-pause-action:hover {background:#3a5978;}
+.v31-pause-audio {
+  display:grid;gap:5px;padding:11px 16px;border:1px solid rgba(131,245,238,.35);
+  background:rgba(8,25,50,.73);border-radius:12px;
+}
+.v31-pause-subtitle {
+  font-size:.7rem;font-weight:900;color:#a5ffeb;letter-spacing:.14em;
+}
+.v31-compact-volume {display:grid;gap:3px;}
+.v31-compact-volume label {display:flex;justify-content:space-between;
+  gap:8px;font-size:.75rem;color:#e5eff6;font-weight:750;}
+.v31-compact-volume output {font-variant-numeric:tabular-nums;color:#ffe2ae;}
+.v31-compact-volume input {width:100%;height:14px;margin:0;accent-color:#79ffe0;cursor:pointer;}
+.v31-mute-row {display:flex;gap:7px;margin-top:2px;}
+.v31-mute-button {
+  flex:1;padding:6px 8px;min-height:27px;border-radius:6px;
+  font-size:.67rem;color:#dcfff3;border:1px solid rgba(150,248,238,.35);
+  background:rgba(36,73,91,.82);
+}
+.v31-pause-controls {width:100%;padding:10px 14px;display:grid;gap:7px;
+  background:rgba(10,30,54,.64);border:1px solid rgba(127,208,224,.23);border-radius:11px;}
+.v31-control-grid {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;}
+.v31-control-grid span {display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;
+  gap:5px;font-size:.67rem;color:#c0d9e3;border-radius:6px;
+  padding:6px;background:rgba(108,153,195,.09);}
+.v31-control-grid strong{font-size:.68rem;color:#99fff0;}
+.v31-track-now-playing {font-size:.64rem;color:#a8bddd;}
+@media(max-width:700px){
+  .game-panel.menu-active .overlay:has(.v3-main:not([hidden])){min-height:540px;}
+  .v3-main{padding:8px;gap:7px;}
+  .v3-main .v3-action{min-height:37px;}
+  .v31-pause {max-height:none;overflow:visible;padding:16px 10px;}
+  .game-panel.pause-active canvas {display:none;}
+  .game-panel.pause-active .overlay {
+    position:relative;min-height:590px;
+    display:flex;flex-direction:column;justify-content:center;align-items:center;
+  }
+  .v31-pause-body{grid-template-columns:1fr;gap:9px;}
+  .v31-pause-actions{gap:5px;}
+  .v31-pause-actions button{min-height:36px;}
+  .v31-pause-audio{padding:9px 13px;}
+  .v31-control-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+@media(max-width:420px){
+  .v31-pause h2{font-size:1.65rem;}
+  .v31-pause-actions button{font-size:.72rem;}
+  .v31-in-game-pause{min-width:52px;padding:5px 8px;}
+  .v3-main .v3-crest{width:29px;height:29px;}
+}
