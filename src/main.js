@@ -1178,6 +1178,37 @@ function cinemaCanyon(clock,showBoss=false){
     cinemaSovereign(705,408,clock,.43);ctx.restore();
   }
 }
+function cinemaMetropolis(clock,action=false){
+  cinemaGradient("#08102f","#4f3975");
+  cinemaStars(clock,"#b0c9ff",46);
+  ctx.fillStyle="#f4a3bc";ctx.beginPath();ctx.arc(728,120,51,0,Math.PI*2);ctx.fill();
+  for(let layer=0;layer<3;layer++){
+    const step=95+layer*38,move=action?clock*(70+layer*50):0;
+    for(let i=-1;i<11;i++){
+      const x=i*step-(move%step);
+      const h=160+((i*7+layer*4)%5+5)%5*44;
+      ctx.fillStyle=["#151e43","#1b2852","#20395e"][layer];
+      ctx.fillRect(x,425-h,step*.75,h+120);
+      if(layer===2){
+        ctx.fillStyle="#8affec";
+        for(let row=0;row<5;row++)for(let col=0;col<2;col++)
+          if((row+col+i)%3!==0)
+            ctx.fillRect(x+18+col*25,445-h+row*37,7,15);
+      }
+    }
+  }
+  ctx.fillStyle="#182b48";ctx.fillRect(0,413,960,127);
+  ctx.fillStyle="#d5a8ff";ctx.fillRect(0,408,960,7);
+  if(action){
+    cinemaFlux(385+Math.sin(clock*4)*8,413,1.06,clock,true);
+    ctx.strokeStyle="#c6eeff";ctx.lineWidth=3;
+    for(let i=0;i<7;i++){
+      const x=i*150-(clock*300%150);
+      ctx.beginPath();ctx.moveTo(x,340+i%3*21);ctx.lineTo(x+68,340+i%3*21);ctx.stroke();
+    }
+  }else cinemaFluxBack(447,413,1.25,clock);
+}
+
 function cinemaForest(clock,running=false){
   cinemaGradient("#051e32","#12565d");
   cinemaStars(clock,"#a5ffea",27);
@@ -1296,6 +1327,10 @@ function drawCinematic(){
       cinemaFlower(310,447,t,.65);break;
     case "arrival":
       cinemaNewWorld(elapsed);break;
+    case "city":
+      cinemaMetropolis(t,false);break;
+    case "cityRun":
+      cinemaMetropolis(t,true);break;
     case "forest":
       cinemaForest(t);cinemaPortal(165,267,t,.43);
       cinemaFlux(270,409,.85,t);break;
@@ -1341,6 +1376,14 @@ const CINEMATICS={
   intro2:{chapter:"CAPÍTULO 02 · CÂNION PRISMA",frames:[
     {speaker:"ECOS DO PRISMA",title:"O cânion desperta",text:"Cristais gigantes erguem-se sobre abismos sem fim. Algo está guardando o próximo portal.",duration:3.9,art:"canyon"},
     {speaker:"UMA NOVA AMEAÇA",title:"O Guardião observa",text:"Entre raios violeta, o Guardião do Prisma desperta. A jornada precisa continuar.",duration:4,art:"canyonBoss",sound:"cin-ominous"}
+  ]},
+  intro3:{chapter:"CAPÍTULO 03 · CIDADE DAS FENDAS",frames:[
+    {speaker:"DO OUTRO LADO DO CÂNION",title:"Uma cidade entre dimensões",
+      text:"Flux observa torres suspensas e ruas tomadas por patrulhas. Além da metrópole, uma fenda ainda maior espera por ele.",
+      duration:4.5,art:"city",sound:"cin-flower"},
+    {speaker:"SINAIS DO ÚLTIMO PORTAL",title:"Corra pelos telhados",
+      text:"Flux atravessa os primeiros prédios em alta velocidade. A cidade é o caminho para a dimensão onde Alicia está.",
+      duration:4,art:"cityRun",sound:"cin-chase"}
   ]}
 };
 const cinematic={active:false,key:null,frameIndex:0,elapsed:0,
@@ -1352,7 +1395,7 @@ function showGalleryMenu(){
   refreshCinematicGallery();
 }
 function refreshCinematicGallery(){
-  const entries=[["opening","Opening"],["intro1","StageOne"],["intro2","StageTwo"]];
+  const entries=[["opening","Opening"],["intro1","StageOne"],["intro2","StageTwo"],["intro3","StageThree"]];
   for(const [key,name] of entries){
     const seen=campaign.scenesSeen.includes(key);
     const button=document.querySelector("#gallery"+name);
@@ -4935,7 +4978,7 @@ function cinematicMood(){
   if(!cinematic.active)return "warm";
   const art=CINEMATICS[cinematic.key].frames[cinematic.frameIndex].art;
   if(["rift","sovereign","taken","canyonBoss"].includes(art))return "danger";
-  if(["pursuit","arrival","forestRun","canyon"].includes(art))return "hope";
+  if(["pursuit","arrival","forestRun","canyon","city","cityRun"].includes(art))return "hope";
   return "warm";
 }
 function scheduleCinematicMusic(at,step){
@@ -5203,6 +5246,7 @@ document.querySelector("#galleryBackButton").addEventListener("click",showMainMe
 document.querySelector("#galleryOpening").addEventListener("click",()=>replayCinematic("opening"));
 document.querySelector("#galleryStageOne").addEventListener("click",()=>replayCinematic("intro1"));
 document.querySelector("#galleryStageTwo").addEventListener("click",()=>replayCinematic("intro2"));
+document.querySelector("#galleryStageThree").addEventListener("click",()=>replayCinematic("intro3"));
 document.querySelector("#cinematicNextButton").addEventListener("click",nextCinematicFrame);
 document.querySelector("#cinematicSkipButton").addEventListener("click",finishCinematic);
 document.querySelector("#cinematicExitButton").addEventListener("click",()=>cancelCinematic(true));
