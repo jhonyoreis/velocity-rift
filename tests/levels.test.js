@@ -26,7 +26,8 @@ test("original stage sizes, checkpoints and obstacles are preserved",()=>{
   assert.ok(stages.every(stage=>stage.enemies.every(e=>typeof e.type==="string"&&e.type.length>0)), "all stage foes need valid types");
   assert.equal(stages[2].enemies.length,21);
   assert.equal(stages[2].tracks.filter(t=>t.kind==="city-roof").length,19);
-  assert.deepEqual(stages[2].pits.map(([a,b])=>b-a),[430,480,490]);
+  assert.deepEqual(stages[2].pits.slice(0,3).map(([a,b])=>b-a),[430,480,490]);
+  assert.deepEqual(stages[2].pits.slice(3).map(([a,b])=>b-a),[215,215,215,215,215,215]);
   stages.forEach((stage,index)=>{
     assert.equal(stage.memoryCores.length,3);
     installSecretRoutes(stage,index+1,{track,PLAYER_RADIUS:18});
