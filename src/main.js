@@ -125,6 +125,13 @@ let loopRunning = false;
 let gameStarted = false;
 let gameCleared = false;
 let gameTime = 0;
+// Short automatic arrival inside the actual level. Flux runs from a
+// temporary extension of the opening road up to the ORIGINAL spawn.
+// Gameplay, collisions, checkpoints, pickups and race timer only begin
+// after the player receives control (never skips record-distance).
+const STAGE_ARRIVAL_SECONDS=2.05;
+const stageArrival={active:false,elapsed:0,duration:STAGE_ARRIVAL_SECONDS,
+  startX:-270,finishX:90,startingCameraX:-430};
 let cameraX = 0;
 let cameraY = 0;
 let cameraAnchorX = VIEW_W * CAMERA_IDLE_ANCHOR;
@@ -1549,6 +1556,7 @@ function refreshProgressView() {
 
 function showScreen(target) {
   if(cinematic.active)cancelCinematic(false);
+  stageArrival.active=false;
   gameStarted = false;
   paused = false;
   if(debugToggle)debugToggle.hidden=true;
@@ -1649,7 +1657,111 @@ function togglePause(){
   if(paused)resumeGame();else showPauseMenu();
 }
 
+function beginStageArrival(){
+  stageArrival.active=true;
+  stageArrival.elapsed=0;
+  stageArrival.finishX=spawn.x;
+  // Both maps begin on safe, flat ground, well before the first hazards.
+  stageArrival.startX=spawn.x-360;
+  stageArrival.startingCameraX=stageArrival.startX-165;
+  player.x=stageArrival.startX;
+  player.prevX=player.x;
+  player.y=spawn.y;
+  player.prevY=player.y;
+  player.facing=1;
+  player.onGround=true;
+  player.ground=tracks[0]||null;
+  player.vx=220;
+  player.vy=0;
+  player.sliding=false;
+  player.boosting=false;
+  cameraX=stageArrival.startingCameraX;
+  cameraY=0;
+  gameTime=0;
+  keys.clear();jumpHeld=false;jumpBuffer=0;coyoteTimer=0;
+}
+function finishStageArrival(){
+  if(!stageArrival.active)return;
+  stageArrival.active=false;
+  stageArrival.elapsed=stageArrival.duration;
+  // The genuine level begins exactly at its original spawn, at rest:
+  // no free distance, crystals, health, or record advantage.
+  player.x=spawn.x;
+  player.prevX=spawn.x;
+  player.y=spawn.y;
+  player.prevY=spawn.y;
+  player.vx=0;player.vy=0;
+  player.facing=1;
+  player.onGround=true;
+  player.ground=tracks[0]||null;
+  player.boosting=false;player.sliding=false;player.downhillSliding=false;
+  cameraX=0;cameraY=0;
+  cameraAnchorX=VIEW_W*CAMERA_IDLE_ANCHOR;
+  gameTime=0;
+  keys.clear();jumpHeld=false;jumpBuffer=0;coyoteTimer=0;
+  resetFluxFx();
+}
+function updateStageArrival(dt){
+  if(!stageArrival.active)return;
+  const before=player.x;
+  stageArrival.elapsed=Math.min(stageArrival.duration,stageArrival.elapsed+dt);
+  const ratio=stageArrival.elapsed/stageArrival.duration;
+  // Smooth acceleration and deceleration; same body animation and
+  // camera as the playable game, only an isolated run-in animation.
+  const eased=ratio*ratio*(3-2*ratio);
+  player.prevX=player.x;player.prevY=player.y;
+  player.x=stageArrival.startX+(stageArrival.finishX-stageArrival.startX)*eased;
+  player.y=spawn.y;player.vy=0;
+  player.vx=Math.max(55,(player.x-before)/Math.max(dt,.001));
+  player.animationPhase+=Math.max(170,player.vx)*dt*.052;
+  player.onGround=true;
+  visualTime+=dt;
+  cameraX=stageArrival.startingCameraX*(1-eased);
+  cameraY=0;
+  updateFluxFx(dt);
+  updateTrail(dt);
+  updateParticles(dt);
+  if(stageArrival.elapsed>=stageArrival.duration)finishStageArrival();
+}
+function drawStageArrivalRunway(){
+  if(!stageArrival.active)return;
+  const y=tracks[0]?.y1??420;
+  const start=stageArrival.startX-280;
+  // A temporary continuation of the real road from the portal; removed
+  // before the player can interact with any level objects.
+  ctx.fillStyle=activeStage===2?"#261e4d":"#102f38";
+  ctx.fillRect(start,y, -start,VIEW_H-y+50);
+  ctx.strokeStyle=activeStage===2?"#b999f6":"#64eed7";
+  ctx.lineWidth=11;ctx.lineCap="round";
+  ctx.beginPath();ctx.moveTo(start,y);ctx.lineTo(0,y);ctx.stroke();
+  ctx.strokeStyle="#132e47";ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(start,y+8);ctx.lineTo(0,y+8);ctx.stroke();
+  // Dimensional glow in the distance, right where Flux emerged.
+  const fading=1-stageArrival.elapsed/stageArrival.duration;
+  if(fading>.07){
+    ctx.save();ctx.globalAlpha=.55*fading;
+    cinemaPortal(stageArrival.startX-16,y-145,visualTime,.36);
+    ctx.restore();
+  }
+}
+function drawStageArrivalOverlay(){
+  if(!stageArrival.active)return;
+  const p=stageArrival.elapsed/stageArrival.duration;
+  const opacity=Math.min(1,p*4,(1-p)*6);
+  ctx.save();
+  ctx.globalAlpha=Math.max(0,opacity);
+  ctx.fillStyle="rgba(8,18,35,.65)";
+  roundRect(277,48,406,75,13);ctx.fill();
+  ctx.textAlign="center";
+  ctx.fillStyle="#abfff0";ctx.font="bold 13px system-ui";
+  ctx.fillText("UMA NOVA ETAPA DA JORNADA",VIEW_W/2,75);
+  ctx.fillStyle="#fff5ee";ctx.font="bold 24px system-ui";
+  ctx.fillText(activeStage===2?"CÂNION PRISMA":"FLORESTA NEON",VIEW_W/2,105);
+  ctx.restore();
+}
+
 function resetGame() {
+  stageArrival.active=false;stageArrival.elapsed=0;
   player.x = spawn.x;
   player.y = spawn.y;
   player.prevX = spawn.x;
@@ -1724,12 +1836,12 @@ function resetGame() {
   notification.timer=0;
 }
 
-function startGame(stage=activeStage,skipCinematic=false) {
+function startGame(stage=activeStage,skipCinematic=false,withArrival=false) {
   if(stage!==1&&stage!==2)return;
   if(stage===2&&!campaign.stage1Completed&&!debugMode)return;
   const chapter=stage===1?"intro1":"intro2";
   if(!skipCinematic&&!debugMode&&!campaign.scenesSeen.includes(chapter)){
-    launchCinematic(chapter,()=>startGame(stage,true),false);
+    launchCinematic(chapter,()=>startGame(stage,true,true),false);
     return;
   }
   unlockAudio();
@@ -1742,6 +1854,7 @@ function startGame(stage=activeStage,skipCinematic=false) {
   if(debugToggle)debugToggle.hidden=false;
   activateStage(stage);
   resetGame();
+  if(withArrival&&!debugMode)beginStageArrival();
   gameStarted = true;
   screens.forEach(screen => { screen.hidden = true; });
   document.querySelector(".game-panel").classList.remove("menu-active");
@@ -2304,6 +2417,7 @@ function drawGuardian(){
 }
 
 function update(dt) {
+  if(stageArrival.active){updateStageArrival(dt);return;}
   gameTime += dt;
   visualTime += dt;
   sparkleCooldown = Math.max(0, sparkleCooldown - dt);
@@ -3155,6 +3269,7 @@ function draw() {
   drawBackground();
   drawSecretBackdrop();
   drawForest();
+  drawStageArrivalRunway();
   if(activeStage===2)drawChasms();
   if(activeStage===2)drawGuardianBackdrop();
   drawTracks();
@@ -3174,7 +3289,8 @@ function draw() {
   drawPlayer();
 
   ctx.restore();
-  drawHud();
+  if(stageArrival.active)drawStageArrivalOverlay();
+  else drawHud();
 }
 
 function drawSky() {
@@ -4436,6 +4552,16 @@ window.addEventListener("keydown",(event)=>{
   }
   if((key==="p"||key==="escape")&&gameStarted&&!event.repeat){
     event.preventDefault();togglePause();return;
+  }
+  if(stageArrival.active){
+    // Optional fast-forward for replaying the story; no movement controls
+    // leak into the scripted entrance and the timer stays untouched.
+    if((key==="enter"||key===" ")&&!event.repeat){
+      event.preventDefault();finishStageArrival();return;
+    }
+    if([" ","arrowup","arrowdown","arrowleft","arrowright"].includes(key))
+      event.preventDefault();
+    return;
   }
   if(!gameStarted||paused){
     if([" ","arrowup","arrowdown","arrowleft","arrowright"].includes(key)
