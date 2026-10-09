@@ -10,7 +10,8 @@ const menuButton = document.querySelector("#menuButton");
 const achievementsMenu=document.querySelector("#achievementsMenu");
 const settingsMenu=document.querySelector("#settingsMenu");
 const newGameConfirm=document.querySelector("#newGameConfirm");
-const screens=[mainMenu,stageMenu,resultMenu,achievementsMenu,settingsMenu,newGameConfirm];
+const pauseMenu=document.querySelector("#pauseMenu");
+const screens=[mainMenu,stageMenu,resultMenu,achievementsMenu,settingsMenu,newGameConfirm,pauseMenu];
 const soundToggle = document.querySelector("#soundToggle");
 const musicToggle = document.querySelector("#musicToggle");
 const trackNowPlaying = document.querySelector("#trackNowPlaying");
@@ -810,10 +811,12 @@ function effectiveAudioGain(kind){
 }
 function refreshAudioSettings(){
   for(const kind of ["master","music","effects"]){
-    const slider=document.querySelector("#volume-"+kind);
-    const label=document.querySelector("#value-"+kind);
-    if(slider)slider.value=String(audioLevels[kind]);
-    if(label)label.textContent=audioLevels[kind]+"%";
+    for(const prefix of ["","pause-"]){
+      const slider=document.querySelector("#"+prefix+"volume-"+kind);
+      const label=document.querySelector("#"+prefix+"value-"+kind);
+      if(slider)slider.value=String(audioLevels[kind]);
+      if(label)label.textContent=audioLevels[kind]+"%";
+    }
   }
   const label=document.querySelector("#settingsAudioStatus");
   if(label)label.textContent=!soundEnabled?"Áudio geral silenciado":
@@ -870,17 +873,17 @@ function formatTime(seconds) {
 
 function refreshProgressView() {
   const stage = progress.stage1;
-  document.querySelector("#menuProgress").textContent = campaign.stage2Completed?
-    "Duas fases concluídas ✓":campaign.stage1Completed?"Cânion desbloqueado":
-    campaign.started?"Em andamento":"Nova jornada";
+  // Only the two currently playable stages count toward completion.
+  const campaignPercent=(Number(campaign.stage1Completed)+Number(campaign.stage2Completed))*50;
+  document.querySelector("#menuProgress").textContent=campaignPercent+"%";
+  document.querySelector("#campaignProgressTrack").setAttribute("aria-valuenow",String(campaignPercent));
+  document.querySelector("#campaignProgressFill").style.width=campaignPercent+"%";
   const continueButton=document.querySelector("#startButton");
   continueButton.disabled=!campaign.started;
   document.querySelector("#continueDescription").textContent=campaign.started
     ? "Retomar: "+(nextCampaignStage()===2?"Cânion Prisma":"Primeiro Impulso")+
       " · início da fase"
     : "Comece uma nova jornada para liberar Continuar";
-  document.querySelector("#menuBest").textContent = formatTime(stage.bestTime);
-  document.querySelector("#menuGrade").textContent = stage.bestGrade || "--";
   document.querySelector("#stageOneProgress").textContent = campaign.stage1Completed
     ? "Campanha concluída · Melhor " + (stage.bestGrade || "--") + " · " + formatTime(stage.bestTime)
     : "Campanha disponível" + (stage.bestTime?" · Recorde "+formatTime(stage.bestTime):"");
@@ -911,6 +914,7 @@ function showScreen(target) {
   jumpHeld = false;
   screens.forEach(screen => { screen.hidden = screen !== target; });
   overlay.classList.remove("is-hidden");
+  document.querySelector(".game-panel").classList.remove("pause-active");
   document.querySelector(".game-panel").classList.add("menu-active");
   pauseButton.hidden = true;
   refreshProgressView();
@@ -944,20 +948,39 @@ function showResults(time, crystals, cores = 0) {
   showScreen(resultMenu);
 }
 
-function syncPauseButton() {
-  pauseButton.hidden = !gameStarted;
-  pauseButton.textContent = paused ? "Continuar" : "Pausar";
-  pauseButton.setAttribute("aria-pressed", String(paused));
+function syncPauseButton(){
+  pauseButton.hidden=!gameStarted||paused||gameCleared;
+  pauseButton.textContent="Ⅱ PAUSA";
+  pauseButton.setAttribute("aria-label","Pausar o jogo");
+  pauseButton.setAttribute("aria-pressed",String(paused));
 }
-
-function togglePause() {
-  if (!gameStarted || gameCleared) return;
-  paused = !paused;
-  accumulator = 0;
+function showPauseMenu(){
+  if(!gameStarted||gameCleared||paused)return;
+  paused=true;accumulator=0;keys.clear();jumpHeld=false;
   syncMusic();
-  keys.clear();
-  jumpHeld = false;
+  document.querySelector("#pauseStageLabel").textContent=
+    (activeStage===2?"Cânion Prisma":"Primeiro Impulso")+
+    " · "+formatTime(gameTime)+" de jornada";
+  screens.forEach(screen=>{screen.hidden=screen!==pauseMenu;});
+  overlay.classList.remove("is-hidden");
+  const panel=document.querySelector(".game-panel");
+  panel.classList.remove("menu-active");panel.classList.add("pause-active");
+  refreshAudioSettings();
   syncPauseButton();
+  document.querySelector("#resumeButton").focus?.();
+}
+function resumeGame(){
+  if(!gameStarted||!paused||gameCleared)return;
+  paused=false;accumulator=0;keys.clear();jumpHeld=false;
+  pauseMenu.hidden=true;
+  overlay.classList.add("is-hidden");
+  document.querySelector(".game-panel").classList.remove("pause-active");
+  syncPauseButton();syncMusic();
+  pauseButton.focus?.();
+}
+function togglePause(){
+  if(!gameStarted||gameCleared)return;
+  if(paused)resumeGame();else showPauseMenu();
 }
 
 function resetGame() {
@@ -1050,6 +1073,7 @@ function startGame(stage=activeStage) {
   gameStarted = true;
   screens.forEach(screen => { screen.hidden = true; });
   document.querySelector(".game-panel").classList.remove("menu-active");
+  document.querySelector(".game-panel").classList.remove("pause-active");
   overlay.classList.add("is-hidden");
   syncPauseButton();
   syncMusic();
@@ -3298,6 +3322,9 @@ function unlockAudio() {
 function playSfx(kind) {
   if (!soundEnabled || effectiveAudioGain("effects")===0 || !audioContext || audioContext.state !== "running") return;
   const sounds = {
+    "ui-select": [390,660,.075,"sine",.025],
+    "ui-confirm": [570,920,.135,"triangle",.036],
+    "ui-back": [330,190,.09,"sine",.025],
     jump:       [440, 680, 0.16, "sine", 0.038],
     land:       [125, 65, 0.095, "triangle", 0.024],
     crystal:    [850, 1260, 0.12, "sine", 0.023],
@@ -3652,24 +3679,28 @@ function warpToGuardian(){
 }
 if(debugToggle)debugToggle.addEventListener("click",toggleDebugMode);
 
-window.addEventListener("keydown", (event) => {
-  const key = event.key.toLowerCase();
-  if (key === "m" && !event.repeat) toggleSound();
+window.addEventListener("keydown",(event)=>{
+  const key=event.key.toLowerCase();
+  if((key==="p"||key==="escape")&&gameStarted&&!event.repeat){
+    event.preventDefault();togglePause();return;
+  }
+  if(!gameStarted||paused){
+    if([" ","arrowup","arrowdown","arrowleft","arrowright"].includes(key)
+      &&event.target?.tagName!=="INPUT")event.preventDefault();
+    return;
+  }
+  if(key==="m"&&!event.repeat)toggleSound();
   if(key==="n"&&!event.repeat)toggleMusic();
   if(key==="f3"&&!event.repeat){toggleDebugMode();event.preventDefault();}
   if(key==="b"&&!event.repeat&&debugMode)warpToGuardian();
-  if (gameStarted && soundEnabled) unlockAudio();
+  if(soundEnabled)unlockAudio();
   keys.add(key);
-  if ([' ', 'arrowup', 'w', 'k'].includes(key) && !jumpHeld) {
-    jumpBuffer = 0.13;
-    jumpHeld = true;
+  if([" ","arrowup","w","k"].includes(key)&&!jumpHeld){
+    jumpBuffer=.13;jumpHeld=true;
   }
-  if (key === "p" && gameStarted && !event.repeat) togglePause();
-  if (key === "escape" && gameStarted && !event.repeat) showMainMenu();
-  if (key === "r" && gameStarted && !event.repeat) startGame(activeStage);
-  if ([" ", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) {
+  if(key==="r"&&!event.repeat)startGame(activeStage);
+  if([" ","arrowup","arrowdown","arrowleft","arrowright"].includes(key))
     event.preventDefault();
-  }
 });
 
 window.addEventListener("keyup", (event) => {
@@ -3678,7 +3709,7 @@ window.addEventListener("keyup", (event) => {
   if ([' ', 'arrowup', 'w', 'k'].includes(key)) jumpHeld = false;
 });
 
-window.addEventListener('blur', () => { keys.clear(); jumpHeld = false; if (gameStarted) {paused = true;syncPauseButton();syncMusic();} });
+window.addEventListener('blur',()=>{keys.clear();jumpHeld=false;if(gameStarted&&!paused&&!gameCleared)showPauseMenu();});
 startButton.addEventListener("click",continueCampaign);
 document.querySelector("#newGameButton").addEventListener("click",askNewGame);
 document.querySelector("#confirmNewGameButton").addEventListener("click",confirmNewGame);
@@ -3686,8 +3717,9 @@ document.querySelector("#cancelNewGameButton").addEventListener("click",showMain
 document.querySelector("#settingsButton").addEventListener("click",showSettingsMenu);
 document.querySelector("#settingsBackButton").addEventListener("click",showMainMenu);
 for(const name of ["master","music","effects"]){
-  document.querySelector("#volume-"+name).addEventListener("input",event=>
-    changeAudioLevel(name,event.target.value));
+  for(const prefix of ["","pause-"])
+    document.querySelector("#"+prefix+"volume-"+name).addEventListener("input",event=>
+      changeAudioLevel(name,event.target.value));
 }
 document.querySelector("#selectStagesButton").addEventListener("click", showStageMenu);
 document.querySelector("#stageOneButton").addEventListener("click", ()=>startGame(1));
@@ -3700,8 +3732,22 @@ document.querySelector("#achievementsBackButton").addEventListener("click",showM
 document.querySelector("#retryButton").addEventListener("click", ()=>startGame(activeStage));
 document.querySelector("#resultsStagesButton").addEventListener("click", showStageMenu);
 document.querySelector("#resultsMainButton").addEventListener("click", showMainMenu);
-menuButton.addEventListener("click", showMainMenu);
-pauseButton.addEventListener("click", togglePause);
+menuButton.addEventListener("click",showMainMenu);
+pauseButton.addEventListener("click",togglePause);
+document.querySelector("#resumeButton").addEventListener("click",resumeGame);
+document.querySelector("#restartPauseButton").addEventListener("click",()=>startGame(activeStage));
+// All menu button feedback uses the existing SFX bus and stored effect volume.
+document.querySelectorAll("button:not([data-key])").forEach(button=>{
+  button.addEventListener("click",()=>{
+    if(button.disabled)return;
+    unlockAudio();
+    const id=button.id;
+    const kind=["confirmNewGameButton","newGameButton","startButton","resumeButton"].includes(id)?"ui-confirm":
+      ["cancelNewGameButton","settingsBackButton","menuButton","backToMainButton",
+       "resultsMainButton","achievementsBackButton"].includes(id)?"ui-back":"ui-select";
+    playSfx(kind);
+  });
+});
 
 // Touch input uses the same controls as the keyboard.
 document.querySelectorAll('[data-key]').forEach(button => {
