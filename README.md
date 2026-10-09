@@ -398,3 +398,31 @@ Experimento com implementação diretamente na `main`.
 - Refinar as animações procedurais e considerar sprites autorais futuramente.
 - Melhorar fisica de rampas e loopings.
 - Publicar no GitHub Pages.
+
+## Etapa 4 — Mapa das Fendas (interface e campanha)
+
+O mapa agora tem quatro destinos em forma de rota, com ficha contextual compacta e
+somente um botão para retornar ao menu inicial. O botão de Conquistas permanece na home.
+
+**Registros separados:**
+- `velocity-rift-progress-v1` continua sendo o arquivo histórico de tempos,
+  notas, segredos e conquistas. Iniciar uma campanha não o apaga.
+- `velocity-rift-campaign-v3.records` guarda os tempos, notas e conclusões da
+  **campanha atual**. Novas campanhas começam com esses valores zerados;
+  núcleos e rotas atuais usam `campaign.extras`.
+- Saves antigos em andamento sem `records` migram as estatísticas das fases já
+  concluídas uma única vez. Novas campanhas não importam resultados históricos.
+- O mapa mostra `--`, `0/3` e `0/3` quando uma fase ainda não foi completada.
+
+Checklist:
+- [ ] Abrir o mapa no desktop e celular; as quatro regiões e o botão Menu
+  devem permanecer legíveis.
+- [ ] Selecionar as fases bloqueadas; ler o resumo sem poder iniciá-las.
+- [ ] Iniciar **Novo Jogo** com arquivo antigo; verificar tempo `--`,
+  núcleos `0/3` e segredos `0/3` em todas as fases.
+- [ ] Completar fase 1: verificar registro apenas da campanha atual e desbloqueio
+  de Cânion Prisma.
+- [ ] Reabrir o jogo: validar persistência da campanha atual.
+- [ ] Consultar Conquistas na home: garantir que os feitos históricos
+  permanecem disponíveis.
+

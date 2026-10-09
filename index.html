@@ -138,128 +138,126 @@
             <p class="menu-subtitle">Sua campanha voltará ao início e a fase 2 será bloqueada novamente.</p>
             <div class="v3-preserve-notice">
               <strong>Seus feitos ficam guardados.</strong>
-              <span>Conquistas, rotas secretas e recordes da 2.0 não serão apagados.</span>
+              <span>Conquistas e recordes históricos continuam salvos, mas os tempos e coleções do mapa começam do zero.</span>
             </div>
             <div class="menu-actions">
               <button id="confirmNewGameButton" class="primary-action" type="button">Sim, começar do início ➜</button>
               <button id="cancelNewGameButton" class="secondary-action" type="button">Cancelar</button>
             </div>
           </section>
-          <section id="stageMenu" class="menu-screen rift-map-screen" aria-labelledby="stageHeading" hidden>
+          <section id="stageMenu" class="menu-screen rift-map-screen rift-map-clean" aria-labelledby="stageHeading" hidden>
             <header class="rift-map-header">
               <div>
-                <div class="menu-eyebrow">CARTOGRAFIA DIMENSIONAL // CAMPANHA</div>
+                <span class="rift-map-overline">CAMPANHA · QUATRO DESTINOS</span>
                 <h2 id="stageHeading">Mapa das Fendas</h2>
-                <p class="rift-map-intro">Escolha uma região para acompanhar a jornada de Flux até Alicia.</p>
+                <p class="rift-map-intro">Escolha para onde Flux vai.</p>
               </div>
-              <span class="rift-map-mark" aria-hidden="true">◇ 04 REGIÕES</span>
+              <span id="mapCampaignSummary" class="rift-map-progress" aria-live="polite">0% da jornada</span>
             </header>
             <div class="rift-map-layout">
-              <div class="rift-map-world" role="group" aria-label="Mapa interativo com as três regiões">
-                <div class="rift-map-grid" aria-hidden="true"></div>
-                <div class="rift-map-continent continent-forest" aria-hidden="true"></div>
-                <div class="rift-map-continent continent-prism" aria-hidden="true"></div>
-                <div class="rift-map-continent continent-city" aria-hidden="true"></div>
-                <svg class="rift-map-paths" aria-hidden="true" viewBox="0 0 540 320" preserveAspectRatio="none">
-                  <defs>
-                    <linearGradient id="riftMapLinkA" x1="0%" x2="100%"><stop offset="0%" stop-color="#69f8ce"/><stop offset="100%" stop-color="#ca9bff"/></linearGradient>
-                    <linearGradient id="riftMapLinkB" x1="0%" x2="100%"><stop offset="0%" stop-color="#b68aff"/><stop offset="100%" stop-color="#f7c17e"/></linearGradient>
-                  </defs>
-                  <path id="mapPathToCanyon" class="rift-map-path rift-map-path-locked" d="M 110 236 C 177 222, 198 148, 277 145" stroke="url(#riftMapLinkA)"/>
-                  <path id="mapPathToCity" class="rift-map-path rift-map-path-locked" d="M 277 145 C 346 146, 378 72, 437 63" stroke="url(#riftMapLinkB)"/>
-                  <path class="rift-map-path rift-map-path-locked" d="M 437 63 C 498 122, 488 176, 435 252" stroke="url(#riftMapLinkB)"/>
-                </svg>
-                <button id="mapNodeStageOne" type="button" class="rift-map-node rift-map-node-forest is-selected" aria-pressed="true" aria-label="Selecionar região Primeiro Impulso">
-                  <span class="rift-node-emblem" aria-hidden="true">✦</span>
-                  <span class="rift-node-number">01</span>
-                  <span class="rift-node-title">FLORESTA NEON</span>
-                  <small id="mapNodeStageOneStatus">DISPONÍVEL</small>
-                </button>
-                <button id="mapNodeStageTwo" type="button" class="rift-map-node rift-map-node-canyon is-locked" aria-pressed="false" aria-label="Selecionar região Cânion Prisma">
-                  <span class="rift-node-emblem" aria-hidden="true">◇</span>
-                  <span class="rift-node-number">02</span>
-                  <span class="rift-node-title">CÂNION PRISMA</span>
-                  <small id="mapNodeStageTwoStatus">BLOQUEADA</small>
-                </button>
-                <button id="mapNodeStageThree" type="button" class="rift-map-node rift-map-node-city is-future" aria-pressed="false" aria-label="Ver prévia da Cidade das Fendas">
-                  <span class="rift-node-emblem" aria-hidden="true">▥</span>
-                  <span class="rift-node-number">03</span>
-                  <span class="rift-node-title">CIDADE DAS FENDAS</span>
-                  <small id="mapNodeStageThreeStatus">BLOQUEADA</small>
-                </button>
-                <button id="mapNodeStageFour" type="button" class="rift-map-node rift-map-node-final is-future" aria-pressed="false" aria-label="Prévia da fase final">
-                  <span class="rift-node-emblem" aria-hidden="true">♛</span>
-                  <span class="rift-node-number">04</span>
-                  <span class="rift-node-title">FENDA ORIGINAL</span>
-                  <small>CAPÍTULO FINAL</small>
-                </button>
-                <div class="rift-map-coordinate" aria-hidden="true">RIFT // COORDENADAS INSTÁVEIS</div>
+              <div class="rift-map-world" role="group" aria-label="Regiões da campanha">
+                <span class="rift-map-route-label">SUA JORNADA</span>
+                <div class="rift-map-regions">
+                  <button id="mapNodeStageOne" type="button" class="rift-map-node rift-map-node-forest is-selected"
+                          aria-pressed="true" aria-label="Selecionar Floresta Neon">
+                    <span class="rift-node-number">01</span>
+                    <span class="rift-node-copy"><strong>Floresta Neon</strong><span>Primeiro Impulso</span></span>
+                    <small id="mapNodeStageOneStatus">DISPONÍVEL</small>
+                  </button>
+                  <button id="mapNodeStageTwo" type="button" class="rift-map-node rift-map-node-canyon is-locked"
+                          aria-pressed="false" aria-label="Selecionar Cânion Prisma">
+                    <span class="rift-node-number">02</span>
+                    <span class="rift-node-copy"><strong>Cânion Prisma</strong><span>O Guardião</span></span>
+                    <small id="mapNodeStageTwoStatus">BLOQUEADA</small>
+                  </button>
+                  <button id="mapNodeStageThree" type="button" class="rift-map-node rift-map-node-city is-locked"
+                          aria-pressed="false" aria-label="Selecionar Cidade das Fendas">
+                    <span class="rift-node-number">03</span>
+                    <span class="rift-node-copy"><strong>Cidade das Fendas</strong><span>O Arquiteto</span></span>
+                    <small id="mapNodeStageThreeStatus">BLOQUEADA</small>
+                  </button>
+                  <button id="mapNodeStageFour" type="button" class="rift-map-node rift-map-node-final is-future"
+                          aria-pressed="false" aria-label="Ver prévia da Fenda Original">
+                    <span class="rift-node-number">04</span>
+                    <span class="rift-node-copy"><strong>Fenda Original</strong><span>O capítulo final</span></span>
+                    <small>EM BREVE</small>
+                  </button>
+                </div>
               </div>
+
               <div class="rift-map-info" aria-live="polite">
                 <article id="stageOneCard" class="rift-map-details rift-detail-forest">
-                  <div class="rift-detail-heading"><span class="rift-detail-index">DESTINO 01</span><span id="mapStageOneBadge" class="rift-detail-state">DISPONÍVEL</span></div>
-                  <h3>Primeiro Impulso</h3>
-                  <p class="rift-detail-region">FLORESTA NEON · 6 SETORES</p>
-                  <p class="rift-detail-story">O começo da jornada. Entre túneis de luz e copas luminosas, Flux aprende a dominar sua velocidade.</p>
-                  <div class="rift-detail-stats">
-                    <div><small>Melhor tempo</small><strong id="mapStageOneBest">--</strong></div>
-                    <div><small>Melhor nota</small><strong id="mapStageOneGrade">--</strong></div>
-                    <div><small>Núcleos</small><strong id="mapStageOneCores">0/3</strong></div>
-                    <div><small>Rotas secretas</small><strong id="mapStageOneSecrets">0/3</strong></div>
+                  <div class="rift-detail-heading">
+                    <span class="rift-detail-index">FASE 01</span>
+                    <span id="mapStageOneBadge" class="rift-detail-state">DISPONÍVEL</span>
                   </div>
-                  <p id="stageOneProgress" class="rift-stage-progress">Disponível para jogar</p>
-                  <button id="stageOneButton" class="rift-map-launch" type="button">INICIAR FASE 01 ➜</button>
+                  <div class="rift-detail-main">
+                    <h3>Primeiro Impulso</h3>
+                    <p class="rift-detail-region">FLORESTA NEON</p>
+                    <p class="rift-detail-story">A jornada começa entre árvores luminosas e caminhos de velocidade.</p>
+                  </div>
+                  <div class="rift-detail-stats">
+                    <div><small>Tempo</small><strong id="mapStageOneBest">--</strong></div>
+                    <div><small>Núcleos</small><strong id="mapStageOneCores">0/3</strong></div>
+                    <div><small>Segredos</small><strong id="mapStageOneSecrets">0/3</strong></div>
+                  </div>
+                  <p id="stageOneProgress" class="rift-stage-progress">Primeira região da jornada</p>
+                  <button id="stageOneButton" class="rift-map-launch" type="button">JOGAR FASE 01 →</button>
                 </article>
                 <article id="stageTwoCard" class="rift-map-details rift-detail-canyon stage-card-locked" hidden>
-                  <div class="rift-detail-heading"><span class="rift-detail-index">DESTINO 02</span><span id="mapStageTwoBadge" class="rift-detail-state">BLOQUEADA</span></div>
-                  <h3>Cânion Prisma</h3>
-                  <p class="rift-detail-region">CÂNION CRISTALINO · 9 SETORES</p>
-                  <p class="rift-detail-story">Abismos, energia prismática e o Guardião. Atravesse a região para reativar o Portal da Fenda.</p>
-                  <div class="rift-detail-stats">
-                    <div><small>Melhor tempo</small><strong id="mapStageTwoBest">--</strong></div>
-                    <div><small>Melhor nota</small><strong id="mapStageTwoGrade">--</strong></div>
-                    <div><small>Núcleos</small><strong id="mapStageTwoCores">0/3</strong></div>
-                    <div><small>Rotas secretas</small><strong id="mapStageTwoSecrets">0/3</strong></div>
+                  <div class="rift-detail-heading">
+                    <span class="rift-detail-index">FASE 02</span>
+                    <span id="mapStageTwoBadge" class="rift-detail-state">BLOQUEADA</span>
                   </div>
-                  <p id="stageTwoProgress" class="rift-stage-progress">Conclua a primeira fase para desbloquear.</p>
-                  <button id="stageTwoButton" class="rift-map-launch" type="button" disabled>INICIAR FASE 02 ➜</button>
-                  <span id="stageTwoLock" class="rift-map-locked-label">🔒 Conclua Primeiro Impulso para acessar</span>
+                  <div class="rift-detail-main">
+                    <h3>Cânion Prisma</h3>
+                    <p class="rift-detail-region">CÂNION CRISTALINO</p>
+                    <p class="rift-detail-story">Domine os abismos e desafie o Guardião do Prisma.</p>
+                  </div>
+                  <div class="rift-detail-stats">
+                    <div><small>Tempo</small><strong id="mapStageTwoBest">--</strong></div>
+                    <div><small>Núcleos</small><strong id="mapStageTwoCores">0/3</strong></div>
+                    <div><small>Segredos</small><strong id="mapStageTwoSecrets">0/3</strong></div>
+                  </div>
+                  <p id="stageTwoProgress" class="rift-stage-progress">Conclua Primeiro Impulso para liberar</p>
+                  <button id="stageTwoButton" class="rift-map-launch" type="button" disabled>FASE BLOQUEADA</button>
+                  <span id="stageTwoLock" class="rift-map-locked-label">Conclua a fase 01 para desbloquear</span>
                 </article>
                 <article id="stageThreeCard" class="rift-map-details rift-detail-city" hidden>
-                  <div class="rift-detail-heading"><span class="rift-detail-index">DESTINO 03</span><span id="mapStageThreeBadge" class="rift-detail-state">BLOQUEADA</span></div>
-                  <h3>Cidade das Fendas</h3>
-                  <p class="rift-detail-region">METRÓPOLE SUSPENSA · 6 SETORES</p>
-                  <p class="rift-detail-story">Telhados, ruas perigosas e o Núcleo de Ímpeto. Domine o dash aéreo para enfrentar o Arquiteto do Vazio.</p>
-                  <div class="rift-detail-stats">
-                    <div><small>Melhor tempo</small><strong id="mapStageThreeBest">--</strong></div>
-                    <div><small>Melhor nota</small><strong id="mapStageThreeGrade">--</strong></div>
-                    <div><small>Núcleos</small><strong id="mapStageThreeCores">0/3</strong></div>
-                    <div><small>Rotas secretas</small><strong id="mapStageThreeSecrets">0/3</strong></div>
+                  <div class="rift-detail-heading">
+                    <span class="rift-detail-index">FASE 03</span>
+                    <span id="mapStageThreeBadge" class="rift-detail-state">BLOQUEADA</span>
                   </div>
-                  <p id="stageThreeProgress" class="rift-stage-progress">Conclua o Cânion para desbloquear.</p>
-                  <button id="stageThreeButton" class="rift-map-launch" type="button" disabled>INICIAR FASE 03 ➜</button>
+                  <div class="rift-detail-main">
+                    <h3>Cidade das Fendas</h3>
+                    <p class="rift-detail-region">METRÓPOLE DAS FENDAS</p>
+                    <p class="rift-detail-story">Domine o dash aéreo e enfrente o Arquiteto do Vazio.</p>
+                  </div>
+                  <div class="rift-detail-stats">
+                    <div><small>Tempo</small><strong id="mapStageThreeBest">--</strong></div>
+                    <div><small>Núcleos</small><strong id="mapStageThreeCores">0/3</strong></div>
+                    <div><small>Segredos</small><strong id="mapStageThreeSecrets">0/3</strong></div>
+                  </div>
+                  <p id="stageThreeProgress" class="rift-stage-progress">Conclua o Cânion Prisma para liberar</p>
+                  <button id="stageThreeButton" class="rift-map-launch" type="button" disabled>FASE BLOQUEADA</button>
                 </article>
-                <article id="stageFourCard" class="rift-map-details rift-detail-city" hidden>
-                  <div class="rift-detail-heading"><span class="rift-detail-index">DESTINO 04</span><span class="rift-detail-state">CAPÍTULO FINAL</span></div>
-                  <h3>Fenda Original</h3>
-                  <p class="rift-detail-region">DOMÍNIO DO SOBERANO · FUTURA EXPANSÃO</p>
-                  <p class="rift-detail-story">A dimensão de origem das fendas. Aqui acontecerá o encontro definitivo com o Soberano da Ruptura e o resgate de Alicia.</p>
-                  <div class="rift-detail-coming">◇ O ÚLTIMO PORTAL AINDA ESTÁ FECHADO</div>
-                  <button id="stageFourButton" class="rift-map-launch" type="button" disabled>FASE FINAL EM DESENVOLVIMENTO</button>
+                <article id="stageFourCard" class="rift-map-details rift-detail-final" hidden>
+                  <div class="rift-detail-heading">
+                    <span class="rift-detail-index">FASE 04</span>
+                    <span class="rift-detail-state">EM BREVE</span>
+                  </div>
+                  <div class="rift-detail-main">
+                    <h3>Fenda Original</h3>
+                    <p class="rift-detail-region">CAPÍTULO FINAL</p>
+                    <p class="rift-detail-story">O último destino da jornada de Flux e Alicia.</p>
+                  </div>
+                  <div class="rift-detail-coming">Uma nova dimensão aguarda.</div>
+                  <button id="stageFourButton" class="rift-map-launch" type="button" disabled>EM DESENVOLVIMENTO</button>
                 </article>
               </div>
             </div>
             <footer class="rift-map-footer">
-              <div class="rift-map-collection" aria-label="Resumo do progresso">
-                <span id="mapCampaignSummary">Conclusão 0%</span>
-                <span id="mapCoresSummary">Núcleos 0/12</span>
-                <span id="mapSecretsSummary">Segredos 0/12</span>
-                <span id="mapAchievementsSummary">Conquistas 0/13</span>
-              </div>
-              <div class="rift-map-navigation">
-                <button id="backToMainButton" class="secondary-action" type="button">← Menu</button>
-                <button id="stageAchievementsButton" class="secondary-action" type="button">✦ Conquistas</button>
-              </div>
+              <button id="backToMainButton" class="rift-map-back" type="button">← VOLTAR AO MENU</button>
             </footer>
           </section>
           <section id="achievementsMenu" class="menu-screen achievement-screen" aria-labelledby="achievementsHeading" hidden>
