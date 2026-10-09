@@ -893,3 +893,23 @@ body {
 @media(prefers-reduced-motion:reduce){
   #cinematicProgressFill{transition:none;}
 }
+
+/* Velocity Rift 3.7: chapter four remains a preview beyond the city. */
+.rift-map-node-final{
+  left:80.9%;top:77.7%;
+  border-color:rgba(255,194,184,.73);
+  background:linear-gradient(155deg,#592b5d,#232248e8);
+}
+.rift-map-node-final .rift-node-emblem {
+  color:#ffd7b2;border-color:#eeb5c4;
+  background:rgba(58,20,58,.74);
+}
+.rift-map-node-final small{color:#ffd7be;}
+.rift-map-node-city.is-locked {border-style:dashed;filter:saturate(.5);}
+.rift-detail-city .rift-detail-state {color:#f7d8b3;}
+.rift-map-screen .rift-map-world .rift-map-node {
+  transition:filter .18s,box-shadow .18s,border-color .18s;
+}
+@media(max-width:700px){
+  .rift-map-node-final{left:80.9%;top:77.7%;}
+}
