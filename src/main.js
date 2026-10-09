@@ -786,6 +786,9 @@ function askNewGame(){
 }
 function confirmNewGame(){
   resetCampaign();
+  // Clear stale stage buttons immediately, even if an archived v2 save had
+  // previously unlocked stage 2.
+  refreshProgressView();
   startGame(1);
 }
 function loadAudioLevels(){
