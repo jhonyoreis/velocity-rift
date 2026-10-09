@@ -914,9 +914,9 @@ function showScreen(target) {
   document.querySelector(".game-panel").classList.add("menu-active");
   pauseButton.hidden = true;
   refreshProgressView();
-  if (target === mainMenu || target === stageMenu) {
-    overlay.querySelector("button:not([hidden])")?.focus?.();
-  }
+  // Focus an action belonging to the visible screen, including dialogs
+  // and sliders. Never send keyboard focus into an unrelated hidden menu.
+  target.querySelector?.('button:not([disabled]),input')?.focus?.();
 }
 
 function showMainMenu() {showScreen(mainMenu);}
