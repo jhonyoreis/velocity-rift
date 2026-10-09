@@ -188,7 +188,7 @@ const DASH_SECONDS=.255,DASH_SPEED=1140;
 const cityDashCore={x:3730,y:396};
 let dashUnlockFlash=0;
 function dashUnlocked(){
-  return campaign.aerialDash||(debugMode&&activeStage===3);
+  return campaign.aerialDash||((debugMode||debugUsedThisRun)&&activeStage===3);
 }
 function resetAirDash(){
   Object.assign(airDash,{active:false,available:true,time:0,trail:0,hasAim:false});
@@ -196,7 +196,7 @@ function resetAirDash(){
 }
 function startAirDash(){
   if(!gameStarted||paused||cinematic.active||stageArrival.active||gameCleared||
-    !dashUnlocked()||player.onGround||!airDash.available||debugMode)return false;
+    !dashUnlocked()||player.onGround||!airDash.available)return false;
   const dx=airDash.hasAim?airDash.aimX-(player.x-cameraX):player.facing;
   const dy=airDash.hasAim?airDash.aimY-(player.y-cameraY):0;
   const len=Math.hypot(dx,dy)||1;
@@ -818,7 +818,7 @@ function updateMovingPlatforms(dt) {
       }
       continue;
     }
-    if(activeStage!==2||floor.kind!=="moving")continue;
+    if(![2,3].includes(activeStage)||!["moving","city-lift"].includes(floor.kind))continue;
     const newX=floor.originX+Math.sin(gameTime*floor.speed+floor.phase)*floor.swing;
     const dx=newX-floor.x1;
     floor.x1=newX;floor.x2+=dx;
@@ -1948,7 +1948,11 @@ function updateStageArrival(dt){
   const eased=ratio*ratio*(3-2*ratio);
   player.prevX=player.x;player.prevY=player.y;
   player.x=stageArrival.startX+(stageArrival.finishX-stageArrival.startX)*eased;
-  player.y=spawn.y;player.vy=0;
+  // City arrival incorporates two harmless hops over rooftop obstacles
+  // before the camera hands control back on the original road.
+  const hop=activeStage===3?
+    Math.max(0,Math.sin(Math.PI*2*ratio*2.25))*49:0;
+  player.y=spawn.y-hop;player.vy=0;
   player.vx=Math.max(55,(player.x-before)/Math.max(dt,.001));
   player.animationPhase+=Math.max(170,player.vx)*dt*.052;
   player.onGround=true;
