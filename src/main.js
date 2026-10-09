@@ -11,7 +11,9 @@ const achievementsMenu=document.querySelector("#achievementsMenu");
 const settingsMenu=document.querySelector("#settingsMenu");
 const newGameConfirm=document.querySelector("#newGameConfirm");
 const pauseMenu=document.querySelector("#pauseMenu");
-const screens=[mainMenu,stageMenu,resultMenu,achievementsMenu,settingsMenu,newGameConfirm,pauseMenu];
+const cinematicMenu=document.querySelector("#cinematicMenu");
+const galleryMenu=document.querySelector("#galleryMenu");
+const screens=[mainMenu,stageMenu,resultMenu,achievementsMenu,settingsMenu,newGameConfirm,pauseMenu,cinematicMenu,galleryMenu];
 let selectedMapStage=1;
 const soundToggle = document.querySelector("#soundToggle");
 const musicToggle = document.querySelector("#musicToggle");
@@ -751,6 +753,124 @@ function loadProgress() {
   return result;
 }
 
+// --------------------- Cinematic director (3.5) ----------------------
+// All scenes render natively on the game Canvas; no video files, downloads,
+// third-party imagery, or game-physics mutations.
+const CINEMATICS={
+  opening:{chapter:"PRÓLOGO · A FLOR E A RUPTURA",frames:[
+    {speaker:"O ÚLTIMO DIA DE PAZ",title:"Antes das fendas",text:"No alto de um vale tranquilo, Flux e Alicia contemplavam o pôr do sol.",duration:5,art:"peace"},
+    {speaker:"UM PRESENTE SIMPLES",title:"Uma flor para Alicia",text:"Flux oferece uma flor. Alicia a recebe, e por um instante o mundo parece perfeito.",duration:5.5,art:"flower",sound:"cin-flower"},
+    {speaker:"ALGO DESPERTA",title:"O céu se rompe",text:"Uma rachadura violeta atravessa o horizonte. A luz começa a desaparecer.",duration:4.5,art:"rift",sound:"cin-rupture"},
+    {speaker:"O SENHOR DAS FENDAS",title:"O Soberano da Ruptura",text:"Uma presença colossal surge da abertura. Até as montanhas parecem pequenas diante dele.",duration:6.2,art:"sovereign",sound:"cin-ominous"},
+    {speaker:"A DISTÂNCIA ENTRE MUNDOS",title:"Alicia desaparece",text:"A energia da fenda envolve Alicia e a leva para além da dimensão. A flor permanece.",duration:5.2,art:"taken",sound:"cin-rupture"},
+    {speaker:"A PROMESSA DO FLUX",title:"Eu vou encontrar você",text:"Flux avança em direção ao portal. Não importa quantas fendas precise atravessar.",duration:5.5,art:"pursuit",sound:"cin-chase"}
+  ]},
+  intro1:{chapter:"CAPÍTULO 01 · FLORESTA NEON",frames:[
+    {speaker:"PRIMEIRO IMPULSO",title:"Atravessar o impossível",text:"O portal lança Flux no coração de uma floresta desconhecida, iluminada por energia viva.",duration:4.6,art:"forest"},
+    {speaker:"O CAMINHO COMEÇA",title:"A velocidade é a resposta",text:"Flux dispara entre copas luminosas. Cada salto o aproxima de Alicia.",duration:4.5,art:"forestRun",sound:"cin-chase"}
+  ]},
+  intro2:{chapter:"CAPÍTULO 02 · CÂNION PRISMA",frames:[
+    {speaker:"ECOS DO PRISMA",title:"O cânion desperta",text:"Cristais gigantes erguem-se sobre abismos sem fim. Algo está guardando o próximo portal.",duration:4.8,art:"canyon"},
+    {speaker:"UMA NOVA AMEAÇA",title:"O Guardião observa",text:"Entre raios violeta, o Guardião do Prisma desperta. A jornada precisa continuar.",duration:5,art:"canyonBoss",sound:"cin-ominous"}
+  ]}
+};
+const cinematic={active:false,key:null,frameIndex:0,elapsed:0,
+  clock:0,onEnd:null,replay:false};
+function showGalleryMenu(){
+  showScreen(galleryMenu);
+  refreshCinematicGallery();
+}
+function refreshCinematicGallery(){
+  const entries=[["opening","Opening"],["intro1","StageOne"],["intro2","StageTwo"]];
+  for(const [key,name] of entries){
+    const seen=campaign.scenesSeen.includes(key);
+    const button=document.querySelector("#gallery"+name);
+    const state=document.querySelector("#gallery"+name+"State");
+    button.disabled=!seen;
+    button.classList.toggle("is-unlocked",seen);
+    state.textContent=seen?"ASSISTIDA · REVER CENA":"BLOQUEADA · ASSISTA NA CAMPANHA";
+  }
+}
+function launchCinematic(key,onEnd,replay=false){
+  if(!CINEMATICS[key])return false;
+  cinematic.active=true;cinematic.key=key;cinematic.frameIndex=0;
+  cinematic.elapsed=0;cinematic.clock=0;cinematic.onEnd=onEnd;
+  cinematic.replay=replay;
+  gameStarted=false;paused=false;accumulator=0;
+  keys.clear();jumpHeld=false;
+  if(debugToggle)debugToggle.hidden=true;
+  syncMusic();
+  screens.forEach(screen=>{screen.hidden=screen!==cinematicMenu;});
+  overlay.classList.remove("is-hidden");
+  const panel=document.querySelector(".game-panel");
+  panel.classList.remove("menu-active","pause-active");
+  panel.classList.add("cinematic-active");
+  pauseButton.hidden=true;
+  refreshCinematicText();
+  unlockAudio();
+  const frame=CINEMATICS[key].frames[0];
+  if(frame.sound)playSfx(frame.sound);
+  ensureLoop();
+  document.querySelector("#cinematicNextButton").focus?.();
+  return true;
+}
+function refreshCinematicText(){
+  if(!cinematic.active)return;
+  const scene=CINEMATICS[cinematic.key];
+  const frame=scene.frames[cinematic.frameIndex];
+  document.querySelector("#cinematicChapter").textContent=scene.chapter;
+  document.querySelector("#cinematicSpeaker").textContent=frame.speaker;
+  document.querySelector("#cinematicTitle").textContent=frame.title;
+  document.querySelector("#cinematicText").textContent=frame.text;
+  const next=document.querySelector("#cinematicNextButton");
+  next.textContent=cinematic.frameIndex===scene.frames.length-1?
+    (cinematic.replay?"Encerrar cena ➜":"Iniciar jornada ➜"):"Avançar ➜";
+}
+function updateCinematic(dt){
+  if(!cinematic.active)return;
+  cinematic.elapsed+=dt;
+  cinematic.clock+=dt;
+  const frame=CINEMATICS[cinematic.key].frames[cinematic.frameIndex];
+  const progress=(cinematic.frameIndex+
+    Math.min(1,cinematic.elapsed/frame.duration))/
+    CINEMATICS[cinematic.key].frames.length;
+  document.querySelector("#cinematicProgressFill").style.width=(progress*100).toFixed(2)+"%";
+  if(cinematic.elapsed>=frame.duration)nextCinematicFrame();
+}
+function nextCinematicFrame(){
+  if(!cinematic.active)return;
+  const scene=CINEMATICS[cinematic.key];
+  if(cinematic.frameIndex===scene.frames.length-1){
+    finishCinematic();return;
+  }
+  cinematic.frameIndex++;cinematic.elapsed=0;
+  refreshCinematicText();
+  const frame=scene.frames[cinematic.frameIndex];
+  if(frame.sound)playSfx(frame.sound);
+}
+function finishCinematic(){
+  if(!cinematic.active)return;
+  const key=cinematic.key,cb=cinematic.onEnd,replay=cinematic.replay;
+  cinematic.active=false;cinematic.key=null;cinematic.onEnd=null;
+  document.querySelector(".game-panel").classList.remove("cinematic-active");
+  cinematicMenu.hidden=true;
+  if(!replay&&!debugMode&&!campaign.scenesSeen.includes(key)){
+    campaign.scenesSeen.push(key);saveCampaign();
+  }
+  if(cb)cb();else showMainMenu();
+}
+function cancelCinematic(returnToMenu=true){
+  if(!cinematic.active)return;
+  cinematic.active=false;cinematic.key=null;cinematic.onEnd=null;
+  cinematicMenu.hidden=true;
+  document.querySelector(".game-panel").classList.remove("cinematic-active");
+  if(returnToMenu)showMainMenu();
+}
+function replayCinematic(key){
+  if(!campaign.scenesSeen.includes(key))return;
+  launchCinematic(key,showGalleryMenu,true);
+}
+
 // 3.0 campaign pointer: legacy progress/achievements remain a separate archive.
 // This creates a safe migration from v2 on first use without modifying its key.
 // Completion is based on 14 milestones currently in the game:
@@ -794,20 +914,23 @@ function loadCampaign(){
     const started=saved.started===true||completed1||completed2;
     return {started,stage1Completed:completed1,
       stage2Completed:completed2,lastStage:saved.lastStage===2&&completed1?2:1,
-      extras:sanitizedCampaignExtras(saved,completed1,completed2)};
+      extras:sanitizedCampaignExtras(saved,completed1,completed2),
+      scenesSeen:Array.isArray(saved.scenesSeen)?
+        [...new Set(saved.scenesSeen.filter(key=>["opening","intro1","intro2"].includes(key)))]:[]};
   }
   const completed1=progress.stage1.completed||progress.stage2.completed;
   const completed2=progress.stage2.completed;
   return {started:completed1,stage1Completed:completed1,
     stage2Completed:completed2,lastStage:completed1?2:1,
-    extras:sanitizedCampaignExtras(null,completed1,completed2)};
+    extras:sanitizedCampaignExtras(null,completed1,completed2),
+    scenesSeen:[]};
 }
 function saveCampaign(){
   try{localStorage.setItem(CAMPAIGN_KEY,JSON.stringify(campaign));}catch(_){}
 }
 function resetCampaign(){
   Object.assign(campaign,{started:false,stage1Completed:false,
-    stage2Completed:false,lastStage:1,extras:emptyCampaignExtras()});
+    stage2Completed:false,lastStage:1,extras:emptyCampaignExtras(),scenesSeen:[]});
   saveCampaign();
 }
 function recordCampaignCore(stage,index){
@@ -847,10 +970,9 @@ function askNewGame(){
 }
 function confirmNewGame(){
   resetCampaign();
-  // Clear stale stage buttons immediately, even if an archived v2 save had
-  // previously unlocked stage 2.
+  // Archive stats are permanent, but the narrative resets with the journey.
   refreshProgressView();
-  startGame(1);
+  launchCinematic("opening",()=>startGame(1),false);
 }
 function loadAudioLevels(){
   let saved=null;
@@ -1031,11 +1153,13 @@ function refreshProgressView() {
   document.querySelector("#stageTwoCard").classList.toggle("stage-card-active",unlocked);
   document.querySelector("#stageTwoLock").hidden=unlocked;
   refreshMapView();
+  refreshCinematicGallery();
   refreshAchievementsView();
   refreshAudioSettings();
 }
 
 function showScreen(target) {
+  if(cinematic.active)cancelCinematic(false);
   gameStarted = false;
   paused = false;
   if(debugToggle)debugToggle.hidden=true;
@@ -1211,9 +1335,14 @@ function resetGame() {
   notification.timer=0;
 }
 
-function startGame(stage=activeStage) {
+function startGame(stage=activeStage,skipCinematic=false) {
   if(stage!==1&&stage!==2)return;
   if(stage===2&&!campaign.stage1Completed&&!debugMode)return;
+  const chapter=stage===1?"intro1":"intro2";
+  if(!skipCinematic&&!debugMode&&!campaign.scenesSeen.includes(chapter)){
+    launchCinematic(chapter,()=>startGame(stage,true),false);
+    return;
+  }
   unlockAudio();
   if(!debugMode){
     campaign.started=true;
@@ -1244,6 +1373,7 @@ function ensureLoop() {
 function loop(now) {
   const dt = Math.min(0.05, Math.max(0, (now - lastTime) / 1000));
   lastTime = now;
+  if(cinematic.active)updateCinematic(dt);
 
   if (gameStarted && !gameCleared && !paused) {
     accumulator += dt;
@@ -1266,7 +1396,7 @@ function loop(now) {
       console.warn("Velocity Rift: música desativada após erro de áudio.", error);
     }
   }
-  draw();
+  if(cinematic.active)drawCinematic();else draw();
   requestAnimationFrame(loop);
 }
 
@@ -3481,6 +3611,10 @@ function playSfx(kind) {
     "ui-select": [390,660,.075,"sine",.025],
     "ui-confirm": [570,920,.135,"triangle",.036],
     "ui-back": [330,190,.09,"sine",.025],
+    "cin-flower": [560,930,.32,"sine",.031],
+    "cin-rupture": [92,340,1.18,"sawtooth",.037],
+    "cin-ominous": [145,65,.95,"triangle",.054],
+    "cin-chase": [360,750,.42,"triangle",.041],
     jump:       [440, 680, 0.16, "sine", 0.038],
     land:       [125, 65, 0.095, "triangle", 0.024],
     crystal:    [850, 1260, 0.12, "sine", 0.023],
@@ -3837,6 +3971,14 @@ if(debugToggle)debugToggle.addEventListener("click",toggleDebugMode);
 
 window.addEventListener("keydown",(event)=>{
   const key=event.key.toLowerCase();
+  if(cinematic.active){
+    if(event.repeat)return;
+    if(["enter"," ","arrowright"].includes(key)){
+      event.preventDefault();nextCinematicFrame();return;
+    }
+    if(key==="escape"){event.preventDefault();finishCinematic();return;}
+    return;
+  }
   if((key==="p"||key==="escape")&&gameStarted&&!event.repeat){
     event.preventDefault();togglePause();return;
   }
@@ -3878,6 +4020,14 @@ for(const name of ["master","music","effects"]){
       changeAudioLevel(name,event.target.value));
 }
 document.querySelector("#selectStagesButton").addEventListener("click", showStageMenu);
+document.querySelector("#galleryButton").addEventListener("click",showGalleryMenu);
+document.querySelector("#galleryBackButton").addEventListener("click",showMainMenu);
+document.querySelector("#galleryOpening").addEventListener("click",()=>replayCinematic("opening"));
+document.querySelector("#galleryStageOne").addEventListener("click",()=>replayCinematic("intro1"));
+document.querySelector("#galleryStageTwo").addEventListener("click",()=>replayCinematic("intro2"));
+document.querySelector("#cinematicNextButton").addEventListener("click",nextCinematicFrame);
+document.querySelector("#cinematicSkipButton").addEventListener("click",finishCinematic);
+document.querySelector("#cinematicExitButton").addEventListener("click",()=>cancelCinematic(true));
 for(const [index,name] of ["One","Two","Three"].entries()){
   const button=document.querySelector("#mapNodeStage"+name);
   button.addEventListener("click",()=>selectMapStage(index+1));
