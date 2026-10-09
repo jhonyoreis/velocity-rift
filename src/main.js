@@ -10,6 +10,7 @@ import {yOnTrack,circleRect,distance,approach,clamp,lerp} from "./game/geometry.
 import {renderCityBackground,renderForest} from "./rendering/scenery.js";
 import {renderSecretBackdrop} from "./rendering/secretBackdrop.js";
 import {createEnemy as enemy,isCityEnemyType} from "./game/enemies.js";
+import {resolveAirDashDirection} from "./game/dashAim.js";
 
 const canvas = document.querySelector("#game");
 const ctx = canvas.getContext("2d");
@@ -110,29 +111,38 @@ try { musicEnabled = localStorage.getItem("velocity-rift-music") !== "off"; } ca
 try { soundEnabled = localStorage.getItem("velocity-rift-sound") !== "off"; } catch (_) { /* unavailable storage */ }
 const audioLevels=loadAudioLevels();
 
-// Air dash: one mid-air charge, refreshed on landing. The pointer controls
-// the direction; keyboard-only users dash toward Flux's facing direction.
+// Air dash: accept only recent pointer aiming; stale mouse coordinates
+// must not steer Flux after he or the camera moves across the level.
 const airDash={active:false,available:true,time:0,dx:1,dy:0,trail:0,
-  aimX:0,aimY:0,hasAim:false};
+  aimX:0,aimY:0,hasAim:false,pointerMovedAt:-Infinity};
 const DASH_SECONDS=.255,DASH_SPEED=1140;
 const cityDashCore={x:3730,y:396};
 let dashUnlockFlash=0;
 function dashUnlocked(){
   return campaign.aerialDash||((debugMode||debugUsedThisRun)&&activeStage===3);
 }
+function clearAirDashAim(){
+  airDash.hasAim=false;
+  airDash.pointerMovedAt=-Infinity;
+}
 function resetAirDash(){
-  Object.assign(airDash,{active:false,available:true,time:0,trail:0,hasAim:false});
+  Object.assign(airDash,{active:false,available:true,time:0,trail:0});
+  clearAirDashAim();
   dashUnlockFlash=0;
 }
 function startAirDash(){
   if(!gameStarted||paused||cinematic.active||stageArrival.active||gameCleared||
     !dashUnlocked()||player.onGround||!airDash.available)return false;
-  const dx=airDash.hasAim?airDash.aimX-(player.x-cameraX):player.facing;
-  const dy=airDash.hasAim?airDash.aimY-(player.y-cameraY):0;
-  const len=Math.hypot(dx,dy)||1;
-  airDash.dx=dx/len;airDash.dy=dy/len;
-  // Prefer stable horizontal movement when a pointer is nearly vertical.
-  if(!airDash.hasAim){airDash.dx=player.facing;airDash.dy=0;}
+  const direction=resolveAirDashDirection({
+    facing:player.facing,
+    leftHeld:keys.has("a")||keys.has("arrowleft"),
+    rightHeld:keys.has("d")||keys.has("arrowright"),
+    playerScreenX:player.x-cameraX,playerScreenY:player.y-cameraY,
+    aimX:airDash.aimX,aimY:airDash.aimY,
+    hasAim:airDash.hasAim,pointerMovedAt:airDash.pointerMovedAt,
+    now:performance.now()
+  });
+  airDash.dx=direction.dx;airDash.dy=direction.dy;
   airDash.active=true;airDash.available=false;
   airDash.time=DASH_SECONDS;airDash.trail=1;
   player.vx=airDash.dx*DASH_SPEED;
@@ -4599,12 +4609,19 @@ function warpToGuardian(){
 if(debugToggle)debugToggle.addEventListener("click",toggleDebugMode);
 
 canvas.addEventListener?.("pointermove",event=>{
+  // Touch buttons use facing; incidental touch movement should never
+  // leave an invisible cursor that later changes the dash direction.
+  if(event.pointerType==="touch"||!gameStarted||paused||
+    cinematic.active||stageArrival.active)return;
   const rect=canvas.getBoundingClientRect?.();
   if(!rect||!rect.width||!rect.height)return;
   airDash.aimX=(event.clientX-rect.left)/rect.width*VIEW_W;
   airDash.aimY=(event.clientY-rect.top)/rect.height*VIEW_H;
+  airDash.pointerMovedAt=performance.now();
   airDash.hasAim=true;
 });
+canvas.addEventListener?.("pointerleave",clearAirDashAim);
+canvas.addEventListener?.("pointercancel",clearAirDashAim);
 window.addEventListener("keydown",(event)=>{
   const key=event.key.toLowerCase();
   if(cinematic.active){
@@ -4657,7 +4674,7 @@ window.addEventListener("keyup", (event) => {
   if ([' ', 'arrowup', 'w', 'k'].includes(key)) jumpHeld = false;
 });
 
-window.addEventListener('blur',()=>{keys.clear();jumpHeld=false;if(gameStarted&&!paused&&!gameCleared)showPauseMenu();});
+window.addEventListener('blur',()=>{keys.clear();jumpHeld=false;clearAirDashAim();if(gameStarted&&!paused&&!gameCleared)showPauseMenu();});
 startButton.addEventListener("click",continueCampaign);
 document.querySelector("#newGameButton").addEventListener("click",askNewGame);
 document.querySelector("#confirmNewGameButton").addEventListener("click",confirmNewGame);

@@ -19,6 +19,8 @@ A refatoração separa módulos sem alterar intencionalmente a jogabilidade. Os 
 ## Cidade das Fendas
 - [ ] Confirmar que **não aparecem árvores da Floresta Neon**.
 - [ ] Coletar Núcleo de Ímpeto; testar dash aéreo via segundo salto e botão de toque.
+- [ ] Mover o cursor e imediatamente executar dash para cima, esquerda e diagonal; depois deixar o cursor imóvel enquanto Flux corre pela fase e garantir que o dash segue a direção de movimento.
+- [ ] Retirar cursor do canvas, pausar/despausar e testar direção com teclado e botões touch; morrer e tentar de novo.
 - [ ] Confirmar que as três barreiras obrigam uso do dash ativo.
 - [ ] Abrir e jogar Antenas Perdidas, Subsolo Fantasma e Coroa dos Arranha-céus sem erro visual.
 - [ ] Chefe Arquiteto do Vazio: rajadas duplas, quatro dashes durante vulnerabilidade e portal.
