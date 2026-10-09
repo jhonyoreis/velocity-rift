@@ -899,6 +899,8 @@ function refreshMapView(){
   document.querySelector("#mapAchievementsSummary").textContent=
     "Conquistas "+Object.values(progress.achievements).filter(Boolean).length+
     "/"+ACHIEVEMENTS.length;
+  // Future regions are selectable for lore only, never playable.
+  document.querySelector("#stageThreeButton").disabled=true;
   for(const stage of [1,2]){
     const suffix=stage===1?"One":"Two";
     const stageProgress=progress["stage"+stage];
@@ -1141,6 +1143,7 @@ function resetGame() {
 }
 
 function startGame(stage=activeStage) {
+  if(stage!==1&&stage!==2)return;
   if(stage===2&&!campaign.stage1Completed&&!debugMode)return;
   unlockAudio();
   if(!debugMode){
