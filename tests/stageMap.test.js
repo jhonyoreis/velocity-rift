@@ -19,7 +19,9 @@ test("map contains four clearly labeled selectable regions with one detail panel
  assert.ok(map.includes('id="backToMainButton"'));
  assert.equal(map.includes("stageAchievementsButton"),false);
  assert.equal(map.includes("mapAchievementsSummary"),false);
- assert.equal(map.includes("mapPathToCity"),false);
+ assert.ok(map.includes('id="mapPathToCanyon"'));
+ assert.ok(map.includes('id="mapPathToCity"'));
+ assert.ok(map.includes('id="mapPathToFinal"'));
 });
 test("each stage shows only current-campaign time, cores and secrets",()=>{
  for(const name of ["One","Two","Three"]){
@@ -52,4 +54,64 @@ test("new design hides background HUD, retains accessible navigation and works o
  for(const id of ["mapNodeStageOne","mapNodeStageTwo","mapNodeStageThree","mapNodeStageFour"])
    assert.ok(map.includes('id="'+id+'"'));
  assert.ok(main.includes('node.setAttribute("aria-pressed",String(id===stage))'));
+});
+
+test("map selector is an SVG atlas with four separately positioned clickable nodes",()=>{
+ assert.ok(map.includes('class="rift-map-world rift-map-cartography"'));
+ assert.ok(map.includes('class="rift-map-art"'));
+ assert.ok(map.includes('viewBox="0 0 540 320"'));
+ assert.ok(map.includes('class="rift-map-regions"'));
+ const left=map.indexOf('class="rift-map-world rift-map-cartography"');
+ const right=map.indexOf('class="rift-map-info"');
+ assert.ok(left<right);
+ for(const [name,id] of [["forest","One"],["canyon","Two"],["city","Three"],["final","Four"]]){
+   assert.match(css,new RegExp('\\.rift-map-clean \\.rift-map-cartography \\.rift-map-node-'+name+'\\{'));
+   assert.ok(map.includes('id="mapNodeStage'+id+'" type="button"')||
+     map.includes('id="mapNodeStage'+id+'" type="button"')||
+     new RegExp('id="mapNodeStage'+id+'"\\s+type="button"').test(map));
+ }
+ assert.ok(map.includes('aria-label="Mapa interativo das quatro regiões"'));
+});
+
+test("paths brighten as campaign advances; last chapter stays unavailable",()=>{
+ assert.ok(main.includes('[["mapPathToCanyon",unlocked],["mapPathToCity",cityUnlocked]]'));
+ assert.ok(main.includes('path.classList.toggle("rift-map-path-open",open)'));
+ assert.ok(main.includes('path.classList.toggle("rift-map-path-locked",!open)'));
+ assert.ok(main.includes('document.querySelector("#stageFourButton").disabled=true'));
+ assert.ok(map.includes('id="stageFourButton"'));
+ assert.ok(css.includes('.rift-map-clean .rift-map-cartography .rift-map-path.rift-map-path-open'));
+});
+
+test("selecting a region changes active map node and detail card, even if locked",()=>{
+ const source=main.slice(main.indexOf("function selectMapStage(stage){"),
+   main.indexOf("function refreshMapView(){"));
+ assert.ok(source.startsWith("function selectMapStage"));
+ const registry=new Map();
+ for(const suffix of ["One","Two","Three","Four"]){
+   const values=new Set();
+   registry.set("#mapNodeStage"+suffix,{
+     classList:{toggle(name,enabled){if(enabled)values.add(name);else values.delete(name);},
+       contains(name){return values.has(name);}},
+     setAttribute(name,value){this[name]=value}
+   });
+   registry.set("#stage"+suffix+"Card",{hidden:false});
+ }
+ const doc={querySelector(selector){
+   const element=registry.get(selector);
+   if(!element)throw new Error("unknown selector "+selector);
+   return element;
+ }};
+ const control=new Function("document",
+   "let selectedMapStage=1;"+source+
+   "return {selectMapStage,getSelection:()=>selectedMapStage}")(doc);
+ for(const stage of [3,4,2,1]){
+   control.selectMapStage(stage);
+   assert.equal(control.getSelection(),stage);
+   for(let i=1;i<=4;i++){
+     const suffix=["","One","Two","Three","Four"][i];
+     assert.equal(registry.get("#mapNodeStage"+suffix).classList.contains("is-selected"),i===stage);
+     assert.equal(registry.get("#mapNodeStage"+suffix)["aria-pressed"],String(i===stage));
+     assert.equal(registry.get("#stage"+suffix+"Card").hidden,i!==stage);
+   }
+ }
 });

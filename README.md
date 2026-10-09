@@ -426,3 +426,24 @@ Checklist:
 - [ ] Consultar Conquistas na home: garantir que os feitos históricos
   permanecem disponíveis.
 
+
+
+### Mapa das Fendas: seletor cartográfico refinado (Etapa 4)
+
+O atlas da campanha mantém a ficha enxuta à direita e recupera a seleção
+geográfica de regiões no painel esquerdo. Os quatro nós são posicionados
+sobre um mapa de biomas dimensionais, conectados por caminhos:
+- Floresta Neon: início da jornada;
+- Cânion Prisma: disponível após a Floresta;
+- Cidade das Fendas: disponível após o Cânion;
+- Fenda Original: prévia do capítulo final, ainda bloqueado.
+
+Clicar em qualquer nó, mesmo bloqueado, mostra a ficha da região sem
+liberar o botão de jogo. Os caminhos ganham destaque conforme a campanha
+desbloqueia os destinos. Controle por teclado e layout mobile preservados.
+
+**QA manual:** testar seleção mouse/toque e teclado (setas, Home, End),
+estado das linhas após concluir fases, prévia da Fenda Original e legibilidade
+dos nós em telas de 320–430px; dados da campanha atual continuam separados
+dos recordes históricos.
+

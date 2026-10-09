@@ -1192,6 +1192,13 @@ function selectMapStage(stage){
 function refreshMapView(){
   const unlocked=campaign.stage1Completed||debugMode;
   const cityUnlocked=campaign.stage2Completed||debugMode;
+  // Paths mirror campaign unlocks. Even locked regions remain selectable
+  // for preview; their "Play" buttons are separately disabled.
+  for(const [id,open] of [["mapPathToCanyon",unlocked],["mapPathToCity",cityUnlocked]]){
+    const path=document.querySelector("#"+id);
+    path.classList.toggle("rift-map-path-open",open);
+    path.classList.toggle("rift-map-path-locked",!open);
+  }
   const completion=campaignCompletion();
   document.querySelector("#mapCampaignSummary").textContent=
     completion.percent+"% da jornada";

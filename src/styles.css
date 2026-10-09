@@ -1614,3 +1614,251 @@ body {
 @media(prefers-reduced-motion:reduce){
   .rift-map-clean .rift-map-node{transition:none;}
 }
+
+
+/* ===============================================================
+   Etapa 4 — Cartografia interativa: nós no mapa, não lista.
+   Mantém integralmente os novos cartões informativos à direita.
+   =============================================================== */
+.rift-map-clean .rift-map-world.rift-map-cartography{
+  position:relative;
+  overflow:hidden;
+  padding:0;
+  isolation:isolate;
+  border-color:rgba(143,194,220,.28);
+  background:
+    radial-gradient(ellipse at 48% 45%,rgba(68,57,128,.28),transparent 70%),
+    linear-gradient(142deg,#091b2e,#111936 66%,#0b2132);
+}
+.rift-map-clean .rift-map-cartography .rift-map-art{
+  display:block;
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  z-index:0;
+  pointer-events:none;
+}
+.rift-map-clean .rift-map-cartography .rift-map-path-underlay{
+  stroke:#57708f;
+  stroke-width:5;
+  stroke-opacity:.34;
+  stroke-linecap:round;
+  stroke-dasharray:2 10;
+}
+.rift-map-clean .rift-map-cartography .rift-map-path{
+  stroke:#94a8c0;
+  stroke-width:3.5;
+  stroke-opacity:.28;
+  stroke-dasharray:2 11;
+  stroke-linecap:round;
+  fill:none;
+  filter:none;
+}
+.rift-map-clean .rift-map-cartography .rift-map-path.rift-map-path-open{
+  stroke:url(#riftAtlasPath);
+  stroke-opacity:.86;
+  stroke-width:4;
+  stroke-dasharray:7 10;
+  filter:drop-shadow(0 0 5px rgba(130,231,225,.36));
+  animation:riftPathDrift 10s linear infinite;
+}
+.rift-map-clean .rift-map-cartography .rift-map-path.rift-map-path-locked{
+  stroke:#8ba3c4;
+  stroke-opacity:.27;
+}
+.rift-map-clean .rift-map-cartography .rift-map-regions{
+  position:absolute;
+  inset:0;
+  z-index:2;
+  display:block;
+  width:100%;
+  height:100%;
+  pointer-events:none;
+}
+.rift-map-clean .rift-map-cartography .rift-map-regions::before{
+  display:none;
+  content:none;
+}
+.rift-map-clean .rift-map-cartography .rift-map-compass{
+  position:absolute;
+  z-index:1;
+  top:14px;
+  left:16px;
+  color:#89a9be;
+  opacity:.68;
+  font-size:1.2rem;
+  font-weight:400;
+}
+.rift-map-clean .rift-map-cartography .rift-map-compass span{
+  font-size:.63rem;
+  font-weight:850;
+  letter-spacing:.08em;
+}
+.rift-map-clean .rift-map-cartography .rift-map-coordinate{
+  position:absolute;
+  z-index:1;
+  bottom:12px;
+  left:15px;
+  font-size:.53rem;
+  color:#7ba1ad;
+  letter-spacing:.17em;
+  opacity:.80;
+}
+.rift-map-clean .rift-map-cartography .rift-map-node{
+  position:absolute;
+  z-index:2;
+  inset:auto;
+  transform:translate(-50%,-50%);
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  gap:2px;
+  width:137px;
+  height:85px;
+  min-height:0;
+  padding:6px 5px 7px;
+  border:1px solid rgba(124,241,224,.42);
+  border-radius:14px;
+  background:linear-gradient(160deg,rgba(15,66,73,.98),rgba(12,42,57,.96));
+  box-shadow:0 7px 22px #0008,inset 0 1px 0 #ffffff10;
+  text-align:center;
+  opacity:1;
+  filter:none;
+  cursor:pointer;
+  pointer-events:auto;
+  transition:border-color .16s,background .16s,box-shadow .16s,opacity .16s;
+}
+.rift-map-clean .rift-map-cartography .rift-map-node-forest{left:21%;top:76%;}
+.rift-map-clean .rift-map-cartography .rift-map-node-canyon{
+  left:51%;top:47.2%;
+  border-color:rgba(191,155,242,.5);
+  background:linear-gradient(160deg,rgba(57,43,93,.96),rgba(28,30,64,.98));
+}
+.rift-map-clean .rift-map-cartography .rift-map-node-city{
+  left:79.8%;top:21.8%;
+  border-color:rgba(155,182,215,.43);
+  background:linear-gradient(160deg,rgba(49,63,98,.96),rgba(25,38,62,.98));
+}
+.rift-map-clean .rift-map-cartography .rift-map-node-final{
+  left:78.5%;top:78%;
+  border-color:rgba(209,147,192,.39);
+  background:linear-gradient(160deg,rgba(66,38,80,.94),rgba(34,32,63,.98));
+}
+.rift-map-clean .rift-map-cartography .rift-map-node .rift-node-emblem{
+  width:25px;
+  height:25px;
+  display:grid;
+  place-items:center;
+  flex-shrink:0;
+  border:1px solid rgba(123,243,220,.37);
+  border-radius:50%;
+  background:rgba(9,31,41,.68);
+  font-size:.99rem;
+  font-weight:400;
+  line-height:1;
+  color:#a0f5df;
+  box-shadow:none;
+}
+.rift-map-clean .rift-map-cartography .rift-map-node-canyon .rift-node-emblem{color:#d5b3ff;border-color:#c69bea77;}
+.rift-map-clean .rift-map-cartography .rift-map-node-city .rift-node-emblem{color:#e8d2ae;border-color:#c9b09777;}
+.rift-map-clean .rift-map-cartography .rift-map-node-final .rift-node-emblem{color:#e1a8dd;border-color:#d4add877;}
+.rift-map-clean .rift-map-cartography .rift-node-number{
+  display:block;
+  width:auto;
+  height:auto;
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:none;
+  font-size:.53rem;
+  font-weight:900;
+  color:#a9cbd1;
+  letter-spacing:.12em;
+}
+.rift-map-clean .rift-map-cartography .rift-node-title{
+  display:block;
+  max-width:100%;
+  color:#e6f5f8;
+  font-size:.67rem;
+  font-weight:900;
+  line-height:1.15;
+  letter-spacing:.025em;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  overflow:hidden;
+}
+.rift-map-clean .rift-map-cartography .rift-map-node small{
+  display:block;
+  justify-self:auto;
+  color:#98e9d6;
+  font-size:.53rem;
+  font-weight:850;
+  letter-spacing:.045em;
+  text-align:center;
+  white-space:nowrap;
+}
+.rift-map-clean .rift-map-cartography .rift-map-node.is-locked,
+.rift-map-clean .rift-map-cartography .rift-map-node.is-future{
+  border-style:solid;
+  opacity:.68;
+  filter:saturate(.75);
+}
+.rift-map-clean .rift-map-cartography .rift-map-node.is-locked small,
+.rift-map-clean .rift-map-cartography .rift-map-node.is-future small{
+  color:#b0b7cb;
+}
+.rift-map-clean .rift-map-cartography .rift-map-node:hover,
+.rift-map-clean .rift-map-cartography .rift-map-node:focus-visible{
+  opacity:1;
+  filter:none;
+  border-color:#befff1;
+  background:linear-gradient(150deg,rgba(34,94,98,.97),rgba(44,59,99,.98));
+  box-shadow:0 0 0 2px rgba(182,255,243,.14),0 9px 24px #0009;
+}
+.rift-map-clean .rift-map-cartography .rift-map-node:focus-visible{
+  outline:2px solid #ffe2a7;
+  outline-offset:3px;
+}
+.rift-map-clean .rift-map-cartography .rift-map-node.is-selected{
+  opacity:1;
+  filter:none;
+  border-color:#a9ffee;
+  background:linear-gradient(160deg,rgba(27,91,92,.99),rgba(19,55,73,.99));
+  box-shadow:0 0 0 2px rgba(132,245,221,.33),0 0 20px rgba(122,233,217,.26),0 9px 22px #0009;
+}
+.rift-map-clean .rift-map-cartography .rift-map-node.is-selected .rift-node-title{
+  color:#fff;
+}
+@media (max-width:700px){
+  .rift-map-clean .rift-map-world.rift-map-cartography{
+    height:280px;
+  }
+  .rift-map-clean .rift-map-cartography .rift-map-node{
+    width:clamp(91px,28vw,127px);
+    height:76px;
+    gap:2px;
+    padding:5px 3px;
+    border-radius:11px;
+  }
+  .rift-map-clean .rift-map-cartography .rift-map-node .rift-node-emblem{
+    width:21px;height:21px;font-size:.87rem;
+  }
+  .rift-map-clean .rift-map-cartography .rift-node-title{font-size:.57rem;}
+  .rift-map-clean .rift-map-cartography .rift-map-node small{font-size:.47rem;}
+  .rift-map-clean .rift-map-cartography .rift-node-number{font-size:.48rem;}
+}
+@media(max-width:430px){
+  .rift-map-clean .rift-map-world.rift-map-cartography{height:252px;}
+  .rift-map-clean .rift-map-cartography .rift-map-node{width:clamp(84px,27vw,113px);height:67px;gap:1px;}
+  .rift-map-clean .rift-map-cartography .rift-map-node .rift-node-emblem{width:19px;height:19px;font-size:.76rem;}
+  .rift-map-clean .rift-map-cartography .rift-node-title{font-size:.52rem;}
+  .rift-map-clean .rift-map-cartography .rift-map-node small{font-size:.44rem;}
+  .rift-map-clean .rift-map-cartography .rift-map-compass{font-size:1rem;top:9px;left:11px;}
+  .rift-map-clean .rift-map-cartography .rift-map-coordinate{font-size:.42rem;left:9px;bottom:8px;}
+}
+@media(prefers-reduced-motion:reduce){
+  .rift-map-clean .rift-map-cartography .rift-map-path.rift-map-path-open{animation:none;}
+  .rift-map-clean .rift-map-cartography .rift-map-node{transition:none;}
+}
