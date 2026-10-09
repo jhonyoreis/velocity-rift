@@ -15,7 +15,7 @@
           <section id="mainMenu" class="menu-screen v3-main" aria-labelledby="menuHeading">
             <div class="v3-ambient-orb orb-one" aria-hidden="true"></div>
             <div class="v3-ambient-orb orb-two" aria-hidden="true"></div>
-            <div class="v3-edition">VELOCITY RIFT <span>3.1 // ALÉM DAS FENDAS</span></div>
+            <div class="v3-edition">VELOCITY RIFT <span>3.2 // ALÉM DAS FENDAS</span></div>
             <div class="v3-crest" aria-hidden="true">◇</div>
             <div class="menu-eyebrow">ENCONTRE ALICIA ALÉM DAS FENDAS</div>
             <h1 id="menuHeading">VELOCITY <span>RIFT</span></h1>
@@ -143,8 +143,9 @@
               <div><small>Conclusões</small><strong id="resultClears">0</strong></div>
             </div>
             <p id="resultMessage" class="menu-subtitle">Fase concluída!</p>
-            <div class="menu-actions">
-              <button id="retryButton" class="primary-action" type="button">Jogar novamente <span aria-hidden="true">➜</span></button>
+            <div class="menu-actions result-menu-actions">
+              <button id="nextStageButton" class="primary-action" type="button" disabled aria-label="Ir para a próxima fase">Próxima fase <span aria-hidden="true">➜</span></button>
+              <button id="retryButton" class="secondary-action" type="button">Jogar novamente <span aria-hidden="true">↺</span></button>
               <button id="resultsStagesButton" class="secondary-action" type="button">Ver fases</button>
               <button id="resultsAchievementsButton" class="secondary-action" type="button">✦ Conquistas</button>
               <button id="resultsMainButton" class="secondary-action" type="button">Menu principal</button>
@@ -152,7 +153,7 @@
           </section>
 
           <section id="pauseMenu" class="menu-screen v31-pause" aria-labelledby="pauseHeading" hidden>
-            <div class="v31-pause-eyebrow">VELOCITY RIFT 3.1 // INTERVALO</div>
+            <div class="v31-pause-eyebrow">VELOCITY RIFT 3.2 // INTERVALO</div>
             <h2 id="pauseHeading">JOGO PAUSADO</h2>
             <p id="pauseStageLabel" class="v31-pause-stage">Flux está a um passo de encontrar Alicia.</p>
             <div class="v31-pause-body">
