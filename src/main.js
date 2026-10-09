@@ -677,7 +677,7 @@ installSecretRoutes(STAGES[2],2);
 installSecretRoutes(STAGES[3],3);
 
 function activateStage(stage=1) {
-  if(stage!==1&&stage!==2)throw new Error("Unknown level "+stage);
+  if(!STAGES[stage])throw new Error("Unknown level "+stage);
   activeStage=stage;
   syncTrackLabel();
   const data=STAGES[stage];
@@ -699,6 +699,7 @@ function activateStage(stage=1) {
     shots:[]
   })));
   resetGuardian();
+  resetCityBoss();
 }
 
 function secretPlatformSolid(floor){
@@ -801,6 +802,7 @@ function arcRings(x, y, count, gap) {
 }
 
 function gradeForTime(time, stage=activeStage) {
+  if (stage===3) return time<90?"S":time<130?"A":time<175?"B":"C";
   if (stage===2) return time<105?"S":time<145?"A":time<195?"B":"C";
   return time<75?"S":time<100?"A":time<145?"B":"C";
 }
@@ -809,14 +811,14 @@ function defaultStageProgress() {
   return { completed:false, clears:0, bestTime:0, bestGrade:"", bestCrystals:0, bestCores:0 };
 }
 function defaultProgress() {
-  return {stage1:defaultStageProgress(),stage2:defaultStageProgress(),
-    secrets:{stage1:[],stage2:[]},secretTimes:{stage1:{},stage2:{}},achievements:{}};
+  return {stage1:defaultStageProgress(),stage2:defaultStageProgress(),stage3:defaultStageProgress(),
+    secrets:{stage1:[],stage2:[],stage3:[]},secretTimes:{stage1:{},stage2:{},stage3:{}},achievements:{}};
 }
 function loadProgress() {
   const result=defaultProgress();
   try {
     const saved=JSON.parse(localStorage.getItem(PROGRESS_KEY)||"null");
-    for (const id of [1,2]) {
+    for (const id of [1,2,3]) {
       const item=saved?.["stage"+id];
       if (!item || typeof item!=="object") continue;
       const record=result["stage"+id];
@@ -828,7 +830,7 @@ function loadProgress() {
       record.bestCrystals=Math.floor(clamp(Number(item.bestCrystals)||0,0,1000000));
       record.bestCores=Math.floor(clamp(Number(item.bestCores)||0,0,3));
     }
-    for(const stage of [1,2]){
+    for(const stage of [1,2,3]){
       const key="stage"+stage,allowed=SECRET_DEFS[stage].map(def=>def.id);
       const existing=saved?.secrets?.[key];
       if(Array.isArray(existing))
@@ -843,11 +845,11 @@ function loadProgress() {
       if(saved?.achievements?.[item.id]===true)result.achievements[item.id]=true;
     // Backfill achievements supported by old records; don't invent unknown
     // no-death/boss achievements that older saves never tracked.
-    for(const stage of [1,2]){
+    for(const stage of [1,2,3]){
       const record=result["stage"+stage];
-      if(record.completed)result.achievements[stage===1?"first":"canyon"]=true;
-      if(record.bestGrade==="S")result.achievements[stage===1?"s1":"s2"]=true;
-      if(record.bestCores===3)result.achievements[stage===1?"cores1":"cores2"]=true;
+      if(record.completed)if(stage<3)result.achievements[stage===1?"first":"canyon"]=true;
+      if(record.bestGrade==="S")if(stage<3)result.achievements[stage===1?"s1":"s2"]=true;
+      if(record.bestCores===3)if(stage<3)result.achievements[stage===1?"cores1":"cores2"]=true;
     }
     if(result.secrets.stage1.length+result.secrets.stage2.length>0)
       result.achievements.explorer=true;
@@ -1378,14 +1380,14 @@ const GAME_COMPLETION_STAGES=2;
 const GAME_COMPLETION_CORES_PER_STAGE=3;
 const GAME_COMPLETION_ROUTES_PER_STAGE=3;
 function emptyCampaignExtras(){
-  return {cores:{stage1:[],stage2:[]},secrets:{stage1:[],stage2:[]}};
+  return {cores:{stage1:[],stage2:[],stage3:[]},secrets:{stage1:[],stage2:[],stage3:[]}};
 }
-function sanitizedCampaignExtras(saved,stage1Done,stage2Done){
+function sanitizedCampaignExtras(saved,stage1Done,stage2Done,stage3Done=false){
   const extras=emptyCampaignExtras();
   const hasExtras=saved?.extras&&typeof saved.extras==="object";
-  for(const stage of [1,2]){
+  for(const stage of [1,2,3]){
     const key="stage"+stage;
-    const stageDone=stage===1?stage1Done:stage2Done;
+    const stageDone=stage===1?stage1Done:stage===2?stage2Done:stage3Done;
     // Pre-3.4 saves contain no collection identifiers. Preserve the
     // historically recorded count on completed stages as a best-effort
     // migration; never import archival extras into a freshly reset campaign.
@@ -1407,32 +1409,33 @@ function loadCampaign(){
   let saved=null;
   try{saved=JSON.parse(localStorage.getItem(CAMPAIGN_KEY)||"null");}catch(_){}
   if(saved&&typeof saved==="object"){
-    const completed1=saved.stage1Completed===true;
-    const completed2=completed1&&saved.stage2Completed===true;
-    const started=saved.started===true||completed1||completed2;
-    return {started,stage1Completed:completed1,
-      stage2Completed:completed2,lastStage:saved.lastStage===2&&completed1?2:1,
-      extras:sanitizedCampaignExtras(saved,completed1,completed2),
+    const d1=saved.stage1Completed===true,d2=d1&&saved.stage2Completed===true;
+    const d3=d2&&saved.stage3Completed===true;
+    const started=saved.started===true||d1||d2||d3;
+    const last=d2&&saved.lastStage===3?3:d1&&saved.lastStage===2?2:1;
+    return {started,stage1Completed:d1,stage2Completed:d2,stage3Completed:d3,
+      lastStage:last,aerialDash:saved.aerialDash===true&&d2,
+      extras:sanitizedCampaignExtras(saved,d1,d2,d3),
       scenesSeen:Array.isArray(saved.scenesSeen)?
-        [...new Set(saved.scenesSeen.filter(key=>["opening","intro1","intro2"].includes(key)))]:[]};
+        [...new Set(saved.scenesSeen.filter(k=>["opening","intro1","intro2","intro3"].includes(k)))]:[]};
   }
-  const completed1=progress.stage1.completed||progress.stage2.completed;
-  const completed2=progress.stage2.completed;
-  return {started:completed1,stage1Completed:completed1,
-    stage2Completed:completed2,lastStage:completed1?2:1,
-    extras:sanitizedCampaignExtras(null,completed1,completed2),
-    scenesSeen:[]};
+  const d1=progress.stage1.completed||progress.stage2.completed||progress.stage3.completed;
+  const d2=progress.stage2.completed||progress.stage3.completed;
+  const d3=progress.stage3.completed;
+  return {started:d1,stage1Completed:d1,stage2Completed:d2,stage3Completed:d3,
+    lastStage:d2?3:d1?2:1,aerialDash:false,
+    extras:sanitizedCampaignExtras(null,d1,d2,d3),scenesSeen:[]};
 }
 function saveCampaign(){
   try{localStorage.setItem(CAMPAIGN_KEY,JSON.stringify(campaign));}catch(_){}
 }
 function resetCampaign(){
   Object.assign(campaign,{started:false,stage1Completed:false,
-    stage2Completed:false,lastStage:1,extras:emptyCampaignExtras(),scenesSeen:[]});
+    stage2Completed:false,stage3Completed:false,lastStage:1,aerialDash:false,extras:emptyCampaignExtras(),scenesSeen:[]});
   saveCampaign();
 }
 function recordCampaignCore(stage,index){
-  if(debugUsedThisRun||stage!==1&&stage!==2)return false;
+  if(debugUsedThisRun||![1,2,3].includes(stage))return false;
   if(!Number.isInteger(index)||index<0||index>=GAME_COMPLETION_CORES_PER_STAGE)return false;
   const found=campaign.extras.cores["stage"+stage];
   if(found.includes(index))return false;
@@ -1441,7 +1444,7 @@ function recordCampaignCore(stage,index){
   return true;
 }
 function recordCampaignSecret(stage,id){
-  if(debugUsedThisRun||stage!==1&&stage!==2||
+  if(debugUsedThisRun||![1,2,3].includes(stage)||
     !SECRET_DEFS[stage].some(route=>route.id===id))return false;
   const found=campaign.extras.secrets["stage"+stage];
   if(found.includes(id))return false;
@@ -1450,14 +1453,14 @@ function recordCampaignSecret(stage,id){
   return true;
 }
 function campaignCompletion(){
-  const stages=Number(campaign.stage1Completed)+Number(campaign.stage2Completed);
-  const cores=campaign.extras.cores.stage1.length+campaign.extras.cores.stage2.length;
-  const secrets=campaign.extras.secrets.stage1.length+
-    campaign.extras.secrets.stage2.length;
-  return {stages,cores,secrets,percent:stages*20+cores*5+secrets*5};
+  const stages=Number(campaign.stage1Completed)+Number(campaign.stage2Completed)+
+    Number(campaign.stage3Completed);
+  const cores=[1,2,3].reduce((n,i)=>n+campaign.extras.cores["stage"+i].length,0);
+  const secrets=[1,2,3].reduce((n,i)=>n+campaign.extras.secrets["stage"+i].length,0);
+  return {stages,cores,secrets,percent:Math.round(100*(stages/3*.4+cores/9*.3+secrets/9*.3))};
 }
 function nextCampaignStage(){
-  return campaign.stage1Completed&&campaign.lastStage===2?2:1;
+  return campaign.stage2Completed&&campaign.lastStage===3?3:campaign.stage1Completed&&campaign.lastStage===2?2:1;
 }
 function continueCampaign(){
   if(!campaign.started)return;
@@ -1527,13 +1530,12 @@ function recordStageClear(time, crystals, cores = 0) {
   stage.completed = true;
   stage.clears += 1;
   campaign.started=true;
-  if(activeStage===1){
-    campaign.stage1Completed=true;
-    campaign.lastStage=2;
-  }else if(activeStage===2){
-    campaign.stage1Completed=true;
-    campaign.stage2Completed=true;
-    campaign.lastStage=2;
+  if(activeStage===1){campaign.stage1Completed=true;campaign.lastStage=2;}
+  else if(activeStage===2){
+    campaign.stage1Completed=true;campaign.stage2Completed=true;campaign.lastStage=3;
+  }else if(activeStage===3){
+    campaign.stage1Completed=true;campaign.stage2Completed=true;
+    campaign.stage3Completed=true;campaign.lastStage=3;
   }
   // Backstop for legacy clears and automated results; normal gameplay
   // already records exact core identities at pickup time.
@@ -1941,9 +1943,10 @@ function resetGame() {
 }
 
 function startGame(stage=activeStage,skipCinematic=false,withArrival=false) {
-  if(stage!==1&&stage!==2)return;
+  if(![1,2,3].includes(stage))return;
   if(stage===2&&!campaign.stage1Completed&&!debugMode)return;
-  const chapter=stage===1?"intro1":"intro2";
+  if(stage===3&&!campaign.stage2Completed&&!debugMode)return;
+  const chapter="intro"+stage;
   if(!skipCinematic&&!debugMode&&!campaign.scenesSeen.includes(chapter)){
     launchCinematic(chapter,()=>startGame(stage,true,true),false);
     return;
