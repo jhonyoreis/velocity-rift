@@ -1,4 +1,4 @@
-# Velocity Rift — rumo à versão 2.0
+# Velocity Rift — versão 3.0 (em desenvolvimento)
 
 Um prototipo web 2D inspirado em jogos de plataforma de alta velocidade. Ele usa
 HTML, CSS e Canvas, sem assets oficiais. O Vite é uma dependência de desenvolvimento.
@@ -32,6 +32,17 @@ com JavaScript, sem precisar migrar a engine.
 ## Repositório
 
 https://github.com/jhonyoreis/velocity-rift
+
+## Velocity Rift 3.0 — Etapa 1: menu, campanha e mixagem de áudio
+
+- **Menu principal redesenhado**, com identidade cinematográfica turquesa/violeta e as opções **Continuar**, **Novo Jogo**, **Seleção de Fases**, **Configurações** e **Conquistas**.
+- **Continuar** retoma a campanha pela entrada da última fase jogada/desbloqueada. Esta etapa ainda não restaura a posição exata do Flux nem um checkpoint ao fechar o navegador; o jogo reinicia a fase selecionada.
+- **Novo Jogo** sempre abre uma tela de confirmação. Confirmar reinicia apenas a **progressão da campanha**: a fase 2 volta a ficar bloqueada até a conclusão da fase 1. Cancelar não altera o progresso.
+- **Recordes, segredos, melhores tempos, núcleos e medalhas da 2.0 são preservados**: permanecem no registro histórico `velocity-rift-progress-v1`. A nova campanha utiliza a chave separada `velocity-rift-campaign-v3`.
+- **Migração compatível:** na primeira execução da 3.0, se ainda não existir um registro próprio da campanha, o desbloqueio anterior da 2.0 é utilizado como ponto de partida. Após iniciar um Novo Jogo, o registro da campanha prevalece, evitando que o progresso arquivado desbloqueie novamente as fases automaticamente.
+- **Mixador de áudio** com sliders independentes de 0 a 100% para **volume geral**, **música** e **efeitos sonoros**. A música é suavizada em tempo real; novos efeitos sonoros seguem a mistura atual.
+- As preferências são salvas em `velocity-rift-audio-settings-v3`, sem apagar os antigos controles de ligar/desligar música (`velocity-rift-music`) e som (`velocity-rift-sound`). Os atalhos e botões de mutar continuam funcionando.
+- A segunda fase, o Guardião do Prisma, o Portal da Fenda, os seis desafios e o modo DEBUG foram mantidos. O mapa interativo, as cutscenes e a Cidade das Fendas serão desenvolvidos nas próximas etapas da 3.0.
 
 ## Fase 1 — Primeiro Impulso (estendida)
 
