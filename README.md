@@ -38,7 +38,7 @@ https://github.com/jhonyoreis/velocity-rift
 - Extração de módulos para layouts das três fases, desafios, conquistas, geometria, classificação, progresso e cenários.
 - As três rotas secretas da Cidade das Fendas receberam paletas próprias, eliminando uma falha de renderização.
 - Inimigos comuns agora recebem o tipo padrão `walker`; a identificação de inimigos da cidade tolera registros antigos sem `type`, evitando congelamentos em colisões.
-- Mira do dash aéreo corrigida: cursor atualizado recentemente determina a direção; cursor parado por muito tempo ou fora da área do jogo não causa impulsos inesperados. Em teclado e toque, a direção horizontal mantida prevalece sem mira recente.
+- O dash aéreo avança **sempre na horizontal**, exclusivamente para a direção em que Flux está olhando (esquerda ou direita) ao ativar. Cursor/mouse não controlam o dash; não há dash vertical ou diagonal. Velocidade, duração e recarga permanecem as mesmas.
 - Ícone local do jogo para evitar a requisição automática sem recurso `/favicon.ico` em navegadores.
 - A rotina de desenho da Floresta Neon passou a ser executada apenas na primeira fase.
 - Testes automáticos e guia de regressão adicionados. Execute `npm install`, `npm test` e `npm run build`.
@@ -58,7 +58,7 @@ https://github.com/jhonyoreis/velocity-rift
 
 ### Como testar os novos desafios
 
-Acesse a Cidade das Fendas pelo mapa após concluir o Cânion Prisma, ou use DEBUG apenas para testes. O Núcleo de Ímpeto aparece no começo da cidade; pule normalmente, solte o botão e aperte **pulo novamente no ar** para impulsionar Flux na direção do cursor (sem cursor, na direção para a qual ele olha). O comando também funciona com o botão de pulo na tela.
+Acesse a Cidade das Fendas pelo mapa após concluir o Cânion Prisma, ou use DEBUG apenas para testes. O Núcleo de Ímpeto aparece no começo da cidade; pule normalmente, solte o botão e aperte **pulo novamente no ar** para impulsionar Flux **na horizontal, para o lado em que ele está olhando**. O comando também funciona com o botão de pulo na tela.
 
 O dash recarrega quando Flux aterrissa. Três membranas dimensionais exigem um dash ativo para passar. Os drones disparam projéteis em pares; boost e dash não bloqueiam esses tiros. O chefe Arquiteto do Vazio precisa de quatro colisões com dash durante janelas em que o escudo está aberto. O chefe possui introdução e música próprias.
 
@@ -66,7 +66,7 @@ O dash recarrega quando Flux aterrissa. Três membranas dimensionais exigem um d
 
 ### Núcleo de Ímpeto e dash aéreo
 
-Flux recolhe o **Núcleo de Ímpeto** ainda no começo da cidade. A coleta desbloqueia permanentemente o dash na campanha, inclusive ao voltar às fases anteriores. O dash funciona ao **apertar o pulo pela segunda vez durante um salto** (Espaço, W, ↑ ou K). No computador, o impulso segue a direção do **cursor na área de jogo**; sem cursor apontado, segue a direção em que Flux está olhando. Cada salto concede um dash, recarregado ao tocar uma plataforma.
+Flux recolhe o **Núcleo de Ímpeto** ainda no começo da cidade. A coleta desbloqueia permanentemente o dash na campanha, inclusive ao voltar às fases anteriores. O dash funciona ao **apertar o pulo pela segunda vez durante um salto** (Espaço, W, ↑ ou K). O impulso segue **somente a direção em que Flux está olhando**, para a esquerda ou para a direita. Não existe mira pelo mouse, dash vertical ou diagonal. Cada salto concede um dash, recarregado ao tocar uma plataforma.
 
 O artefato é salvo em `velocity-rift-campaign-v3`, sem apagar os recordes antigos. O DEBUG permite testar o deslocamento e o chefe sem registrar a obtenção.
 
