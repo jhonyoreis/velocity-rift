@@ -93,6 +93,29 @@ const SECRET_DEFS={
         [110,249,117,"fixed"],[-5,332,109,"crumble"],[-112,412,110,"fixed"],
         [-10,496,108,"crumble"],[105,578,109,"fixed"],[218,660,144,"fixed"]],
       hazards:[["hunter",4,69,-58,0],["mine",6,44,-56,0],["dart",7,-35,-75,51]]}
+  ],
+  3:[
+    {id:"antenna",name:"Antenas Perdidas",x:2660,y:305,limit:31,
+      hint:"ESTEIRAS E PLATAFORMAS MÓVEIS",
+      steps:[[0,0,155,"fixed"],[100,78,117,"belt-right"],[205,154,110,"moving"],
+        [102,229,111,"fixed"],[-9,303,101,"phase"],[105,377,108,"moving"],
+        [222,451,104,"belt-left"],[125,527,110,"spring"],
+        [16,604,103,"fixed"],[-84,680,139,"fixed"]],
+      hazards:[["dart",2,36,-67,64],["laser",5,0,-57,108],["hunter",8,55,-70,0]]},
+    {id:"underpass",name:"Subsolo Fantasma",x:8720,y:315,limit:32,
+      hint:"FEIXES E LAJES FRÁGEIS",
+      steps:[[0,0,152,"fixed"],[-99,77,110,"crumble"],[4,153,105,"phase"],
+        [118,229,109,"fixed"],[212,305,105,"crumble"],[114,381,111,"moving"],
+        [8,458,103,"phase"],[-94,535,104,"crumble"],
+        [8,610,112,"fixed"],[115,685,145,"fixed"]],
+      hazards:[["mine",3,40,-61,0],["laser",6,0,-63,117],["dart",8,-30,-70,62]]},
+    {id:"skyline",name:"Coroa dos Arranha-céus",x:15150,y:305,limit:30,
+      hint:"SALTE ENTRE ANTENAS SEM PARAR",
+      steps:[[0,0,157,"fixed"],[116,78,108,"spring"],[223,160,107,"moving"],
+        [110,241,107,"crumble"],[-12,323,102,"belt-left"],[-123,405,108,"moving"],
+        [-20,484,98,"phase"],[95,561,107,"crumble"],[204,640,111,"spring"],
+        [300,720,146,"fixed"]],
+      hazards:[["hunter",3,58,-64,0],["orbiter",6,30,-61,35],["sentry",8,-37,-62,0]]}
   ]
 };
 const ACHIEVEMENTS=[
@@ -530,7 +553,85 @@ function createStageTwoWorld() {
   return world;
 }
 
-const STAGES={1:stageOneWorld,2:createStageTwoWorld()};
+function createStageThreeWorld(){
+  // Rooftops are safer elevated shortcuts. Streets have more enemies.
+  const parts=[[0,1600,422],[1600,3020,438],[3020,4500,418],[4500,5900,430],
+    [5900,7240,430],[7670,9050,416],[9050,10630,412],
+    [11110,12630,425],[13120,14750,413],[14750,16100,413],
+    [16100,17600,410],[17600,19200,410]];
+  const ground=parts.map(([a,b,y])=>track(a,y,b,y,"city-street"));
+  const roofs=[[510,298,950],[1450,280,1820],[2190,305,2630],[2980,265,3460],
+    [3540,295,4080],[4760,279,5350],[5500,290,6130],[6350,284,6980],
+    [7740,283,8270],[8410,268,8980],[9270,281,9850],[9960,255,10580],
+    [11170,283,11780],[11980,263,12560],[13160,279,13670],[13840,267,14590],
+    [14960,281,15510],[15860,288,16320],[16880,290,17360]]
+    .map(([a,y,b])=>track(a,y,b,y,"city-roof"));
+  const lifts=[[7120,304,160,110,1.15,.4],[10690,293,165,115,.95,1.1],
+    [12680,277,160,112,1.06,1.8]].map(([x,y,w,swing,speed,phase])=>{
+    const f=track(x,y,x+w,y,"moving");f.originX=x-Math.sin(phase)*swing;
+    f.swing=swing;f.speed=speed;f.phase=phase;return f;
+  });
+  const groundY=x=>ground.find(t=>x>=t.x1&&x<=t.x2)?.y1??418;
+  const bads=[[830,"city-drone",90,300],[1320,"city-hunter",80,0],
+    [2180,"city-drone",105,307],[2650,"city-turret",0,0],
+    [3140,"city-drone",105,270],[4820,"city-hunter",80,0],
+    [5260,"city-drone",90,272],[6160,"city-turret",0,0],
+    [6670,"city-drone",90,302],[8000,"city-drone",95,280],
+    [8520,"city-hunter",75,0],[9390,"city-turret",0,0],
+    [9860,"city-drone",105,270],[11330,"city-drone",85,278],
+    [11830,"city-hunter",76,0],[13310,"city-turret",0,0],
+    [13970,"city-drone",80,272],[15020,"city-hunter",70,0],
+    [15830,"city-drone",88,286],[16650,"city-turret",0,0],
+    [17100,"city-drone",72,285]]
+    .map(([x,type,patrol,flightY])=>{
+      const b=enemy(x,flightY||groundY(x)-3,patrol);
+      b.type=type;b.w=type==="city-hunter"?46:45;
+      b.h=type==="city-drone"?28:38;b.shotTimer=.6+x%3*.2;
+      b.doubleShots=0;return b;
+    });
+  const rings=[];
+  for(const [a,b] of [[200,1500],[1920,2900],[3340,4250],[4810,5610],
+    [6150,6990],[7800,8950],[9300,10480],[11320,12400],
+    [13220,14500],[14930,15800],[16200,17300]]){
+    for(let x=a;x<b;x+=62)rings.push({x,y:groundY(x)-49,r:8,active:true});
+  }
+  const signs=[
+    [210,"CIDADE DAS FENDAS","TELHADOS SEGUROS · RUAS PERIGOSAS"],
+    [1700,"DRONES DE ASSALTO","TIROS DUPLOS · BOOST NÃO BLOQUEIA"],
+    [3370,"NÚCLEO DE ÍMPETO","COLETE PARA APRENDER O DASH"],
+    [4710,"DASH AÉREO","APERTE PULO DUAS VEZES · MIRE COM O CURSOR"],
+    [6640,"VÃO DIMENSIONAL","O DASH É OBRIGATÓRIO"],
+    [9620,"ROTAS ELEVADAS","TELHADOS MAIS SEGUROS · RUAS COM PATRULHAS"],
+    [10490,"PASSAGEM OBRIGATÓRIA","DASH AÉREO NECESSÁRIO"],
+    [12460,"PROJÉTEIS","BOOST E DASH NÃO BLOQUEIAM TIROS"],
+    [13720,"RITMO FINAL","ENCADEIE SALTO E DASH"],
+    [17290,"O ARQUITETO","QUATRO NÚCLEOS · RAJADAS DUPLAS"]
+  ].map(([x,title,hint])=>({x,title,hint}));
+  return {worldW:19200,spawn:{x:90,y:404},goal:{x:19040,y:338,w:54,h:72},
+    tracks:[...ground,...roofs,...lifts],
+    chapters:[{x:0,title:"01 / LUZES DA METRÓPOLE"},
+      {x:3250,title:"02 / NÚCLEO DE ÍMPETO"},
+      {x:5850,title:"03 / SALTO SOBRE O VAZIO"},
+      {x:9100,title:"04 / TELHADOS OU RUAS"},
+      {x:12900,title:"05 / FENDAS DO CÉU"},
+      {x:17200,title:"06 / ARQUITETO DO VAZIO"}],
+    signs,checkpoints:[2550,5330,8000,11530,14450,17330]
+      .map(x=>({x,y:groundY(x)-PLAYER_RADIUS,active:false})),
+    walls:[rect(-120,0,120,WORLD_H,"left-wall")],
+    tunnels:[],enemies:bads,rings,
+    boostOrbs:[700,2100,3090,4950,6310,7940,9510,11610,13440,15340,17020]
+      .map(x=>orb(x,groundY(x)-35)),
+    springs:[],boostPads:[],
+    spikes:[2350,4970,6210,8340,9710,11900,13580,15530,16920]
+      .map(x=>({x,y:groundY(x)-22,w:56,h:22})),
+    pulseGates:[],
+    memoryCores:[{x:2920,y:227,r:13,id:0,active:true},
+      {x:9530,y:232,r:13,id:1,active:true},
+      {x:15650,y:230,r:13,id:2,active:true}],
+    pits:[[7240,7670],[10630,11110],[12630,13120]]};
+}
+
+const STAGES={1:stageOneWorld,2:createStageTwoWorld(),3:createStageThreeWorld()};
 function installSecretRoutes(world,stage){
   world.secretTrials=SECRET_DEFS[stage].map(def=>{
     const platforms=def.steps.map(([dx,rise,width,behavior],step)=>{
@@ -573,6 +674,7 @@ function installSecretRoutes(world,stage){
 
 installSecretRoutes(STAGES[1],1);
 installSecretRoutes(STAGES[2],2);
+installSecretRoutes(STAGES[3],3);
 
 function activateStage(stage=1) {
   if(stage!==1&&stage!==2)throw new Error("Unknown level "+stage);
