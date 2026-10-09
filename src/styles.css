@@ -615,3 +615,167 @@ body {
   .result-menu-actions {gap:6px;}
   .result-menu-actions button {font-size:.72rem;padding:8px 10px;min-height:34px;}
 }
+
+/* ============ Mapa das Fendas: next campaign chapter ============ */
+.rift-map-screen {
+  width:min(100%,930px);
+  max-height:100%;
+  display:grid;grid-template-rows:auto minmax(0,1fr) auto;
+  align-items:stretch;justify-items:stretch;
+  gap:10px;padding:12px 10px 10px;
+  color:#eafdfa;text-align:left;
+}
+.rift-map-screen[hidden],.rift-map-details[hidden]{display:none!important;}
+.rift-map-header {display:flex;align-items:center;justify-content:space-between;gap:15px;}
+.rift-map-header .menu-eyebrow {font-size:.62rem;letter-spacing:.2em;}
+.rift-map-header h2 {
+  font-size:clamp(1.45rem,3.2vw,2.2rem);
+  margin:4px 0 0;color:#f6f9ff;line-height:1;
+  text-shadow:0 2px 22px rgba(86,242,223,.18);
+}
+.rift-map-intro {color:#badbdc;font-size:.7rem;margin:5px 0 0;}
+.rift-map-mark {color:#acfff1;white-space:nowrap;font-size:.66rem;font-weight:850;
+  letter-spacing:.09em;border:1px solid #79d7d451;border-radius:20px;padding:8px 11px;
+  background:rgba(9,34,55,.74);}
+.rift-map-layout {min-width:0;min-height:0;display:grid;
+  grid-template-columns:minmax(0,1.52fr) minmax(285px,1fr);gap:12px;height:315px;}
+.rift-map-world {position:relative;min-width:0;min-height:0;overflow:hidden;
+  border-radius:18px;border:1px solid rgba(136,229,233,.34);
+  background:radial-gradient(ellipse at 17% 82%,rgba(14,147,113,.52),transparent 38%),
+   radial-gradient(ellipse at 50% 48%,rgba(111,49,180,.47),transparent 38%),
+   radial-gradient(ellipse at 86% 12%,rgba(75,99,171,.5),transparent 33%),
+   linear-gradient(142deg,#092936,#10143f 55%,#171538);
+  box-shadow:inset 0 0 70px #030b2587,0 10px 30px #030b1966;}
+.rift-map-world:before {content:"";position:absolute;inset:0;opacity:.3;
+  pointer-events:none;background-image:
+   linear-gradient(0deg,transparent 96%,rgba(150,241,245,.14) 97%),
+   linear-gradient(90deg,transparent 96%,rgba(150,241,245,.14) 97%);
+  background-size:29px 29px;transform:perspective(250px) rotateX(11deg) scale(1.2);}
+.rift-map-world:after {content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(circle at 26% 21%,#aafff1 0 1px,transparent 2px),
+    radial-gradient(circle at 73% 63%,#fff1d3 0 1px,transparent 2px),
+    radial-gradient(circle at 88% 81%,#b0caff 0 1px,transparent 2px);
+  background-size:130px 108px,180px 120px,210px 180px;opacity:.28;}
+.rift-map-continent{position:absolute;pointer-events:none;filter:drop-shadow(0 0 17px #ffffff1c);}
+.continent-forest {width:245px;height:160px;left:-30px;bottom:-44px;
+  border-radius:43% 54% 15% 12%;
+  background:linear-gradient(22deg,#176c6380,#16897026);
+  transform:rotate(-14deg);clip-path:polygon(0 44%,16% 36%,24% 10%,42% 44%,54% 12%,75% 33%,100% 16%,97% 100%,0 100%);}
+.continent-prism {width:230px;height:220px;left:35%;top:9%;
+  background:linear-gradient(60deg,#7d44ca2e,#b89bff3e);transform:rotate(14deg);
+  clip-path:polygon(15% 42%,33% 8%,59% 27%,83% 5%,100% 45%,78% 88%,27% 100%,3% 66%);}
+.continent-city {width:168px;height:155px;right:-14px;top:-20px;
+  background:linear-gradient(40deg,#27348044,#8da6e555);
+  clip-path:polygon(0 63%,14% 63%,14% 43%,30% 43%,30% 20%,48% 20%,48% 35%,65% 35%,65% 0,80% 0,80% 22%,100% 22%,100% 100%,0 100%);}
+.rift-map-paths {position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:1;}
+.rift-map-path{stroke-width:4;stroke-linecap:round;stroke-dasharray:7 11;fill:none;}
+.rift-map-path-open{opacity:.95;filter:drop-shadow(0 0 5px rgba(144,253,231,.55));
+  animation:riftPathDrift 8s linear infinite;}
+.rift-map-path-locked{stroke:#8295ac;opacity:.3;stroke-dasharray:3 13;}
+@keyframes riftPathDrift{from{stroke-dashoffset:0}to{stroke-dashoffset:-144}}
+.rift-map-node {position:absolute;z-index:2;display:grid;justify-items:center;gap:2px;
+  width:126px;padding:9px 5px 7px;transform:translate(-50%,-50%);
+  border:1px solid rgba(149,255,242,.68);border-radius:14px;
+  color:#e9fff5;background:linear-gradient(155deg,#184e5d,#072d3aef);
+  box-shadow:0 7px 23px #020817bf,inset 0 1px 0 #ffffff23;
+  text-align:center;cursor:pointer;transition:box-shadow .2s,background .2s,filter .2s;}
+.rift-map-node-forest {left:20.4%;top:73.75%;}
+.rift-map-node-canyon {left:51.3%;top:45.3%;border-color:#d3b0fbad;
+  background:linear-gradient(153deg,#524077,#23254cea);}
+.rift-map-node-city {left:80.9%;top:19.7%;border-color:#9ba6d875;
+  background:linear-gradient(150deg,#364364e9,#1c2544ed);}
+.rift-map-node:hover,.rift-map-node:focus-visible {
+  box-shadow:0 0 0 3px #e7f5ef55,0 0 32px #5cf7cf73;
+  filter:brightness(1.18);outline:none;}
+.rift-map-node.is-selected {box-shadow:0 0 0 3px #fcdf9b,0 0 33px #b4fce36b;}
+.rift-map-node.is-locked {filter:saturate(.6);border-style:dashed;}
+.rift-map-node.is-locked.is-selected{filter:none;}
+.rift-map-node.is-future {opacity:.88;}
+.rift-node-emblem {width:34px;height:34px;border:1px solid #baffec94;
+  border-radius:50%;display:grid;place-items:center;font-size:1.3rem;
+  color:#a1ffe0;background:#05262a9c;box-shadow:0 0 14px #b1fff139;}
+.rift-map-node-canyon .rift-node-emblem{color:#d9b1ff;border-color:#c59cff;}
+.rift-map-node-city .rift-node-emblem{color:#f8d6a3;border-color:#f8d6a366;}
+.rift-node-number{font-size:.53rem;letter-spacing:.2em;color:#e6f3f9;font-weight:900;}
+.rift-node-title{font-size:.64rem;font-weight:950;letter-spacing:.075em;white-space:nowrap;}
+.rift-map-node small{font-size:.52rem;letter-spacing:.09em;font-weight:750;color:#b2fff0;}
+.rift-map-node.is-locked small{color:#e7c8ff;}
+.rift-map-node.is-future small{color:#f9d29c;}
+.rift-map-coordinate{position:absolute;bottom:10px;left:12px;color:#a9d8d3a0;
+  font-size:.52rem;letter-spacing:.18em;font-weight:800;z-index:2;}
+.rift-map-info{min-width:0;min-height:0;display:grid;}
+.rift-map-details {width:100%;height:100%;display:flex;flex-direction:column;gap:8px;
+  padding:15px;border:1px solid rgba(102,238,222,.34);
+  border-radius:16px;background:linear-gradient(152deg,rgba(12,50,66,.94),rgba(7,22,49,.97));
+  box-shadow:inset 0 1px 0 rgba(210,255,249,.07);text-align:left;}
+.rift-detail-canyon{border-color:#c3a1f48c;
+  background:linear-gradient(152deg,rgba(49,36,88,.96),rgba(13,20,54,.97));}
+.rift-detail-city{border-color:#8fa6d780;
+  background:linear-gradient(152deg,rgba(40,48,80,.96),rgba(13,21,47,.97));}
+.rift-map-details.stage-card-locked{opacity:1;}
+.rift-detail-heading {display:flex;justify-content:space-between;align-items:center;gap:9px;}
+.rift-detail-index {font-size:.58rem;font-weight:900;color:#b1fff1;letter-spacing:.16em;}
+.rift-detail-state {font-size:.55rem;font-weight:850;color:#ffe9b1;letter-spacing:.06em;
+  padding:4px 7px;border:1px solid #ffeeaa50;border-radius:14px;white-space:nowrap;}
+.rift-map-details h3 {font-size:clamp(1.18rem,2.15vw,1.66rem);color:#efffff;
+  margin:0;letter-spacing:-.035em;}
+.rift-detail-region {font-size:.58rem;letter-spacing:.15em;color:#aeecdd;font-weight:900;margin:0;}
+.rift-detail-canyon .rift-detail-region{color:#d5bafc;}
+.rift-detail-city .rift-detail-region{color:#f5d9af;}
+.rift-detail-story {font-size:.75rem;color:#d2e5ed;line-height:1.42;margin:0;min-height:47px;}
+.rift-detail-stats {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;}
+.rift-detail-stats>div {display:grid;gap:2px;padding:7px 9px;
+  border:1px solid rgba(164,232,239,.17);border-radius:8px;background:#06172c75;}
+.rift-detail-stats small {font-size:.61rem;color:#a9cbd8;}
+.rift-detail-stats strong {font-size:.91rem;color:#f7fcff;font-variant-numeric:tabular-nums;}
+.rift-stage-progress {font-size:.63rem;color:#f5d29a;margin:auto 0 0;line-height:1.25;}
+.rift-map-launch {min-height:38px;padding:9px;border:1px solid #a4ffe7;border-radius:8px;
+  color:#09373f;background:linear-gradient(92deg,#6ee9d0,#b0fff0);
+  font-weight:900;letter-spacing:.045em;font-size:.73rem;transition:filter .15s;}
+.rift-map-launch:hover:not(:disabled){filter:brightness(1.1);}
+.rift-map-launch:focus-visible{outline:2px solid #ffe5a5;outline-offset:3px;}
+.rift-map-launch:disabled{cursor:not-allowed;opacity:.5;color:#c9d5e4;
+  background:#3d5269;border-color:#63768c;}
+.rift-map-locked-label {display:block;font-size:.57rem;color:#e8ccfa;text-align:center;}
+.rift-map-locked-label[hidden]{display:none;}
+.rift-detail-coming {display:grid;place-items:center;flex:1;padding:16px;text-align:center;
+  font-size:.76rem;letter-spacing:.1em;color:#f4d7a2;
+  border:1px dashed #d2b78470;border-radius:9px;background:rgba(30,43,70,.45);}
+.rift-map-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.rift-map-collection{display:flex;flex-wrap:wrap;gap:5px;}
+.rift-map-collection span{font-size:.6rem;color:#c3e2e9;
+  padding:7px 9px;background:#0b2b42c9;border:1px solid #6cacae45;border-radius:7px;
+  white-space:nowrap;}
+.rift-map-navigation {display:flex;gap:6px;}
+.rift-map-navigation button {min-height:31px;padding:6px 12px;border-radius:8px;
+  font-size:.7rem;white-space:nowrap;}
+@media (prefers-reduced-motion:reduce){.rift-map-path-open{animation:none;}}
+@media (min-width:701px) and (max-height:540px){
+  .rift-map-screen{gap:6px;padding:5px 9px;}
+  .rift-map-layout{height:min(315px,64vh);}
+  .rift-map-details{padding:10px;gap:5px;}
+  .rift-detail-story{min-height:0;font-size:.67rem;}
+  .rift-detail-stats>div{padding:5px 7px;}
+  .rift-map-header h2{font-size:1.5rem;}
+  .rift-map-intro{font-size:.64rem;}
+}
+@media (max-width:700px){
+  .rift-map-screen{width:100%;padding:13px 9px;max-height:none;gap:10px;}
+  .rift-map-header{flex-wrap:wrap;}
+  .rift-map-layout{grid-template-columns:minmax(0,1fr);height:auto;gap:11px;}
+  .rift-map-world{height:230px;}
+  .rift-map-info{min-height:286px;}
+  .rift-map-details{min-height:286px;height:auto;}
+  .rift-map-node{width:110px;padding:5px 3px;}
+  .rift-node-emblem{width:26px;height:26px;font-size:1rem;}
+  .rift-node-title{font-size:.57rem;}
+  .rift-map-footer{flex-wrap:wrap;}
+  .rift-map-collection{width:100%;justify-content:center;}
+  .rift-map-navigation{width:100%;justify-content:center;}
+}
+@media(max-width:400px){
+  .rift-map-node{width:93px;}
+  .rift-node-title{font-size:.49rem;}
+  .rift-map-mark{display:none;}
+  .rift-map-collection span{font-size:.53rem;padding:6px;}
+}
