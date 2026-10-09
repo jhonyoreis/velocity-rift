@@ -320,18 +320,38 @@
               <button id="backToMainButton" class="rift-map-back" type="button">← VOLTAR AO MENU</button>
             </footer>
           </section>
-          <section id="achievementsMenu" class="menu-screen achievement-screen" aria-labelledby="achievementsHeading" hidden>
-            <div class="menu-eyebrow">COLEÇÃO DO FLUX</div>
-            <h2 id="achievementsHeading">Conquistas</h2>
-            <p id="achievementsCount" class="menu-subtitle" aria-live="polite">0/13 conquistas desbloqueadas</p>
-            <p id="secretCollection" class="achievement-route-summary">Rotas: Floresta 0/3 · Cânion 0/3</p>
-            <p class="achievement-instructions">Suba pelas plataformas luminosas e alcance o fragmento. Cada rota dá uma tentativa por fase: inimigos, projéteis, queda ou tempo esgotado encerram o desafio. Para tentar novamente, reinicie a fase.</p>
-            <div id="achievementList" class="achievement-list" aria-label="Lista de conquistas"></div>
-            <h3 class="achievement-section-title">Rotas secretas e melhores tempos</h3>
-            <div id="secretRouteList" class="secret-route-list" aria-label="Coleção de rotas secretas"></div>
-            <div class="menu-actions menu-actions-compact">
-              <button id="achievementsBackButton" class="secondary-action" type="button">← Voltar ao menu</button>
+          <section id="achievementsMenu" class="menu-screen achievement-screen vr-collection" aria-labelledby="achievementsHeading" hidden>
+            <header class="vr-collection-header">
+              <div>
+                <span class="vr-collection-kicker">ARQUIVO DE FLUX</span>
+                <h2 id="achievementsHeading" tabindex="-1">Conquistas</h2>
+                <p class="vr-collection-subtitle">Os feitos da sua jornada.</p>
+              </div>
+              <span id="achievementsCount" class="vr-collection-count" aria-live="polite">0 de 20</span>
+            </header>
+            <div id="achievementProgressTrack" class="vr-collection-progress"
+                 role="progressbar" aria-label="Conquistas desbloqueadas"
+                 aria-valuemin="0" aria-valuemax="20" aria-valuenow="0">
+              <div id="achievementProgressFill" class="vr-collection-progress-fill"></div>
             </div>
+            <section class="vr-collection-section" aria-labelledby="achievementSectionHeading">
+              <div class="vr-collection-section-heading">
+                <h3 id="achievementSectionHeading">Desafios</h3>
+                <span class="vr-collection-section-detail">Conquistas da campanha</span>
+              </div>
+              <div id="achievementList" class="achievement-list" aria-label="Lista de conquistas"></div>
+            </section>
+            <section class="vr-collection-section" aria-labelledby="secretSectionHeading">
+              <div class="vr-collection-section-heading">
+                <h3 id="secretSectionHeading">Rotas secretas</h3>
+                <span id="secretCollection" class="vr-collection-section-detail">0 de 9 descobertas</span>
+              </div>
+              <p class="vr-collection-section-note">Uma tentativa por rota em cada fase.</p>
+              <div id="secretRouteList" class="secret-route-list" aria-label="Coleção de rotas secretas"></div>
+            </section>
+            <footer class="vr-collection-footer">
+              <button id="achievementsBackButton" class="vr-collection-back" type="button">← VOLTAR AO MENU</button>
+            </footer>
           </section>
           <section id="resultMenu" class="menu-screen" aria-labelledby="resultHeading" hidden>
             <div class="menu-eyebrow">MISSÃO CONCLUÍDA</div>

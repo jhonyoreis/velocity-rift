@@ -1367,7 +1367,13 @@ function showStageMenu(){
   showScreen(stageMenu);
   selectMapStage(selectedMapStage);
 }
-function showAchievementsMenu(){showScreen(achievementsMenu);}
+function showAchievementsMenu(){
+  showScreen(achievementsMenu);
+  // The first actionable button is at the bottom of this long catalogue.
+  // Keep initial focus and scroll at the title instead of jumping to its footer.
+  achievementsMenu.scrollTop=0;
+  document.querySelector("#achievementsHeading").focus({preventScroll:true});
+}
 
 function showResults(time, crystals, cores = 0) {
   const result = debugUsedThisRun
@@ -3158,12 +3164,18 @@ function refreshAchievementsView(){
   const unlocked=ACHIEVEMENTS.filter(a=>progress.achievements[a.id]).length;
   const total=ACHIEVEMENTS.length;
   const counter=document.querySelector("#achievementsCount");
-  if(counter)counter.textContent=unlocked+"/"+total+" conquistas desbloqueadas";
+  if(counter)counter.textContent=unlocked+" de "+total;
+  const meter=document.querySelector("#achievementProgressTrack");
+  if(meter){
+    meter.setAttribute("aria-valuemax",String(total));
+    meter.setAttribute("aria-valuenow",String(unlocked));
+  }
+  const fill=document.querySelector("#achievementProgressFill");
+  if(fill)fill.style.width=(total?Math.round(100*unlocked/total):0)+"%";
   const summary=document.querySelector("#secretCollection");
-  if(summary)summary.textContent="Rotas: Floresta "+
-    progress.secrets.stage1.length+"/3 · Cânion "+
-    progress.secrets.stage2.length+"/3 · Cidade "+
-    progress.secrets.stage3.length+"/3";
+  const discovered=[1,2,3].reduce((n,stage)=>n+progress.secrets["stage"+stage].length,0);
+  const available=[1,2,3].reduce((n,stage)=>n+SECRET_DEFS[stage].length,0);
+  if(summary)summary.textContent=discovered+" de "+available+" descobertas";
   const list=document.querySelector("#achievementList");
   const routes=document.querySelector("#secretRouteList");
   if(routes)routes.innerHTML=[1,2,3].flatMap(stage=>

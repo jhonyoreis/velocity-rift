@@ -447,3 +447,18 @@ estado das linhas após concluir fases, prévia da Fenda Original e legibilidade
 dos nós em telas de 320–430px; dados da campanha atual continuam separados
 dos recordes históricos.
 
+
+
+### Etapa 4 — Arquivo de conquistas com rolagem única
+
+- Redesenhada a tela de conquistas no mesmo estilo discreto da home e do Mapa das Fendas.
+- Os desafios e as rotas secretas aparecem em sequência, com **uma rolagem contínua**:
+  sem barras de scroll individuais nas listas.
+- Barra geral com a contagem das 20 conquistas; resumo das nove rotas.
+- Mantém as conquistas, os tempos históricos, as descrições e os estados desbloqueados.
+- A tela abre no cabeçalho; o foco não salta para o botão localizado no rodapé.
+- No celular o documento usa a rolagem normal da página, também sem scrolls internos.
+
+QA manual: testar com arquivos sem e com conquistas, navegar até o fim das rotas,
+pressionar Voltar ao menu, reabrir a coleção e verificar que inicia no topo;
+validar rolagem por mouse, touch e teclado, em desktop e celular.
