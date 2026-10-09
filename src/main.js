@@ -944,6 +944,24 @@ function showResults(time, crystals, cores = 0) {
       " Núcleos " + cores + "/3 · Melhor " + progress["stage"+activeStage].bestCores + "/3.";
   if(!debugUsedThisRun)grantClearAchievements(result.grade,cores);
   document.querySelector("#resultSecrets").textContent=secretTrials.filter(t=>t.completed).length+"/3";
+  const nextStageButton=document.querySelector("#nextStageButton");
+  // Only stage 2 is playable after stage 1. A debug-only clear must
+  // never unlock it permanently, although active debug mode can test it.
+  const nextPlayable=activeStage===1&&(campaign.stage1Completed||debugMode);
+  nextStageButton.disabled=!nextPlayable;
+  nextStageButton.textContent=nextPlayable
+    ?"Próxima fase: Cânion Prisma ➜"
+    :activeStage===2?"Cidade das Fendas — em desenvolvimento"
+    :"Próxima fase bloqueada";
+  nextStageButton.title=nextPlayable
+    ?"Começar o Cânion Prisma"
+    :activeStage===2?"A terceira fase ainda não está disponível"
+    :"Conclua a primeira fase sem DEBUG para desbloquear a próxima";
+  nextStageButton.classList.toggle("primary-action",nextPlayable);
+  nextStageButton.classList.toggle("secondary-action",!nextPlayable);
+  const retryButton=document.querySelector("#retryButton");
+  retryButton.classList.toggle("primary-action",!nextPlayable);
+  retryButton.classList.toggle("secondary-action",nextPlayable);
   playSfx("finish");
   showScreen(resultMenu);
 }
@@ -3729,6 +3747,10 @@ document.querySelector("#achievementsButton").addEventListener("click",showAchie
 document.querySelector("#stageAchievementsButton").addEventListener("click",showAchievementsMenu);
 document.querySelector("#resultsAchievementsButton").addEventListener("click",showAchievementsMenu);
 document.querySelector("#achievementsBackButton").addEventListener("click",showMainMenu);
+document.querySelector("#nextStageButton").addEventListener("click",()=>{
+  if(activeStage===1&&gameCleared&&(campaign.stage1Completed||debugMode))
+    startGame(2);
+});
 document.querySelector("#retryButton").addEventListener("click", ()=>startGame(activeStage));
 document.querySelector("#resultsStagesButton").addEventListener("click", showStageMenu);
 document.querySelector("#resultsMainButton").addEventListener("click", showMainMenu);
@@ -3742,7 +3764,7 @@ document.querySelectorAll("button:not([data-key])").forEach(button=>{
     if(button.disabled)return;
     unlockAudio();
     const id=button.id;
-    const kind=["confirmNewGameButton","newGameButton","startButton","resumeButton"].includes(id)?"ui-confirm":
+    const kind=["confirmNewGameButton","newGameButton","startButton","resumeButton","nextStageButton"].includes(id)?"ui-confirm":
       ["cancelNewGameButton","settingsBackButton","menuButton","backToMainButton",
        "resultsMainButton","achievementsBackButton"].includes(id)?"ui-back":"ui-select";
     playSfx(kind);
