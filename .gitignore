@@ -2,3 +2,9 @@ node_modules/
 dist/
 .vite/
 .DS_Store
+
+# The Android project is generated from Capacitor by CI.
+# Do not commit local Android build artifacts or SDK configuration.
+android/
+.gradle/
+*.apk

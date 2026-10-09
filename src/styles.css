@@ -2068,3 +2068,39 @@ body {
   .rift-map-clean .rift-map-cartography .rift-map-path.rift-map-path-open{animation:none;}
   .rift-map-clean .rift-map-cartography .rift-map-node{transition:none;}
 }
+
+
+/* Android/landscape gameplay: comfortably separated touch controls.
+   Menus retain their own responsive layouts and hide this bar. */
+@media (pointer:coarse) and (orientation:landscape){
+  .game-panel:not(.menu-active):not(.pause-active) .touch-controls{
+    left:max(12px,env(safe-area-inset-left));
+    right:max(12px,env(safe-area-inset-right));
+    bottom:max(9px,env(safe-area-inset-bottom));
+    gap:8px;
+    justify-content:flex-start;
+    z-index:3;
+  }
+  .game-panel:not(.menu-active):not(.pause-active) .touch-controls button{
+    flex:0 0 auto;
+    min-width:clamp(52px,7.4vw,72px);
+    min-height:44px;
+    padding:8px 10px;
+    border-radius:13px;
+    background:rgba(11,45,62,.73);
+    border:1px solid rgba(139,245,226,.55);
+    color:#eafffb;
+    font-size:.77rem;
+    font-weight:850;
+    box-shadow:0 5px 16px rgba(1,6,25,.24);
+    -webkit-tap-highlight-color:transparent;
+  }
+  .game-panel:not(.menu-active):not(.pause-active) .touch-controls button:nth-child(3){
+    margin-left:auto;
+    background:rgba(55,152,143,.81);
+  }
+  .game-panel:not(.menu-active):not(.pause-active) .touch-controls button:active{
+    background:rgba(100,239,211,.86);
+    color:#092b34;
+  }
+}

@@ -483,3 +483,45 @@ validar rolagem por mouse, touch e teclado, em desktop e celular.
 QA manual: verificar a primeira entrada das três fases após suas cenas
 iniciais, a transição para o spawn e a câmera, a pausa durante a sequência,
 a versão sem bloco cinza e o início do cronômetro só com o controle liberado.
+
+## Android APK — versão de testes
+
+Este projeto também pode ser empacotado como aplicativo **Android offline**
+(com controles de toque e orientação horizontal) usando Capacitor 7.
+
+### APK pelo GitHub, sem Android Studio no seu PC
+1. Abra [GitHub Actions — Android APK](https://github.com/jhonyoreis/velocity-rift/actions/workflows/android-apk.yml).
+2. Aguarde o workflow **Android APK (Velocity Rift)** ficar verde. Em atualizações
+   futuras, use **Run workflow** para gerar novamente quando quiser.
+3. Abra a execução aprovada e, em **Artifacts**, selecione
+   `velocity-rift-android-debug`.
+4. Descompacte o ZIP baixado para obter `app-debug.apk`. Transfira o APK
+   para o celular Android e abra-o para instalar, confirmando apenas as
+   permissões de instalação que o sistema solicitar.
+5. Abra **Velocity Rift** e teste os botões de direção, pulo, boost, slide,
+   som, pausa, derrota, checkpoints e progresso persistente após reiniciar.
+
+**Atenção:** é um APK de desenvolvimento/debug, assinado pela chave debug
+gerada na máquina de build. Serve para testes pessoais, **não** para distribuir
+na Google Play. Como essa chave pode mudar entre execuções, pode ser necessário
+desinstalar a versão debug anterior antes de instalar uma nova; desinstalar
+pode apagar os saves locais. Faça backup manual da experiência desejada.
+
+### Gerar localmente (Windows/macOS/Linux)
+Requisitos: Node.js 22, Java 21, SDK Android 35 e Android Studio.
+
+```bash
+npm install
+npm run build
+npx cap add android
+npx cap sync android
+node scripts/configure-android.mjs
+cd android
+./gradlew assembleDebug
+```
+
+O APK ficará em `android/app/build/outputs/apk/debug/app-debug.apk`.
+`android/` é gerado no build e ignorado pelo Git, para manter a engine web
+independente do ambiente Android. A orientação `sensorLandscape` mantém o
+jogo em paisagem; no celular, o espaço útil varia conforme a barra do sistema.
+

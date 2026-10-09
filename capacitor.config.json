@@ -1,0 +1,8 @@
+{
+  "appId": "com.velocityrift.game",
+  "appName": "Velocity Rift",
+  "webDir": "dist",
+  "android": {
+    "backgroundColor": "#081120"
+  }
+}
