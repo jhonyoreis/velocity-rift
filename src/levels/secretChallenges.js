@@ -1,5 +1,5 @@
 import {SECRET_DEFS} from "../data/secretRoutes.js";
-export function installSecretRoutes(world,stage,{track}){
+export function installSecretRoutes(world,stage,{track,PLAYER_RADIUS}){
   world.secretTrials=SECRET_DEFS[stage].map(def=>{
     const platforms=def.steps.map(([dx,rise,width,behavior],step)=>{
       const x=def.x+dx,y=def.y-rise;

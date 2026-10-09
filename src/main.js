@@ -242,9 +242,9 @@ const WORLD_KEYS=["tracks","chapters","signs","checkpoints","walls","tunnels",
   "enemies","rings","boostOrbs","springs","boostPads","spikes","pulseGates","memoryCores"];
 const levelApi={track,rect,enemy,orb,yOnTrack,PLAYER_RADIUS,WORLD_H};
 const STAGES={1:stageOneWorld,2:createStageTwoWorld({...levelApi,guardian}),3:createStageThreeWorld(levelApi)};
-installSecretRoutes(STAGES[1],1,{track});
-installSecretRoutes(STAGES[2],2,{track});
-installSecretRoutes(STAGES[3],3,{track});
+installSecretRoutes(STAGES[1],1,{track,PLAYER_RADIUS});
+installSecretRoutes(STAGES[2],2,{track,PLAYER_RADIUS});
+installSecretRoutes(STAGES[3],3,{track,PLAYER_RADIUS});
 
 function activateStage(stage=1) {
   if(!STAGES[stage])throw new Error("Unknown level "+stage);

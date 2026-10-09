@@ -27,7 +27,7 @@ test("original stage sizes, checkpoints and obstacles are preserved",()=>{
   assert.deepEqual(stages[2].pits.map(([a,b])=>b-a),[430,480,490]);
   stages.forEach((stage,index)=>{
     assert.equal(stage.memoryCores.length,3);
-    installSecretRoutes(stage,index+1,{track});
+    installSecretRoutes(stage,index+1,{track,PLAYER_RADIUS:18});
     assert.equal(stage.secretTrials.length,3);
     assert.ok(stage.secretTrials.every(t=>t.platforms.length>=8));
   });
