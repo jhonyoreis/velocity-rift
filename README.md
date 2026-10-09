@@ -63,7 +63,7 @@ O Arquiteto é diferente do **Soberano da Ruptura**: o Soberano continua reserva
 - **Coroa do Vazio (158 BPM):** trilha de chefe original, mais pesada e dissonante, com segunda camada rítmica quando o Arquiteto perde parte da vida.
 - Antes de entrar no cenário, a introdução mostra Flux contemplando a metrópole e correndo por prédios. A curta chegada automática ao nível agora inclui pequenos saltos. As cutscenes podem ser revisitadas na galeria.
 
-A nova fase tem **7 conquistas próprias**, incluindo habilidade, vitória, nota, núcleos, chefe e rotas secretas (20 no total). A porcentagem da versão atual acompanha **3 fases, 9 núcleos e 9 rotas**, e a quarta etapa será adicionada ao cálculo quando estiver jogável.
+A nova fase tem **7 conquistas próprias**, incluindo habilidade, vitória, nota, núcleos, chefe e rotas secretas (20 no total). A porcentagem **já reserva um quarto do progresso para a fase final**, permitindo atingir até **75%** enquanto apenas as três primeiras fases estão disponíveis. As 12 metas de núcleos e 12 metas de rotas incluem as três futuras de cada tipo.
 
 
 ## Velocity Rift 3.5.2 — Chegada natural às fases
@@ -121,17 +121,15 @@ O Soberano é apresentado como **antagonista final**; ainda não há combate con
 
 ## Porcentagem de conclusão — fases, núcleos e segredos
 
-O indicador do menu principal agora representa a **conclusão total do jogo disponível**, não apenas a conclusão das fases. A porcentagem é calculada assim:
+O indicador do menu representa a **campanha planejada em quatro fases**, incluindo a Fenda Original ainda em desenvolvimento. Os pesos são:
 
-- **Fases principais — 40%:** cada uma das duas fases concluídas na campanha atual vale 20%.
-- **Núcleos de memória — 30%:** cada um dos seis núcleos (três por fase) vale 5%.
-- **Rotas secretas — 30%:** cada um dos seis desafios secretos concluídos (três por fase) vale 5%.
+- **Fases principais — 40%:** 10 pontos percentuais por fase concluída.
+- **Núcleos de memória — 30%:** 2,5 pontos percentuais por núcleo, em um total planejado de 12.
+- **Rotas secretas — 30%:** 2,5 pontos percentuais por desafio secreto, em um total planejado de 12.
 
-Assim, concluir as duas fases sem recuperar extras corresponde a **40%**. Recuperar todas as rotas e núcleos leva a **100%**. O contador evolui no momento da coleta ou vitória do desafio, mesmo que a fase principal ainda esteja em andamento; os extras são contabilizados apenas uma vez por campanha.
+Como a quarta fase ainda não pode ser jogada, é possível chegar a **no máximo 75% nesta versão**, concluindo as três fases disponíveis e todos os seus núcleos e segredos. O restante será liberado com a fase final. As coletas são contabilizadas apenas uma vez por campanha. O painel mostra **Fases 0–3/4, Núcleos 0–9/12 e Rotas 0–9/12**, preservando os registros do arquivo permanente.
 
-O painel principal mostra um resumo de **Fases / Núcleos / Rotas secretas**, e o rodapé do Mapa das Fendas traz a mesma porcentagem e os contadores dessa campanha. O arquivo permanente da 2.0 continua mostrando seus recordes, notas e núcleos máximos nos painéis das regiões, independentemente do estado da campanha atual.
-
-**Compatibilidade:** campanhas da versão anterior são migradas para o novo cálculo sem apagar saves. Quando não existe informação individual sobre a coleta antiga, os melhores totais de núcleos e rotas das fases já concluídas servem como aproximação inicial; futuras coletas passam a ser armazenadas individualmente. **Novo Jogo** volta a porcentagem e os extras da campanha para zero, mas preserva recordes e conquistas históricos. O **DEBUG** não grava progressão ou extras.
+**Compatibilidade:** campanhas das versões anteriores migram para este cálculo sem apagar saves. Quando não há identificadores individuais dos extras antigos, os melhores totais de núcleos e rotas nas fases concluídas servem como aproximação inicial. **Novo Jogo** reinicia o progresso da campanha, mas mantém recordes e conquistas históricas. O **DEBUG** não grava desbloqueios nem extras.
 
 ## Mapa das Fendas — Etapa 2 da expansão 3.0 (versão 3.3)
 
