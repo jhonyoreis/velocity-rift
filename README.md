@@ -1,4 +1,4 @@
-# Velocity Rift — Cidade das Fendas (versão 3.7 em desenvolvimento)
+# Velocity Rift — Cidade das Fendas (versão 3.7.1 — estabilização)
 
 Um prototipo web 2D inspirado em jogos de plataforma de alta velocidade. Ele usa
 HTML, CSS e Canvas, sem assets oficiais. O Vite é uma dependência de desenvolvimento.
@@ -32,6 +32,14 @@ com JavaScript, sem precisar migrar a engine.
 ## Repositório
 
 https://github.com/jhonyoreis/velocity-rift
+
+## Velocity Rift 3.7.1 — manutenção e organização
+
+- Extração de módulos para layouts das três fases, desafios, conquistas, geometria, classificação, progresso e cenários.
+- As três rotas secretas da Cidade das Fendas receberam paletas próprias, eliminando uma falha de renderização.
+- A rotina de desenho da Floresta Neon passou a ser executada apenas na primeira fase.
+- Testes automáticos e guia de regressão adicionados. Execute `npm install`, `npm test` e `npm run build`.
+- A física, a campanha, os chefes e os controles foram preservados; a quarta fase continua indisponível.
 
 ## Velocity Rift 3.7 — Cidade das Fendas (terceira de quatro fases)
 
