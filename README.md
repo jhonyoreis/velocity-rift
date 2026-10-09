@@ -1,4 +1,4 @@
-# Velocity Rift — versão 3.0 (em desenvolvimento)
+# Velocity Rift — versão 3.1 (em desenvolvimento)
 
 Um prototipo web 2D inspirado em jogos de plataforma de alta velocidade. Ele usa
 HTML, CSS e Canvas, sem assets oficiais. O Vite é uma dependência de desenvolvimento.
@@ -32,6 +32,17 @@ com JavaScript, sem precisar migrar a engine.
 ## Repositório
 
 https://github.com/jhonyoreis/velocity-rift
+
+## Velocity Rift 3.1 — menu widescreen e pausa integrada
+
+- **Apresentação widescreen:** o jogo passou a ocupar uma área 16:9 centralizada e limitada pela altura da janela; a barra inferior e os cartões externos com instruções foram removidos. Os controles continuam disponíveis no menu de pausa. Os controles de toque permanecem na tela durante a partida em dispositivos compatíveis.
+- **Botão interno “Ⅱ PAUSA”** dentro da área de jogo, abaixo do HUD, e atalhos **P / Esc** para pausar ou retomar. Ao pausar, tempo e física congelam, a música reduz o volume e um menu de sobreposição aparece sem descarregar a fase.
+- **Menu de pausa** com **Continuar**, **Reiniciar fase**, **Menu principal**, mixador completo (geral, música e efeitos), botões de silenciar e uma referência rápida aos controles.
+- **Sons sintetizados nos botões** (seleção, confirmação e retorno), respeitando o volume de efeitos, volume geral e o estado de mudo. Não há novos arquivos externos.
+- A tela principal troca o texto de apresentação por **“ENCONTRE ALICIA ALÉM DAS FENDAS”**, com subtítulo sobre resgatar Alicia; recordes e notas saem do cartão inicial (continuam visíveis na seleção de fases/resultados).
+- O progresso da campanha é exibido como **porcentagem e barra de avanço**: **0%**, **50%** ou **100%**, calculado pelas duas fases que já estão jogáveis. Quando a terceira fase for implementada, ela entrará no cálculo.
+- A versão mantém os saves separados introduzidos na etapa 3.0: campanha, conquistas, recordes, rotas secretas e configurações de áudio são preservados. As instruções dos desafios secretos e a proteção contra DEBUG continuam válidas.
+- Os menus foram compactados para reduzir barras de rolagem em janelas widescreen menores. Em telas pequenas, o menu de pausa pode se expandir para permitir acesso a todos os controles.
 
 ## Velocity Rift 3.0 — Etapa 1: menu, campanha e mixagem de áudio
 
