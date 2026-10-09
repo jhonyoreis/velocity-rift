@@ -1,4 +1,4 @@
-# Velocity Rift — Mapa das Fendas (versão 3.3 em desenvolvimento)
+# Velocity Rift — A Flor e a Ruptura (versão 3.5 em desenvolvimento)
 
 Um prototipo web 2D inspirado em jogos de plataforma de alta velocidade. Ele usa
 HTML, CSS e Canvas, sem assets oficiais. O Vite é uma dependência de desenvolvimento.
@@ -32,6 +32,39 @@ com JavaScript, sem precisar migrar a engine.
 ## Repositório
 
 https://github.com/jhonyoreis/velocity-rift
+
+## Velocity Rift 3.5 — A Flor e a Ruptura
+
+A nova etapa introduz **cutscenes inteiramente desenhadas no Canvas**, usando ilustrações vetoriais originais e efeitos sonoros sintetizados (sem vídeos, downloads ou assets externos).
+
+### Prólogo: A Flor e a Ruptura
+
+Ao confirmar **Novo Jogo**, a campanha recomeça pela abertura cinematográfica:
+
+1. **Antes das fendas:** Flux e Alicia contemplam o pôr do sol em um vale.
+2. **Uma flor para Alicia:** Flux entrega uma flor, que ela recebe.
+3. **O céu se rompe:** uma fenda violeta se abre sobre a paisagem.
+4. **O Soberano da Ruptura:** o antagonista final aparece em uma silhueta monumental, com asas de armadura fragmentada, coroa flutuante quebrada e núcleo luminoso no peito.
+5. **Alicia desaparece:** a energia dimensional a leva para outra dimensão; a flor permanece.
+6. **A promessa do Flux:** ele parte em direção ao portal para resgatá-la.
+
+O Soberano é apresentado como **antagonista final**; ainda não há combate contra ele nesta versão. Seu design completo e o confronto final ficam reservados para etapas posteriores.
+
+### Introduções das fases
+
+- **Primeiro Impulso:** Flux atravessa um portal para a Floresta Neon e começa a correr em alta velocidade.
+- **Cânion Prisma:** uma panorâmica da região cristalina antecipa a presença do Guardião.
+- As introduções aparecem na **primeira entrada em cada fase por campanha**, antes da física e do cronômetro começarem. Reiniciar uma fase já apresentada não repete a cena automaticamente.
+
+### Controles e salvamento
+
+- As cenas avançam automaticamente após alguns segundos; **Enter/Espaço**, seta para a direita ou **Avançar** passam para o próximo quadro, e **Esc** ou **Pular cena** avançam diretamente para a próxima etapa da jornada.
+- **Menu** interrompe a reprodução sem marcar uma cena ainda não assistida.
+- A nova **Galeria de cenas**, acessível pelo menu principal, permite rever o prólogo e as introduções já assistidos; cenas não vistas permanecem bloqueadas.
+- Os identificadores de cenas vistas são salvos em `scenesSeen` na chave existente `velocity-rift-campaign-v3`. Novo Jogo limpa apenas as cenas vistas **da campanha**, preservando os recordes, medalhas, conquistas e segredos permanentes da 2.0.
+- A galeria é apenas visual: rever cenas não reinicia fases, não concede recompensas e não modifica o histórico de recordes. Partidas DEBUG não registram novos desbloqueios narrativos.
+
+**Compatibilidade:** saves da 2.0 e da 3.0 continuam legíveis; campanhas antigas com `scenesSeen` ausente começam com a galeria bloqueada e liberam as cenas à medida que forem vistas na nova versão. A porcentagem de conclusão permanece baseada apenas em fases, núcleos e rotas secretas, não nas cutscenes.
 
 ## Porcentagem de conclusão — fases, núcleos e segredos
 
