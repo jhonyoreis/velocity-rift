@@ -12,6 +12,7 @@ const settingsMenu=document.querySelector("#settingsMenu");
 const newGameConfirm=document.querySelector("#newGameConfirm");
 const pauseMenu=document.querySelector("#pauseMenu");
 const screens=[mainMenu,stageMenu,resultMenu,achievementsMenu,settingsMenu,newGameConfirm,pauseMenu];
+let selectedMapStage=1;
 const soundToggle = document.querySelector("#soundToggle");
 const musicToggle = document.querySelector("#musicToggle");
 const trackNowPlaying = document.querySelector("#trackNowPlaying");
@@ -871,6 +872,63 @@ function formatTime(seconds) {
   return seconds > 0 ? seconds.toFixed(2) + "s" : "--";
 }
 
+// Rift atlas stays UI-only: the campaign save controls access and the
+// permanent 2.0 archive provides medals, cores, secrets and best times.
+function selectMapStage(stage){
+  if(![1,2,3].includes(stage))return;
+  selectedMapStage=stage;
+  for(const id of [1,2,3]){
+    const names=["One","Two","Three"];
+    const suffix=names[id-1];
+    const node=document.querySelector("#mapNodeStage"+suffix);
+    const details=document.querySelector("#stage"+suffix+"Card");
+    details.hidden=id!==stage;
+    node.classList.toggle("is-selected",id===stage);
+    node.setAttribute("aria-pressed",String(id===stage));
+  }
+}
+function refreshMapView(){
+  const unlocked=campaign.stage1Completed||debugMode;
+  const completed=Number(campaign.stage1Completed)+Number(campaign.stage2Completed);
+  document.querySelector("#mapCampaignSummary").textContent=
+    "Campanha "+completed+"/2";
+  document.querySelector("#mapCoresSummary").textContent=
+    "Núcleos "+(progress.stage1.bestCores+progress.stage2.bestCores)+"/6";
+  document.querySelector("#mapSecretsSummary").textContent=
+    "Segredos "+(progress.secrets.stage1.length+progress.secrets.stage2.length)+"/6";
+  document.querySelector("#mapAchievementsSummary").textContent=
+    "Conquistas "+Object.values(progress.achievements).filter(Boolean).length+
+    "/"+ACHIEVEMENTS.length;
+  for(const stage of [1,2]){
+    const suffix=stage===1?"One":"Two";
+    const stageProgress=progress["stage"+stage];
+    document.querySelector("#mapStage"+suffix+"Best").textContent=
+      formatTime(stageProgress.bestTime);
+    document.querySelector("#mapStage"+suffix+"Grade").textContent=
+      stageProgress.bestGrade||"--";
+    document.querySelector("#mapStage"+suffix+"Cores").textContent=
+      stageProgress.bestCores+"/3";
+    document.querySelector("#mapStage"+suffix+"Secrets").textContent=
+      progress.secrets["stage"+stage].length+"/3";
+  }
+  const forestStatus=campaign.stage1Completed?"CONCLUÍDA":
+    campaign.started&&campaign.lastStage===1?"EM ANDAMENTO":"DISPONÍVEL";
+  const canyonStatus=campaign.stage2Completed?"CONCLUÍDA":
+    campaign.stage1Completed?"LIBERADA":debugMode?"ACESSO DEBUG":"BLOQUEADA";
+  document.querySelector("#mapNodeStageOneStatus").textContent=forestStatus;
+  document.querySelector("#mapNodeStageTwoStatus").textContent=canyonStatus;
+  document.querySelector("#mapStageOneBadge").textContent=forestStatus;
+  document.querySelector("#mapStageTwoBadge").textContent=canyonStatus;
+  const firstNode=document.querySelector("#mapNodeStageOne");
+  const secondNode=document.querySelector("#mapNodeStageTwo");
+  firstNode.classList.toggle("is-completed",campaign.stage1Completed);
+  secondNode.classList.toggle("is-completed",campaign.stage2Completed);
+  secondNode.classList.toggle("is-locked",!unlocked);
+  document.querySelector("#mapPathToCanyon").classList.toggle("rift-map-path-locked",!unlocked);
+  document.querySelector("#mapPathToCanyon").classList.toggle("rift-map-path-open",unlocked);
+  selectMapStage(selectedMapStage);
+}
+
 function refreshProgressView() {
   const stage = progress.stage1;
   // Only the two currently playable stages count toward completion.
@@ -901,6 +959,7 @@ function refreshProgressView() {
   document.querySelector("#stageTwoCard").classList.toggle("stage-card-locked",!unlocked);
   document.querySelector("#stageTwoCard").classList.toggle("stage-card-active",unlocked);
   document.querySelector("#stageTwoLock").hidden=unlocked;
+  refreshMapView();
   refreshAchievementsView();
   refreshAudioSettings();
 }
@@ -925,7 +984,12 @@ function showScreen(target) {
 
 function showMainMenu() {showScreen(mainMenu);}
 function showSettingsMenu(){showScreen(settingsMenu);refreshAudioSettings();}
-function showStageMenu() { showScreen(stageMenu); }
+function showStageMenu(){
+  selectedMapStage=campaign.stage1Completed?
+    (activeStage===2||campaign.lastStage===2?2:1):1;
+  showScreen(stageMenu);
+  selectMapStage(selectedMapStage);
+}
 function showAchievementsMenu(){showScreen(achievementsMenu);}
 
 function showResults(time, crystals, cores = 0) {
@@ -3740,6 +3804,20 @@ for(const name of ["master","music","effects"]){
       changeAudioLevel(name,event.target.value));
 }
 document.querySelector("#selectStagesButton").addEventListener("click", showStageMenu);
+for(const [index,name] of ["One","Two","Three"].entries()){
+  const button=document.querySelector("#mapNodeStage"+name);
+  button.addEventListener("click",()=>selectMapStage(index+1));
+  button.addEventListener("keydown",event=>{
+    const next=event.key==="ArrowRight"||event.key==="ArrowDown"?
+      Math.min(3,index+2):
+      event.key==="ArrowLeft"||event.key==="ArrowUp"?Math.max(1,index):
+      event.key==="Home"?1:event.key==="End"?3:0;
+    if(!next)return;
+    event.preventDefault();
+    selectMapStage(next);
+    document.querySelector("#mapNodeStage"+["One","Two","Three"][next-1]).focus?.();
+  });
+}
 document.querySelector("#stageOneButton").addEventListener("click", ()=>startGame(1));
  document.querySelector("#stageTwoButton").addEventListener("click", ()=>{if(campaign.stage1Completed||debugMode)startGame(2)});
 document.querySelector("#backToMainButton").addEventListener("click", showMainMenu);
