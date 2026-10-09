@@ -1,4 +1,4 @@
-# Velocity Rift — A Flor e a Ruptura (versão 3.5.1 em desenvolvimento)
+# Velocity Rift — A Flor e a Ruptura (versão 3.5.2 em desenvolvimento)
 
 Um prototipo web 2D inspirado em jogos de plataforma de alta velocidade. Ele usa
 HTML, CSS e Canvas, sem assets oficiais. O Vite é uma dependência de desenvolvimento.
@@ -32,6 +32,17 @@ com JavaScript, sem precisar migrar a engine.
 ## Repositório
 
 https://github.com/jhonyoreis/velocity-rift
+
+## Velocity Rift 3.5.2 — Chegada natural às fases
+
+Após o prólogo e a introdução do capítulo, Flux não aparece mais parado de forma repentina na pista. Em vez disso, há uma curta **corrida automática dentro do cenário jogável**:
+
+- Flux atravessa uma extensão provisória da pista vinda de um portal visual e corre sozinho durante aproximadamente **2 segundos**, enquanto a **câmera acompanha**. A animação usa o mesmo personagem e o mesmo desenho do cenário de cada fase.
+- O trecho acontece após a introdução da **Floresta Neon** ou do **Cânion Prisma**, inclusive se a cena for pulada com Esc. Não é uma nova cutscene sobreposta nem uma tela de carregamento.
+- O trajeto automático é visual e **termina exatamente no spawn original de cada fase**, com a velocidade zerada. Somente então começam a física, o cronômetro e as interações; não há coleta gratuita, dano, distância extra nem alteração nos recordes.
+- **Enter ou Espaço** podem adiantar a chegada; **P/Esc** continuam abrindo ou fechando o menu de pausa normalmente. A sequência funciona sem apertar nenhum botão.
+- A entrada toca apenas na **primeira apresentação de cada capítulo da campanha**. Reiniciar, revisitar ou disputar um recorde em uma fase já introduzida não obriga o jogador a esperar novamente.
+- A mudança não cria novas chaves de save e preserva as fases, a galeria, os núcleos e os desafios secretos.
 
 ## Velocity Rift 3.5.1 — Flux nas cutscenes, montanhas e trilha cinematográfica
 
