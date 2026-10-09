@@ -13,34 +13,50 @@
         <canvas id="game" width="960" height="540"></canvas>
         <button id="debugToggle" class="debug-toggle" type="button" aria-pressed="false" aria-label="Alternar modo de teste com boost infinito, voo e invencibilidade" title="F3" hidden>DEBUG: OFF</button>
         <div id="overlay" class="overlay" role="region" aria-label="Menu do Velocity Rift">
-          <section id="mainMenu" class="menu-screen v3-main" aria-labelledby="menuHeading">
-            <div class="v3-ambient-orb orb-one" aria-hidden="true"></div>
-            <div class="v3-ambient-orb orb-two" aria-hidden="true"></div>
-            <div class="v3-edition">VELOCITY RIFT <span>3.7 // ALÉM DAS FENDAS</span></div>
-            <div class="v3-crest" aria-hidden="true">◇</div>
-            <div class="menu-eyebrow">ENCONTRE ALICIA ALÉM DAS FENDAS</div>
-            <h1 id="menuHeading">VELOCITY <span>RIFT</span></h1>
-            <p class="v3-tagline">Atravesse cada dimensão para trazer Alicia de volta.</p>
-            <div class="v3-campaign-panel">
-              <div class="v3-campaign-heading"><span>◇ CONCLUSÃO DO JOGO</span><strong id="menuProgress" aria-live="polite">0%</strong></div>
-              <div id="campaignProgressTrack" class="v31-progress-track" role="progressbar"
-                   aria-label="Progresso da campanha" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-                <div id="campaignProgressFill" class="v31-progress-fill"></div>
+          <section id="mainMenu" class="menu-screen v3-main v4-home" aria-labelledby="menuHeading">
+            <div class="v4-home-copy">
+              <div class="v4-home-intro">
+                <h1 id="menuHeading">VELOCITY <span>RIFT</span></h1>
+                <p class="v4-home-tagline">Corra. Salte. Rasgue a fenda.</p>
               </div>
-              <p id="campaignCompletionBreakdown" class="v34-progress-breakdown">Fases 0/4 · Núcleos 0/12 · Rotas secretas 0/12</p>
+
+              <div class="v4-home-actions">
+                <button id="newGameButton" class="v4-home-button v4-home-new" type="button">
+                  <span>NOVO JOGO</span><span aria-hidden="true">➜</span>
+                </button>
+                <button id="startButton" class="v4-home-button v4-home-continue" type="button"
+                        disabled aria-describedby="continueDescription">
+                  <span>CONTINUAR</span><span aria-hidden="true">→</span>
+                </button>
+                <span id="continueDescription" class="v4-home-visually-hidden">
+                  Disponível depois de iniciar sua primeira campanha.
+                </span>
+              </div>
+
+              <nav class="v4-home-links" aria-label="Outras opções">
+                <button id="selectStagesButton" type="button">FASES</button>
+                <button id="achievementsButton" type="button">CONQUISTAS</button>
+                <button id="settingsButton" type="button">CONFIGURAÇÕES</button>
+                <button id="galleryButton" type="button">GALERIA</button>
+              </nav>
             </div>
-            <div class="v3-main-actions">
-              <button id="startButton" class="v3-action v3-continue" type="button" disabled>
-                <span>CONTINUAR</span><span aria-hidden="true">➜</span>
-              </button>
-              <p id="continueDescription" class="v3-continue-hint">Comece uma nova jornada para liberar Continuar</p>
-              <button id="newGameButton" class="v3-action" type="button"><span>NOVO JOGO</span><span aria-hidden="true">＋</span></button>
-              <button id="selectStagesButton" class="v3-action" type="button"><span>SELEÇÃO DE FASES</span><span aria-hidden="true">⌁</span></button>
-              <button id="settingsButton" class="v3-action" type="button"><span>CONFIGURAÇÕES</span><span aria-hidden="true">⚙</span></button>
-              <button id="achievementsButton" class="v3-action" type="button"><span>CONQUISTAS</span><span aria-hidden="true">✦</span></button>
-              <button id="galleryButton" class="v3-action" type="button"><span>GALERIA DE CENAS</span><span aria-hidden="true">▣</span></button>
+
+            <div class="v4-home-art" aria-hidden="true">
+              <img src="./menu-hero.svg" alt="" width="850" height="760" decoding="async" />
             </div>
-            <div class="v3-footer"><span>FLUX // O CORREDOR DA FENDA</span><span>SALVAMENTO AUTOMÁTICO</span></div>
+            <small class="v4-home-version">v3.7.2</small>
+
+            <!-- Keep existing progress anchors for saves and other menus,
+                 without showing a statistics dashboard on the home screen. -->
+            <div class="v4-home-data" hidden>
+              <span id="menuProgress" aria-live="polite">0%</span>
+              <div id="campaignProgressTrack" role="progressbar"
+                   aria-label="Progresso da campanha" aria-valuemin="0"
+                   aria-valuemax="100" aria-valuenow="0">
+                <div id="campaignProgressFill"></div>
+              </div>
+              <span id="campaignCompletionBreakdown"></span>
+            </div>
           </section>
           <section id="galleryMenu" class="menu-screen vr-gallery" aria-labelledby="galleryHeading" hidden>
             <div class="menu-eyebrow">MEMÓRIAS ENTRE DIMENSÕES // 3.5</div>

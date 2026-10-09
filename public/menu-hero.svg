@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 850 760" role="img" aria-labelledby="title desc">
+<title id="title">Flux atravessa uma cidade de neon em direção a uma fenda dimensional</title>
+<desc id="desc">Ilustração estilizada da aventura Velocity Rift, com o personagem correndo em primeiro plano.</desc>
+<defs>
+  <radialGradient id="haze"><stop stop-color="#7652c6" stop-opacity=".43"/><stop offset=".48" stop-color="#3c398b" stop-opacity=".24"/><stop offset="1" stop-color="#06152c" stop-opacity="0"/></radialGradient>
+  <linearGradient id="city" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#325078"/><stop offset="1" stop-color="#0a1834"/></linearGradient>
+  <linearGradient id="portal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#85ffee"/><stop offset=".5" stop-color="#b39bfa"/><stop offset="1" stop-color="#51cedc"/></linearGradient>
+  <linearGradient id="interior" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#21376d"/><stop offset=".45" stop-color="#41216e"/><stop offset="1" stop-color="#100f38"/></linearGradient>
+  <linearGradient id="armor" x1="0" y1="0" x2=".9" y2="1"><stop stop-color="#6af9e2"/><stop offset=".55" stop-color="#2797b3"/><stop offset="1" stop-color="#17476f"/></linearGradient>
+  <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff6aa"/><stop offset=".5" stop-color="#ffbd6a"/><stop offset="1" stop-color="#d66a57"/></linearGradient>
+  <linearGradient id="shoe" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffeaa1"/><stop offset=".55" stop-color="#f0a252"/><stop offset="1" stop-color="#bd4b4d"/></linearGradient>
+  <filter id="glow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="10"/></filter>
+  <filter id="soft" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="25"/></filter>
+  <clipPath id="gate"><ellipse cx="560" cy="324" rx="133" ry="226"/></clipPath>
+</defs>
+<ellipse cx="545" cy="335" rx="340" ry="350" fill="url(#haze)"/>
+<path d="M132 666C306 565 510 600 807 665L850 760H25Z" fill="#081730" opacity=".72"/>
+<!-- Distant city skyline -->
+<g fill="url(#city)" opacity=".66">
+ <path d="M126 592V357H169V327H184V377H206V499H232V308H270V260H282V308H314V546H335V411H376V389H394V579H439V480H476V436H497V586H515V549H565V578H619V438H649V406H667V560H696V365H737V306H749V365H766V552H820V609Z"/>
+</g>
+<g fill="#8cf9ec" opacity=".31">
+ <path d="M245 341h5v18h-5zm16 0h5v18h-5zm-16 34h5v18h-5zm16 0h5v18h-5zm-16 34h5v18h-5zm16 0h5v18h-5zm-16 34h5v18h-5zm16 0h5v18h-5zM712 394h7v14h-7zm20 0h7v14h-7zm-20 31h7v14h-7zm20 31h7v14h-7zm-20 31h7v14h-7zM349 449h7v11h-7zm16 0h7v11h-7zm-16 25h7v11h-7z"/>
+</g>
+<g opacity=".8" fill="#d6a7ff"><circle cx="232" cy="190" r="3"/><circle cx="356" cy="91" r="2"/><circle cx="743" cy="166" r="3"/><circle cx="733" cy="85" r="2"/><circle cx="287" cy="244" r="1.7"/></g>
+<!-- Rift aperture -->
+<ellipse cx="560" cy="324" rx="146" ry="238" fill="#83fcef" opacity=".28" filter="url(#soft)"/>
+<ellipse cx="560" cy="324" rx="131" ry="226" fill="url(#interior)" stroke="url(#portal)" stroke-width="10"/>
+<g clip-path="url(#gate)">
+ <path d="M390 148L519 267L478 392L581 482L555 595M712 95L616 240L655 332L582 407L721 518" fill="none" stroke="#b590ff" stroke-width="27" opacity=".19"/>
+ <path d="M470 170L550 266L516 369L572 408L531 559M671 159L597 251L636 322L584 402L641 485" fill="none" stroke="#b9fbff" stroke-width="5" opacity=".62"/>
+ <circle cx="567" cy="331" r="72" fill="#cbadff" opacity=".20" filter="url(#glow)"/>
+ <path d="M527 265L575 294L615 256L598 334L643 370L583 393L557 477L537 395L492 374L533 329Z" fill="#86f8ef" opacity=".25"/>
+</g>
+<ellipse cx="560" cy="324" rx="131" ry="226" fill="none" stroke="#e1edff" stroke-width="2" stroke-dasharray="4 14" opacity=".75"/>
+<path d="M430 146L399 116L447 152M669 155L714 129L679 194M432 472L392 519L447 492M661 499L706 529L667 460" fill="none" stroke="#a7fdee" stroke-width="7" stroke-linecap="round" opacity=".8"/>
+<!-- Fragments -->
+<g stroke="#a9ffef" stroke-width="2" fill="#4bcbd2" fill-opacity=".31">
+ <path d="M357 204l27-25 8 40-16 22z"/><path d="M725 255l22 7-12 39-24 10z"/><path d="M389 420l29 18-21 33-19-11z"/><path d="M693 93l17-19 10 30-18 14z"/>
+</g>
+<!-- Road and energetic rails -->
+<path d="M0 647C245 608 384 627 570 637C695 643 759 635 850 616V760H0Z" fill="#0a1533"/>
+<path d="M0 665C280 620 455 654 850 628" fill="none" stroke="#78fce9" stroke-width="5" opacity=".7"/>
+<path d="M0 704C345 641 558 693 850 676" fill="none" stroke="#7f76ca" stroke-width="2" opacity=".43"/>
+<g fill="none" stroke="#7cfde8" stroke-width="7" stroke-linecap="round" opacity=".25" filter="url(#glow)">
+ <path d="M72 537C167 518 199 552 304 530"/><path d="M65 573C150 558 246 567 332 563"/>
+</g>
+<g fill="none" stroke-linecap="round">
+ <path d="M68 528C176 510 206 545 304 525" stroke="#76f4df" stroke-width="5" opacity=".68"/>
+ <path d="M39 562C150 550 227 572 345 558" stroke="#a5abff" stroke-width="3" opacity=".53"/>
+ <path d="M113 589C211 583 269 603 328 579" stroke="#ffce8f" stroke-width="2" opacity=".65"/>
+</g>
+<!-- Flux: dynamic running pose in the game's yellow, teal, white and orange palette -->
+<g transform="translate(345 493) rotate(-8)">
+ <ellipse cx="17" cy="132" rx="153" ry="18" fill="#7ef9e8" opacity=".17" filter="url(#glow)"/>
+ <!-- Rear leg -->
+ <path d="M-2 83L-70 117L-128 116L-133 137L-66 145L35 115Z" fill="#1c6b93" stroke="#10466f" stroke-width="7" stroke-linejoin="round"/>
+ <path d="M-126 113l-40 4-24 25 13 17 75-3 17-17z" fill="url(#shoe)" stroke="#462d54" stroke-width="6" stroke-linejoin="round"/>
+ <path d="M-181 144h80" stroke="#fff1b5" stroke-width="5" stroke-linecap="round"/>
+ <!-- Far arm -->
+ <path d="M-29 18L-87 48L-114 67" fill="none" stroke="#176c87" stroke-width="24" stroke-linecap="round"/>
+ <path d="M-105 59l-22 2-7 20 22 12 26-16z" fill="#f5ffff" stroke="#295879" stroke-width="4" stroke-linejoin="round"/>
+ <!-- Hair/energy quills behind helmet -->
+ <path d="M-44-75L-156-119L-106-51L-174-65L-98-6L-145 13L-57 15Z" fill="url(#gold)" stroke="#684a6d" stroke-width="7" stroke-linejoin="round"/>
+ <path d="M-58-55L-132-94M-74-22L-139-48" stroke="#fff5ad" stroke-width="4" opacity=".72"/>
+ <!-- Torso -->
+ <path d="M-48 7L15-15L66 40L32 108L-27 99L-67 48Z" fill="url(#armor)" stroke="#113d65" stroke-width="8" stroke-linejoin="round"/>
+ <path d="M-22 24L28 5L44 46L9 76L-33 62Z" fill="#cbfff4" opacity=".84"/>
+ <path d="M-35 89L22 84L31 106L-21 120Z" fill="#204d76"/>
+ <!-- Front leg -->
+ <path d="M19 97L96 119L149 88" fill="none" stroke="#2386a7" stroke-width="32" stroke-linecap="round" stroke-linejoin="round"/>
+ <path d="M139 80l50-13 25 27-9 24-65 8-26-25z" fill="url(#shoe)" stroke="#47335c" stroke-width="6" stroke-linejoin="round"/>
+ <path d="M167 122l41-10" stroke="#fff3b0" stroke-width="6" stroke-linecap="round"/>
+ <!-- Head and forward muzzle -->
+ <path d="M-42-86C-20-127 42-128 65-92L78-43L56-8L12 2L-34-25Z" fill="#e8fffb" stroke="#19546d" stroke-width="8"/>
+ <path d="M-39-94C-13-136 50-132 72-100L91-54L61-56L39-77L-7-69Z" fill="url(#armor)" stroke="#1b6079" stroke-width="7"/>
+ <path d="M51-59L91-59L101-37L73-19L38-29Z" fill="#f7ffff" stroke="#1f647e" stroke-width="5"/>
+ <path d="M42-63L69-70L71-54L47-48Z" fill="#0f264e"/>
+ <path d="M54-62l8-3" stroke="#efffff" stroke-width="4" stroke-linecap="round"/>
+ <circle cx="96" cy="-37" r="7" fill="#163456"/>
+ <!-- Forward arm and glove -->
+ <path d="M36 35L94 18L130-5" fill="none" stroke="#33a4ae" stroke-width="23" stroke-linecap="round"/>
+ <path d="M122-16l25-6 19 8-2 20-22 19-24-11z" fill="#f0ffff" stroke="#225e7c" stroke-width="5" stroke-linejoin="round"/>
+ <!-- Momentum highlight -->
+ <path d="M-42 3L-67 35L-48 52" fill="none" stroke="#a7fff0" stroke-width="5" stroke-linecap="round" opacity=".7"/>
+</g>
+<!-- Sparkles -->
+<path d="M269 469v-21m-10 10h20M746 417v-18m-9 9h18M162 389v-11m-5 5h10" stroke="#baffef" stroke-width="2.2" stroke-linecap="round" opacity=".68"/>
+</svg>

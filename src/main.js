@@ -1250,11 +1250,14 @@ function refreshProgressView() {
     "Fases "+completion.stages+"/4  ·  Núcleos "+completion.cores+
     "/12  ·  Rotas secretas "+completion.secrets+"/12";
   const continueButton=document.querySelector("#startButton");
-  continueButton.disabled=!campaign.started;
-  document.querySelector("#continueDescription").textContent=campaign.started
-    ? "Retomar: "+(["","Primeiro Impulso","Cânion Prisma","Cidade das Fendas"][nextCampaignStage()])+
-      " · início da fase"
-    : "Comece uma nova jornada para liberar Continuar";
+  const canContinue=campaign.started===true;
+  continueButton.disabled=!canContinue;
+  continueButton.setAttribute("aria-disabled",String(!canContinue));
+  const description=canContinue
+    ? "Retomar em "+(["","Primeiro Impulso","Cânion Prisma","Cidade das Fendas"][nextCampaignStage()])
+    : "Disponível depois de iniciar sua primeira campanha.";
+  continueButton.title=description;
+  document.querySelector("#continueDescription").textContent=description;
   document.querySelector("#stageOneProgress").textContent = campaign.stage1Completed
     ? "Campanha concluída · Melhor " + (stage.bestGrade || "--") + " · " + formatTime(stage.bestTime)
     : "Campanha disponível" + (stage.bestTime?" · Recorde "+formatTime(stage.bestTime):"");
