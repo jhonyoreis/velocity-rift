@@ -571,3 +571,32 @@ body {
   .v31-in-game-pause{min-width:52px;padding:5px 8px;}
   .v3-main .v3-crest{width:29px;height:29px;}
 }
+
+/* Compact widescreen menu: no nested horizontal/vertical scrollbars at 16:9. */
+.v3-main {overflow:clip;overscroll-behavior:contain;}
+@media (min-width:701px) and (max-width:860px){
+  .v3-main {gap:3px;padding:3px 9px;}
+  .v3-main .v3-crest {display:none;}
+  .v3-main h1 {font-size:clamp(1.9rem,5.6vw,3rem);}
+  .v3-main .v3-action {min-height:28px;padding:5px 11px;font-size:.72rem;}
+  .v3-main-actions {gap:3px;}
+  .v3-continue-hint {font-size:.58rem!important;}
+  .v3-main .v3-campaign-panel {padding:5px 10px;}
+  .v3-tagline {font-size:.73rem;}
+  .v3-edition {font-size:.57rem;}
+  .v31-pause {gap:4px;padding:3px 7px;}
+  .v31-pause h2 {font-size:1.6rem;}
+  .v31-pause-body {gap:7px;}
+  .v31-pause-audio {padding:7px 12px;gap:3px;}
+  .v31-pause-actions {gap:5px;}
+  .v31-pause-actions button {min-height:35px;padding:6px 8px;}
+  .v31-pause-controls {padding:7px 10px;gap:3px;}
+  .v31-control-grid {gap:4px;}
+  .v31-control-grid span {padding:4px;font-size:.61rem;}
+}
+@media (min-width:701px) and (max-height:540px){
+  .v3-main .v3-crest {display:none;}
+  .v3-main {gap:3px;padding:3px 8px;}
+  .v3-main .v3-action{min-height:28px;padding:5px 11px;}
+  .v31-pause {gap:4px;}
+}
