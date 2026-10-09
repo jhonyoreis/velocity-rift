@@ -35,6 +35,10 @@ https://github.com/jhonyoreis/velocity-rift
 
 ## Velocity Rift 3.7.2 — Arquiteto, cristais e tela de derrota
 
+- Corrigido o retorno após a tela **VOCÊ MORREU**: quando existe um checkpoint ativado, o botão agora **volta ao último checkpoint** sem executar `resetGame()`. O tempo da tentativa permanece, a penalidade por queda continua zerando os cristais e os itens coletáveis após o checkpoint reaparecem para permitir continuar; sem checkpoint, o jogo reinicia a fase normalmente.
+- O checkpoint pode ser ativado ao passar perto da bandeira mesmo sem estar exatamente apoiado no chão, desde que Flux esteja na altura certa.
+
+
 - O **portal final** da Cidade das Fendas tem renderização própria após a derrota do Arquiteto, com brilho, símbolo central e legenda. Foi aproximado no final da arena para aparecer mais claramente quando a câmera revela a saída.
 - O Arquiteto escala de **2 para 5 projéteis por rajada** à medida que perde vida, com velocidade crescente e janelas de vulnerabilidade menores. Com 2 HP surgem fendas temporárias no chão, e com 1 HP surgem duas. Há um aviso visível antes da fase perigosa.
 - **Cristais**: ao sofrer dano comum, perde-se no mínimo 8 ou 35% do total atual (limitado pelo saldo). Se Flux sofrer dano sem cristais, a tentativa acaba. Se cair em um abismo, **perde 100% dos cristais** e a tentativa acaba, mesmo que ainda tivesse cristais.

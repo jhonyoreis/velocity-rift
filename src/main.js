@@ -15,6 +15,7 @@ import {renderRiftCorridorBackground} from "./rendering/riftCorridorBackground.j
 import {createEnemy as enemy,isCityEnemyType} from "./game/enemies.js";
 import {resolveAirDashDirection} from "./game/dashDirection.js";
 import {calculateCrystalDamage} from "./game/crystals.js";
+import {checkpointReached,checkpointRespawnTarget} from "./game/checkpoints.js";
 import {renderCrystal} from "./rendering/crystals.js";
 import {architectPhase,architectBarrageDuration,spawnArchitectRifts,architectRiftState} from "./bosses/architectPatterns.js";
 
@@ -1308,7 +1309,57 @@ function showDeathScreen(fell, lost){
     :"Flux ficou sem cristais para resistir ao impacto.";
   document.querySelector("#deathCrystalLoss").textContent=
     lost+" cristal"+(lost===1?" perdido":"is perdidos");
+  const checkpoint=checkpointRespawnTarget(checkpoints,checkpointIndex,spawn);
+  document.querySelector("#deathRestartButton").textContent=
+    checkpoint.fromCheckpoint?"↺ VOLTAR AO CHECKPOINT":"↺ REINICIAR FASE";
   showScreen(deathMenu);
+}
+function restartAfterDeath(){
+  const target=checkpointRespawnTarget(checkpoints,checkpointIndex,spawn);
+  if(!target.fromCheckpoint){
+    // No checkpoint: restart the full stage as before.
+    startGame(activeStage,true,false);
+    return;
+  }
+  // Keep the current attempt, timer, cores, secrets and permanent progress.
+  // Do NOT call resetGame(): it clears the activated checkpoint.
+  stageArrival.active=false;
+  gameCleared=false;
+  paused=false;
+  gameStarted=true;
+  accumulator=0;
+  keys.clear();jumpHeld=false;jumpBuffer=0;coyoteTimer=0;
+  resetAirDash();
+  resetFluxFx();
+  sentryShots=[];
+  particles=[];
+  player.x=target.x;player.y=target.y;
+  player.prevX=target.x;player.prevY=target.y;
+  player.vx=0;player.vy=0;
+  player.facing=1;
+  player.onGround=false;player.ground=null;
+  player.boost=0;
+  player.invulnerable=1.8;
+  player.sliding=false;player.downhillSliding=false;player.boosting=false;
+  player.trail=[];
+  player.animationPhase=0;
+  // All crystals lost in a pit stay lost, but collectible objects in the
+  // next section can be collected again after respawn.
+  rings.forEach(item=>{if(item.x>=target.x)item.active=true;});
+  boostOrbs.forEach(item=>{if(item.x>=target.x)item.active=true;});
+  if(activeStage===3&&cityBoss.active&&!cityBoss.defeated)resetCityBoss();
+  if(activeStage===2&&guardian.active&&!guardian.defeated)resetGuardian();
+  cameraAnchorX=VIEW_W*CAMERA_IDLE_ANCHOR;
+  cameraX=clamp(target.x-cameraAnchorX,0,Math.max(0,WORLD_W-VIEW_W));
+  cameraY=clamp(target.y-VIEW_H*.56,0,WORLD_H-VIEW_H);
+  screens.forEach(screen=>{screen.hidden=true;});
+  overlay.classList.add("is-hidden");
+  const panel=document.querySelector(".game-panel");
+  panel.classList.remove("menu-active","pause-active");
+  if(debugToggle)debugToggle.hidden=false;
+  syncPauseButton();
+  syncMusic();
+  ensureLoop();
 }
 function showMainMenu() {showScreen(mainMenu);}
 function showSettingsMenu(){showScreen(settingsMenu);refreshAudioSettings();}
@@ -3220,8 +3271,7 @@ function handleSprings() {
 
 function updateCheckpoints() {
   checkpoints.forEach((point, index) => {
-    if (index > checkpointIndex && player.x >= point.x && player.onGround
-      && Math.abs(player.y-point.y)<48) {
+    if (index > checkpointIndex && checkpointReached(point,player)) {
       checkpointIndex = index;
       point.active = true;
       emitParticles(point.x, point.y - 45, "#75ffcc", 20, 130);
@@ -4811,7 +4861,7 @@ menuButton.addEventListener("click",showMainMenu);
 pauseButton.addEventListener("click",togglePause);
 document.querySelector("#resumeButton").addEventListener("click",resumeGame);
 document.querySelector("#restartPauseButton").addEventListener("click",()=>startGame(activeStage));
-document.querySelector("#deathRestartButton").addEventListener("click",()=>startGame(activeStage,true,false));
+document.querySelector("#deathRestartButton").addEventListener("click",restartAfterDeath);
 document.querySelector("#deathMainButton").addEventListener("click",showMainMenu);
 // All menu button feedback uses the existing SFX bus and stored effect volume.
 document.querySelectorAll("button:not([data-key])").forEach(button=>{

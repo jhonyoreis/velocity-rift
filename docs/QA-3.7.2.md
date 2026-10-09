@@ -17,8 +17,12 @@
 - [ ] Com 100 cristais, um dano comum remove 35; com 20 remove 8.
 - [ ] Com 0 cristais, um dano comum mostra **VOCÊ MORREU**.
 - [ ] Cair em buraco com qualquer quantidade de cristais zera o saldo e mostra **VOCÊ MORREU**.
-- [ ] Os botões **Reiniciar fase** e **Menu principal** respondem ao teclado/toque e não duplicam o loop.
-- [ ] Reiniciar preserva recordes, conquistas e progresso permanente, mas reinicia tempo e coletáveis do capítulo.
+- [ ] Após ativar um checkpoint e cair num buraco, a tela **VOCÊ MORREU** oferece **Voltar ao checkpoint** e **Menu principal**.
+- [ ] Voltar ao checkpoint deve reposicionar Flux no último checkpoint, não no início; perda de cristais por queda continua sendo 100%.
+- [ ] Continuar pelo checkpoint preserva o tempo acumulado, núcleos e progresso, limpa projéteis perigosos e oferece breve invulnerabilidade na reaparição.
+- [ ] Testar morte sem checkpoint: o botão deve dizer **Reiniciar fase** e começar no início.
+- [ ] Testar derrota perto do Guardião e do Arquiteto: a luta reinicia de forma segura ao voltar ao checkpoint.
+- [ ] Menu principal e botões respondem a teclado/toque e não duplicam o loop; recordes e conquistas existentes são preservados.
 
 ## Validação
 ```bash
