@@ -1158,6 +1158,8 @@ const CINEMATICS={
 };
 const cinematic={active:false,key:null,frameIndex:0,elapsed:0,
   clock:0,onEnd:null,replay:false};
+let cinematicMusicStep=0;
+let cinematicMusicMood="warm";
 function showGalleryMenu(){
   showScreen(galleryMenu);
   refreshCinematicGallery();
@@ -1177,6 +1179,7 @@ function launchCinematic(key,onEnd,replay=false){
   if(!CINEMATICS[key])return false;
   cinematic.active=true;cinematic.key=key;cinematic.frameIndex=0;
   cinematic.elapsed=0;cinematic.clock=0;cinematic.onEnd=onEnd;
+  cinematicMusicStep=0;cinematicMusicMood="warm";
   cinematic.replay=replay;
   gameStarted=false;paused=false;accumulator=0;
   keys.clear();jumpHeld=false;
@@ -1190,6 +1193,8 @@ function launchCinematic(key,onEnd,replay=false){
   pauseButton.hidden=true;
   refreshCinematicText();
   unlockAudio();
+  // AudioContext is often created only on the scene-start click.
+  syncMusic();
   const frame=CINEMATICS[key].frames[0];
   if(frame.sound)playSfx(frame.sound);
   ensureLoop();
@@ -4104,8 +4109,9 @@ function initMusic(){
 }
 function syncMusic(resetSchedule=true){
   if(!musicBus||!audioContext)return;
-  const level=gameStarted&&!paused&&!gameCleared?
-    (activeStage===2?.13:.14)*effectiveAudioGain("music"):0;
+  const level=cinematic.active?.115*effectiveAudioGain("music"):
+    gameStarted&&!paused&&!gameCleared?
+      (activeStage===2?.13:.14)*effectiveAudioGain("music"):0;
   const now=audioContext.currentTime;
   musicBus.gain.cancelScheduledValues(now);
   musicBus.gain.setTargetAtTime(level,now,.055);
@@ -4277,17 +4283,77 @@ function scheduleGuardianTheme(at,step){
   }
 }
 
+// "A Flor e a Ruptura" — original 88 BPM interactive cinematic score.
+// A gentle theme becomes dissonant beneath the Sovereign's appearance,
+// then resolves into a hopeful motif as Flux sees the new world's mountains.
+const CINEMA_STEP_SECONDS=60/88/4;
+const CINEMA_WARM_NOTES=[0,null,4,null,7,null,12,null, 11,null,7,4, 2,null,4,null,
+  7,null,9,null,12,11,7,null, 4,null,2,0, null,4,null,7];
+const CINEMA_DANGER_NOTES=[0,null,1,null,6,7,null,1, 10,null,6,null, 3,1,null,0,
+  0,null,6,null,1,7,null,10, 11,null,7,null, 3,1,null,0];
+const CINEMA_HOPE_NOTES=[0,null,2,4,7,null,9,null, 12,null,9,7, 4,null,2,null,
+  0,4,null,7,11,null,12,null, 14,12,9,7, 4,null,2,0];
+function cinematicMood(){
+  if(!cinematic.active)return "warm";
+  const art=CINEMATICS[cinematic.key].frames[cinematic.frameIndex].art;
+  if(["rift","sovereign","taken","canyonBoss"].includes(art))return "danger";
+  if(["pursuit","arrival","forestRun","canyon"].includes(art))return "hope";
+  return "warm";
+}
+function scheduleCinematicMusic(at,step){
+  const mood=cinematicMood(),unit=CINEMA_STEP_SECONDS,beat=step%16;
+  const bar=Math.floor(step/16)%4;
+  const roots=mood==="danger"?[38,39,36,41]:
+    mood==="hope"?[43,45,40,47]:[45,42,47,40];
+  const root=roots[bar];
+  const melody=mood==="danger"?CINEMA_DANGER_NOTES:
+    mood==="hope"?CINEMA_HOPE_NOTES:CINEMA_WARM_NOTES;
+  const note=melody[step%melody.length];
+  if(beat===0){
+    const chord=mood==="danger"?[0,1,7]:[0,4,7];
+    for(const interval of chord){
+      prismVoice(midiToHz(root+12+interval),at,unit*13,.019,"pad");
+    }
+    synthMusic(midiToHz(root),at,unit*6,
+      mood==="danger"?.065:.048,"triangle");
+  }
+  if(note!==null){
+    const lead=root+24+note;
+    prismVoice(midiToHz(lead),at,unit*(mood==="danger"?1.8:2.8),
+      mood==="danger"?.065:.056,"glass");
+    if(mood==="warm"&&beat%4===0)
+      prismVoice(midiToHz(lead+12),at+.025,unit*1.2,.012,"glass");
+  }
+  // Sparse heartbeat during danger; brighter arpeggios at arrival.
+  if(mood==="danger"&&[0,7,12].includes(beat))
+    synthMusic(58,at,.13,.041,"sine");
+  if(mood==="hope"&&beat%4===2)
+    prismVoice(midiToHz(root+31),at,unit*2,.022,"glass");
+}
+
 function scheduleMusic(){
-  if(!gameStarted||paused||gameCleared||effectiveAudioGain("music")===0||
+  if((!gameStarted&&!cinematic.active)||paused||
+    (gameCleared&&!cinematic.active)||effectiveAudioGain("music")===0||
     !audioContext||!musicBus||audioContext.state!=="running")return;
   const now=audioContext.currentTime;
   const bossTheme=activeStage===2&&guardian.active&&!guardian.defeated;
-  const stepDuration=bossTheme?GUARDIAN_STEP_SECONDS:
+  const stepDuration=cinematic.active?CINEMA_STEP_SECONDS:
+    bossTheme?GUARDIAN_STEP_SECONDS:
     activeStage===2?PRISM_STEP_SECONDS:MUSIC_STEP_SECONDS;
   if(!Number.isFinite(now)||!Number.isFinite(nextMusicNote))return;
   if(nextMusicNote<now-.15||nextMusicNote>now+1)nextMusicNote=now+.05;
   let scheduled=0;
   while(nextMusicNote<now+.18&&scheduled++<3){
+    if(cinematic.active){
+      const mood=cinematicMood();
+      if(mood!==cinematicMusicMood){
+        cinematicMusicMood=mood;
+        cinematicMusicStep=0;
+      }
+      scheduleCinematicMusic(nextMusicNote,cinematicMusicStep++);
+      nextMusicNote+=stepDuration;
+      continue;
+    }
     const chapter=Math.max(0,chapters.findLastIndex(ch=>player.x>=ch.x));
     if(bossTheme)scheduleGuardianTheme(nextMusicNote,musicStep);
     else if(activeStage===2)schedulePrismCanyonStep(nextMusicNote,musicStep,chapter);
