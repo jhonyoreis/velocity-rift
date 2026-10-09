@@ -1,10 +1,17 @@
+export function cityParallaxRange(cameraX,VIEW_W,step,shift){
+  return {
+    first:Math.floor(cameraX*shift/step)-2,
+    last:Math.ceil((cameraX*shift+VIEW_W)/step)+2
+  };
+}
 export function renderCityBackground(ctx,{cameraX,VIEW_W,tracks}){
   // Parallax layers of staggered towers, rooftop facades and illuminated
   // windows. Both the low street and high rooftops remain navigable.
   for(const [step,shift,color] of [[222,.17,"#121e41"],
     [170,.33,"#19294d"],[140,.57,"#233860"]]){
-    const first=Math.floor(cameraX/step)-2;
-    const last=first+Math.ceil(VIEW_W/step)+6;
+    // World coordinate x=i*step+cameraX*(1-shift) corresponds to
+    // screen x=i*step-cameraX*shift. Cull by that SAME parallax factor.
+    const {first,last}=cityParallaxRange(cameraX,VIEW_W,step,shift);
     ctx.fillStyle=color;
     for(let i=first;i<=last;i++){
       const x=i*step+cameraX*(1-shift);

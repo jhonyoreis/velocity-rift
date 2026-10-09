@@ -9,6 +9,9 @@ import {computeCampaignCompletion} from "./game/completion.js";
 import {yOnTrack,circleRect,distance,approach,clamp,lerp} from "./game/geometry.js";
 import {renderCityBackground,renderForest} from "./rendering/scenery.js";
 import {renderSecretBackdrop} from "./rendering/secretBackdrop.js";
+import {RIFT_BOSS_ARENA_LEFT,RIFT_WORLD_WIDTH} from "./levels/riftCorridor.js";
+import {riftPlatformPhase,riftElevatorY} from "./game/riftPlatforms.js";
+import {renderRiftCorridorBackground} from "./rendering/riftCorridorBackground.js";
 import {createEnemy as enemy,isCityEnemyType} from "./game/enemies.js";
 import {resolveAirDashDirection} from "./game/dashDirection.js";
 
@@ -270,6 +273,7 @@ function activateStage(stage=1) {
 }
 
 function secretPlatformSolid(floor){
+  if(floor.kind==="rift-phase")return riftPlatformPhase(floor,gameTime).solid;
   if(!floor.secretId)return true;
   const trial=secretTrials.find(t=>t.id===floor.secretId);
   if(!trial?.active)return true;
@@ -283,6 +287,14 @@ function secretPlatformSolid(floor){
 }
 function updateMovingPlatforms(dt) {
   for(const floor of tracks){
+    if(activeStage===3&&floor.kind==="rift-elevator"){
+      const newY=riftElevatorY(floor,gameTime),dy=newY-floor.y1;
+      floor.y1=newY;floor.y2=newY;
+      if(player.onGround&&player.ground===floor){
+        player.y+=dy;player.prevY+=dy;
+      }
+      continue;
+    }
     if(floor.secretId){
       const trial=secretTrials.find(t=>t.id===floor.secretId);
       if(floor.behavior==="moving"){
@@ -1539,6 +1551,7 @@ function resetGame() {
     t.sentinels.forEach(e=>{e.x=e.baseX;e.y=e.baseY;});
   });
   tracks.forEach(t=>{
+    if(t.kind==="rift-elevator"){t.y1=t.initialY;t.y2=t.initialY;}
     if(!t.secretId)return;
     t.broken=false;t.crumbleTime=0;
     if(t.originX!==undefined){
@@ -1622,7 +1635,8 @@ function loop(now) {
 // ----------------- Guardian of the Prism: arena fight -----------------
 // The Void Architect: four weak-point hits with the *aerial* dash,
 // a twin-shot telegraph, guarded and exposed windows, cinematic collapse.
-const cityBoss={x:18390,y:324,arenaLeft:17640,arenaRight:19200,
+const cityBoss={x:RIFT_BOSS_ARENA_LEFT+750,y:324,
+ arenaLeft:RIFT_BOSS_ARENA_LEFT,arenaRight:RIFT_WORLD_WIDTH,
  active:false,defeated:false,state:"intro",timer:0,hp:4,maxHp:4,shot:0,fx:0};
 const cityShards=[];
 function resetCityBoss(){
@@ -3244,7 +3258,17 @@ function drawSky() {
   }
 }
 
-function drawCityBackground(){renderCityBackground(ctx,{cameraX,VIEW_W,tracks});}
+function drawCityBackground(){
+  renderCityBackground(ctx,{cameraX,VIEW_W,tracks});
+  const area=STAGES[3].riftCorridor;
+  const approach=cameraX+VIEW_W*.55;
+  const mix=clamp((approach-(area.start-400))/700,0,1);
+  if(mix>0){
+    ctx.save();ctx.globalAlpha=mix;
+    renderRiftCorridorBackground(ctx,{cameraX,cameraY,VIEW_W,VIEW_H,time:visualTime});
+    ctx.restore();
+  }
+}
 function drawBackground() {
   if(activeStage===3){drawCityBackground();return;}
   if(activeStage===2){drawCanyonBackground();return;}
@@ -3373,6 +3397,30 @@ function drawTracks() {
   ctx.lineJoin = "round";
   for (const floor of tracks) {
     if (floor.x2 < cameraX - 120 || floor.x1 > cameraX + VIEW_W + 120) continue;
+    if(floor.kind==="rift-phase"){
+      const {solid,warning}=riftPlatformPhase(floor,gameTime);
+      ctx.save();
+      ctx.globalAlpha=solid?1:.22;
+      ctx.strokeStyle=warning?"#ffd18e":"#be9bff";
+      ctx.lineWidth=18;ctx.beginPath();
+      ctx.moveTo(floor.x1,floor.y1);ctx.lineTo(floor.x2,floor.y2);ctx.stroke();
+      ctx.strokeStyle=warning?"#ff986e":"#fff0fd";
+      ctx.lineWidth=3;ctx.setLineDash([11,8]);
+      ctx.beginPath();ctx.moveTo(floor.x1+3,floor.y1-7);
+      ctx.lineTo(floor.x2-3,floor.y2-7);ctx.stroke();
+      ctx.setLineDash([]);ctx.restore();continue;
+    }
+    if(floor.kind==="rift-elevator"){
+      ctx.save();
+      ctx.fillStyle="rgba(129,255,228,.15)";
+      ctx.fillRect(floor.x1,floor.y1-13,floor.x2-floor.x1,13);
+      ctx.strokeStyle="#aafbe9";ctx.lineWidth=17;
+      ctx.beginPath();ctx.moveTo(floor.x1,floor.y1);ctx.lineTo(floor.x2,floor.y2);ctx.stroke();
+      ctx.strokeStyle="#ffe6af";ctx.lineWidth=3;
+      ctx.beginPath();ctx.moveTo(floor.x1+12,floor.y1-10);
+      ctx.lineTo(floor.x2-12,floor.y2-10);ctx.stroke();
+      ctx.restore();continue;
+    }
     if(floor.secretId){
       const trial=secretTrials.find(t=>t.id===floor.secretId);
       const solid=secretPlatformSolid(floor);

@@ -20,8 +20,8 @@ test("original stage sizes, checkpoints and obstacles are preserved",()=>{
     createStageTwoWorld({...common,guardian:{arenaLeft:32710}}),
     createStageThreeWorld(common)
   ];
-  assert.deepEqual(stages.map(s=>s.worldW),[22700,34000,19200]);
-  assert.deepEqual(stages.map(s=>s.checkpoints.length),[5,9,6]);
+  assert.deepEqual(stages.map(s=>s.worldW),[22700,34000,23560]);
+  assert.deepEqual(stages.map(s=>s.checkpoints.length),[5,9,8]);
   assert.ok(stages[0].enemies.every(e=>e.type==="walker"),"stage one foes need a type");
   assert.ok(stages.every(stage=>stage.enemies.every(e=>typeof e.type==="string"&&e.type.length>0)), "all stage foes need valid types");
   assert.equal(stages[2].enemies.length,21);

@@ -42,6 +42,9 @@ https://github.com/jhonyoreis/velocity-rift
 - Ícone local do jogo para evitar a requisição automática sem recurso `/favicon.ico` em navegadores.
 - A rotina de desenho da Floresta Neon passou a ser executada apenas na primeira fase.
 - Testes automáticos e guia de regressão adicionados. Execute `npm install`, `npm test` e `npm run build`.
+- Corrigido o skyline urbano que desaparecia ao avançar a câmera, ajustando o culling para o fator real de parallax.
+- Inserido **Corredor das Fendas**, antes do Arquiteto: novo fundo dimensional, seis vãos com dash obrigatório, cinco plataformas verticais, três plataformas intermitentes, armadilhas e dois checkpoints. O chefe e a saída foram deslocados.
+- A nota da fase 3 foi ajustada para a fase maior (S abaixo de 110s, A abaixo de 155s, B abaixo de 205s).
 - A física, a campanha, os chefes e os controles foram preservados; a quarta fase continua indisponível.
 
 ## Velocity Rift 3.7 — Cidade das Fendas (terceira de quatro fases)
@@ -51,9 +54,9 @@ https://github.com/jhonyoreis/velocity-rift
 ### A terceira fase — caminhos elevados ou ruas perigosas
 
 - Cenário original de metrópole dimensional, com **19 prédios acessíveis pelos telhados**, linhas de energia, janelas iluminadas, passagens baixas e plataformas de manutenção que se movem.
-- Seis setores ao longo de **19.200 unidades**. A via superior permite caminhos de maior precisão; o percurso inferior reúne mais inimigos e tiros.
+- Sete setores ao longo de **23.560 unidades**. A via superior permite caminhos de maior precisão; o percurso inferior reúne mais inimigos e tiros.
 - **21 patrulhas** formadas por drones de assalto, torres de disparo e caçadores. Drones e torres atiram **pares de projéteis** com intervalos curtos, e **o boost não anula esses tiros**.
-- Três vãos dimensionais de **430, 480 e 490 unidades** com **barreiras luminosas verticais** que só podem ser atravessadas durante o dash aéreo, tanto pelo caminho das ruas quanto pelos telhados. O dash também causa dano por contato nos inimigos, mas **não fornece imunidade a espinhos nem projéteis**.
+- Três vãos dimensionais de **430, 480 e 490 unidades** na cidade, mais **seis vãos de 215 unidades** no corredor pré-boss, todos protegidos por barreiras que exigem dash ativo. O dash também causa dano por contato nos inimigos, mas **não fornece imunidade a espinhos nem projéteis**.
 - **3 núcleos de memória** e **3 novas rotas secretas de escalada**: Antenas Perdidas, Subsolo Fantasma e Coroa dos Arranha-céus. Cada uma combina plataformas e inimigos diferentes, com limite de 30–32 segundos e somente uma tentativa até reiniciar a fase.
 
 ### Como testar os novos desafios
@@ -63,6 +66,10 @@ Acesse a Cidade das Fendas pelo mapa após concluir o Cânion Prisma, ou use DEB
 O dash recarrega quando Flux aterrissa. Três membranas dimensionais exigem um dash ativo para passar. Os drones disparam projéteis em pares; boost e dash não bloqueiam esses tiros. O chefe Arquiteto do Vazio precisa de quatro colisões com dash durante janelas em que o escudo está aberto. O chefe possui introdução e música próprias.
 
 **Validação:** verificações simuladas do percurso integral, dos três vãos com/sem dash, das 27 ligações entre plataformas nos desafios secretos, das regras de dano e dos quatro acertos do chefe; comparação das fases 1 e 2 com diferença zero na física. O build real e testes de navegador ainda precisam ser executados em um ambiente com acesso ao repositório e às dependências.
+
+### Corredor das Fendas — prova de domínio
+
+Entre a metrópole e a arena do Arquiteto, o Corredor das Fendas propõe plataforma pura, sem inimigos: seis passagens de dash horizontal obrigatório, elevadores verticais, plataformas que desaparecem conforme um ciclo visual, espinhos e checkpoints no início e no fim. A paisagem da cidade se transforma gradualmente em pilares suspensos e fendas dimensionais. Os limites de nota da fase consideram o percurso maior.
 
 ### Núcleo de Ímpeto e dash aéreo
 

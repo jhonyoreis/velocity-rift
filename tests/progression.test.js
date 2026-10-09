@@ -9,8 +9,8 @@ test("S/A boundaries stay consistent with original gameplay",()=>{
  assert.equal(gradeForTime(75,1),"A");
  assert.equal(gradeForTime(104.99,2),"S");
  assert.equal(gradeForTime(105,2),"A");
- assert.equal(gradeForTime(89.99,3),"S");
- assert.equal(gradeForTime(90,3),"A");
+ assert.equal(gradeForTime(109.99,3),"S");
+ assert.equal(gradeForTime(110,3),"A");
 });
 test("final chapter still reserves 25 percent",()=>{
  const c={stage1Completed:true,stage2Completed:true,stage3Completed:true,extras:{
