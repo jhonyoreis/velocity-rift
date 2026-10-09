@@ -2161,7 +2161,7 @@ function loop(now) {
 // ----------------- Guardian of the Prism: arena fight -----------------
 // The Void Architect: four weak-point hits with the *aerial* dash,
 // a twin-shot telegraph, guarded and exposed windows, cinematic collapse.
-const cityBoss={x:18510,y:324,arenaLeft:17640,arenaRight:19200,
+const cityBoss={x:18390,y:324,arenaLeft:17640,arenaRight:19200,
  active:false,defeated:false,state:"intro",timer:0,hp:4,maxHp:4,shot:0,fx:0};
 const cityShards=[];
 function resetCityBoss(){
@@ -3039,7 +3039,7 @@ function cameraAnchorFor(vx, facing) {
 function updateCamera(dt) {
   // Full arena is exactly one viewport wide. No look-ahead, no following.
   if(activeStage===3&&cityBoss.active&&!cityBoss.defeated){
-    cameraX=cityBoss.x-VIEW_W*.60;
+    cameraX=cityBoss.arenaLeft;
     cameraY=0;return;
   }
   if(activeStage===3&&cityBoss.defeated&&player.x>=cityBoss.arenaLeft){
@@ -5181,7 +5181,7 @@ function warpToGuardian(){
     player.x=cityBoss.arenaLeft+95;player.y=410-PLAYER_RADIUS;
     player.prevX=player.x;player.prevY=player.y;player.vx=0;player.vy=0;
     player.onGround=false;player.ground=null;
-    cameraX=cityBoss.x-VIEW_W*.6;cameraY=0;
+    cameraX=cityBoss.arenaLeft;cameraY=0;
     checkpointIndex=checkpoints.length-1;
     checkpoints.forEach((p,i)=>p.active=i<=checkpointIndex);
     resetCityBoss();debugUsedThisRun=true;return;
