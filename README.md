@@ -33,6 +33,20 @@ com JavaScript, sem precisar migrar a engine.
 
 https://github.com/jhonyoreis/velocity-rift
 
+## Porcentagem de conclusão — fases, núcleos e segredos
+
+O indicador do menu principal agora representa a **conclusão total do jogo disponível**, não apenas a conclusão das fases. A porcentagem é calculada assim:
+
+- **Fases principais — 40%:** cada uma das duas fases concluídas na campanha atual vale 20%.
+- **Núcleos de memória — 30%:** cada um dos seis núcleos (três por fase) vale 5%.
+- **Rotas secretas — 30%:** cada um dos seis desafios secretos concluídos (três por fase) vale 5%.
+
+Assim, concluir as duas fases sem recuperar extras corresponde a **40%**. Recuperar todas as rotas e núcleos leva a **100%**. O contador evolui no momento da coleta ou vitória do desafio, mesmo que a fase principal ainda esteja em andamento; os extras são contabilizados apenas uma vez por campanha.
+
+O painel principal mostra um resumo de **Fases / Núcleos / Rotas secretas**, e o rodapé do Mapa das Fendas traz a mesma porcentagem e os contadores dessa campanha. O arquivo permanente da 2.0 continua mostrando seus recordes, notas e núcleos máximos nos painéis das regiões, independentemente do estado da campanha atual.
+
+**Compatibilidade:** campanhas da versão anterior são migradas para o novo cálculo sem apagar saves. Quando não existe informação individual sobre a coleta antiga, os melhores totais de núcleos e rotas das fases já concluídas servem como aproximação inicial; futuras coletas passam a ser armazenadas individualmente. **Novo Jogo** volta a porcentagem e os extras da campanha para zero, mas preserva recordes e conquistas históricos. O **DEBUG** não grava progressão ou extras.
+
 ## Mapa das Fendas — Etapa 2 da expansão 3.0 (versão 3.3)
 
 - A antiga seleção em cartões foi substituída por um **mapa dimensional interativo**, com três nós ligados por trilhas luminosas: Floresta Neon, Cânion Prisma e Cidade das Fendas.
