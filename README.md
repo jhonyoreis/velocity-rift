@@ -462,3 +462,24 @@ dos recordes históricos.
 QA manual: testar com arquivos sem e com conquistas, navegar até o fim das rotas,
 pressionar Voltar ao menu, reabrir a coleção e verificar que inicia no topo;
 validar rolagem por mouse, touch e teclado, em desktop e celular.
+
+
+### Etapa 4 — Introdução de corrida com boost (4 segundos)
+
+- Entrada automática aumentada de 2,05 s para **4 s** no primeiro acesso
+  à fase, após a cena inicial.
+- Flux percorre 1.500 unidades de cenário **exclusivamente cenográfico**,
+  com boost visível, pós-imagens, partículas e desaceleração suave nos
+  últimos 0,5 s.
+- O antigo retângulo escuro atrás do título foi removido: aparece apenas
+  o nome da região com uma leve sombra.
+- O trecho de estrada temporário recebe elementos cenográficos da floresta,
+  do cânion ou da cidade, sem acrescentar fases ou alterar a física.
+- Ao terminar, Flux é colocado exatamente no spawn original, sem energia
+  extra, progresso grátis, coleta de cristais ou avanço do cronômetro.
+- A animação ainda pode ser pulada com Enter/Espaço, e pausar continua
+  congelando o tempo da introdução.
+
+QA manual: verificar a primeira entrada das três fases após suas cenas
+iniciais, a transição para o spawn e a câmera, a pausa durante a sequência,
+a versão sem bloco cinza e o início do cronômetro só com o controle liberado.

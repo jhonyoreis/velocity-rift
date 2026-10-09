@@ -17,6 +17,7 @@ import {createEnemy as enemy,isCityEnemyType} from "./game/enemies.js";
 import {resolveAirDashDirection} from "./game/dashDirection.js";
 import {calculateCrystalDamage} from "./game/crystals.js";
 import {checkpointReached,checkpointRespawnTarget} from "./game/checkpoints.js";
+import {STAGE_ARRIVAL_SECONDS,STAGE_ARRIVAL_DISTANCE,sampleStageArrival} from "./game/stageArrival.js";
 import {renderCrystal} from "./rendering/crystals.js";
 import {architectPhase,architectBarrageDuration,spawnArchitectRifts,architectRiftState} from "./bosses/architectPatterns.js";
 
@@ -88,11 +89,9 @@ let loopRunning = false;
 let gameStarted = false;
 let gameCleared = false;
 let gameTime = 0;
-// Short automatic arrival inside the actual level. Flux runs from a
-// temporary extension of the opening road up to the ORIGINAL spawn.
-// Gameplay, collisions, checkpoints, pickups and race timer only begin
-// after the player receives control (never skips record-distance).
-const STAGE_ARRIVAL_SECONDS=2.05;
+// Four-second automatic boost across an illustrated extension of the road.
+// Pickups, physics, checkpoints and race timer start only AFTER Flux reaches
+// the ORIGINAL spawn: no free progress or stored boost is granted.
 const stageArrival={active:false,elapsed:0,duration:STAGE_ARRIVAL_SECONDS,
   startX:-270,finishX:90,startingCameraX:-430};
 let cameraX = 0;
@@ -1455,8 +1454,8 @@ function beginStageArrival(){
   stageArrival.active=true;
   stageArrival.elapsed=0;
   stageArrival.finishX=spawn.x;
-  // Both maps begin on safe, flat ground, well before the first hazards.
-  stageArrival.startX=spawn.x-360;
+  // A longer camera-guided approach, completely outside the playable map.
+  stageArrival.startX=spawn.x-STAGE_ARRIVAL_DISTANCE;
   stageArrival.startingCameraX=stageArrival.startX-165;
   player.x=stageArrival.startX;
   player.prevX=player.x;
@@ -1465,10 +1464,13 @@ function beginStageArrival(){
   player.facing=1;
   player.onGround=true;
   player.ground=tracks[0]||null;
-  player.vx=220;
+  player.vx=sampleStageArrival(0).speed;
   player.vy=0;
   player.sliding=false;
-  player.boosting=false;
+  player.downhillSliding=false;
+  player.boosting=true;
+  player.trail=[];
+  triggerFluxFx("boost");
   cameraX=stageArrival.startingCameraX;
   cameraY=0;
   gameTime=0;
@@ -1491,6 +1493,7 @@ function finishStageArrival(){
   player.onGround=false;
   player.ground=null;
   player.boosting=false;player.sliding=false;player.downhillSliding=false;
+  player.trail=[];
   cameraX=0;cameraY=0;
   cameraAnchorX=VIEW_W*CAMERA_IDLE_ANCHOR;
   gameTime=0;
@@ -1499,67 +1502,107 @@ function finishStageArrival(){
 }
 function updateStageArrival(dt){
   if(!stageArrival.active)return;
-  const before=player.x;
   stageArrival.elapsed=Math.min(stageArrival.duration,stageArrival.elapsed+dt);
+  const sample=sampleStageArrival(stageArrival.elapsed,{
+    duration:stageArrival.duration,distance:STAGE_ARRIVAL_DISTANCE
+  });
   const ratio=stageArrival.elapsed/stageArrival.duration;
-  // Smooth acceleration and deceleration; same body animation and
-  // camera as the playable game, only an isolated run-in animation.
-  const eased=ratio*ratio*(3-2*ratio);
+  // Scripted cinematic motion: constant boost pace until a gentle brake
+  // in the last half-second. No real boost meter or collectibles are touched.
   player.prevX=player.x;player.prevY=player.y;
-  player.x=stageArrival.startX+(stageArrival.finishX-stageArrival.startX)*eased;
-  // City arrival incorporates two harmless hops over rooftop obstacles
-  // before the camera hands control back on the original road.
+  player.x=stageArrival.startX+STAGE_ARRIVAL_DISTANCE*sample.progress;
+  player.vx=sample.speed;
+  player.boosting=true;
+  // The city approach retains its short cinematic hops.
   const hop=activeStage===3?
     Math.max(0,Math.sin(Math.PI*2*ratio*2.25))*49:0;
-  player.y=spawn.y-hop;player.vy=0;
-  player.vx=Math.max(55,(player.x-before)/Math.max(dt,.001));
+  player.y=spawn.y-hop;
+  player.vy=0;
   player.animationPhase+=Math.max(170,player.vx)*dt*.052;
   player.onGround=true;
   visualTime+=dt;
-  cameraX=stageArrival.startingCameraX*(1-eased);
+  cameraX=stageArrival.startingCameraX*(1-sample.progress);
   cameraY=0;
+  // Existing trails, afterimages and speed sparks make the boost readable.
+  player.trail.push({x:player.x-20,y:player.y+6,life:.20});
   updateFluxFx(dt);
   updateTrail(dt);
   updateParticles(dt);
-  if(stageArrival.elapsed>=stageArrival.duration)finishStageArrival();
+  if(sample.finished)finishStageArrival();
 }
 function drawStageArrivalRunway(){
   if(!stageArrival.active)return;
   const y=tracks[0]?.y1??420;
   const start=stageArrival.startX-280;
-  // A temporary continuation of the real road from the portal; removed
-  // before the player can interact with any level objects.
-  ctx.fillStyle=activeStage===2?"#261e4d":"#102f38";
-  ctx.fillRect(start,y, -start,VIEW_H-y+50);
-  ctx.strokeStyle=activeStage===2?"#b999f6":"#64eed7";
-  ctx.lineWidth=11;ctx.lineCap="round";
-  ctx.beginPath();ctx.moveTo(start,y);ctx.lineTo(0,y);ctx.stroke();
-  ctx.strokeStyle="#132e47";ctx.lineWidth=3;
-  ctx.beginPath();ctx.moveTo(start,y+8);ctx.lineTo(0,y+8);ctx.stroke();
-  // Dimensional glow in the distance, right where Flux emerged.
-  const fading=1-stageArrival.elapsed/stageArrival.duration;
-  if(fading>.07){
-    ctx.save();ctx.globalAlpha=.55*fading;
-    cinemaPortal(stageArrival.startX-16,y-145,visualTime,.36);
-    ctx.restore();
+  const roadColor=activeStage===3?"#172b42":activeStage===2?"#231f46":"#103137";
+  const railColor=activeStage===3?"#83bbff":activeStage===2?"#be9aff":"#6df0d9";
+  ctx.save();
+  // Replace the old flat gray slab with a ground gradient and native
+  // scenery motifs. All of these exist only during the intro.
+  const ground=ctx.createLinearGradient(0,y,0,VIEW_H);
+  ground.addColorStop(0,roadColor);
+  ground.addColorStop(1,activeStage===2?"#14132e":"#0b1c2e");
+  ctx.fillStyle=ground;
+  ctx.fillRect(start,y,-start,VIEW_H-y+60);
+
+  for(let x=start+80;x<0;x+=175){
+    const i=Math.abs(Math.round(x/175));
+    if(activeStage===1){
+      ctx.fillStyle="rgba(15,67,69,.76)";
+      ctx.fillRect(x-5,y-85,10,85);
+      ctx.fillStyle=i%2?"#20545a":"#23615d";
+      ctx.beginPath();
+      ctx.moveTo(x-48,y-55);ctx.lineTo(x,y-176-(i%3)*16);
+      ctx.lineTo(x+51,y-55);ctx.closePath();ctx.fill();
+      ctx.strokeStyle="rgba(109,245,208,.27)";
+      ctx.lineWidth=2;ctx.beginPath();
+      ctx.moveTo(x-25,y-93);ctx.lineTo(x,y-149-(i%3)*16);
+      ctx.lineTo(x+25,y-93);ctx.stroke();
+    }else if(activeStage===2){
+      ctx.fillStyle=i%2?"#40305f":"#342d57";
+      ctx.beginPath();ctx.moveTo(x-50,y);ctx.lineTo(x-12,y-130-(i%3)*13);
+      ctx.lineTo(x+42,y);ctx.closePath();ctx.fill();
+      ctx.strokeStyle="rgba(197,165,254,.43)";
+      ctx.lineWidth=2;ctx.beginPath();
+      ctx.moveTo(x-12,y-130-(i%3)*13);ctx.lineTo(x+7,y-48);ctx.stroke();
+    }else{
+      const height=98+(i%4)*19;
+      ctx.fillStyle=i%2?"#1e3656":"#1c304c";
+      ctx.fillRect(x-52,y-height,92,height);
+      ctx.fillStyle="rgba(107,203,235,.32)";
+      for(let k=0;k<3;k++)
+        ctx.fillRect(x-34+k*24,y-height+24,10,17);
+    }
   }
+  // Continuous energy lane leads straight to the original starting floor.
+  ctx.strokeStyle=railColor;ctx.lineWidth=6;ctx.lineCap="round";
+  ctx.beginPath();ctx.moveTo(start,y);ctx.lineTo(0,y);ctx.stroke();
+  ctx.strokeStyle="rgba(11,26,42,.75)";ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(start,y+9);ctx.lineTo(0,y+9);ctx.stroke();
+  // A soft entry portal, without a solid box covering the scene.
+  const fading=1-stageArrival.elapsed/stageArrival.duration;
+  if(fading>.08){
+    ctx.globalAlpha=.46*fading;
+    cinemaPortal(stageArrival.startX-35,y-145,visualTime,.35);
+  }
+  ctx.restore();
 }
 function drawStageArrivalOverlay(){
   if(!stageArrival.active)return;
   const p=stageArrival.elapsed/stageArrival.duration;
-  const opacity=Math.min(1,p*4,(1-p)*6);
+  const opacity=clamp(Math.min(p*12,(1-p)*5),0,1);
+  if(opacity<=0)return;
   ctx.save();
-  ctx.globalAlpha=Math.max(0,opacity);
-  ctx.fillStyle="rgba(8,18,35,.65)";
-  roundRect(277,48,406,75,13);ctx.fill();
+  ctx.globalAlpha=opacity;
   ctx.textAlign="center";
-  ctx.fillStyle="#abfff0";ctx.font="bold 13px system-ui";
-  ctx.fillText("UMA NOVA ETAPA DA JORNADA",VIEW_W/2,75);
-  ctx.fillStyle="#fff5ee";ctx.font="bold 24px system-ui";
-  ctx.fillText(activeStage===3?"CIDADE DAS FENDAS":activeStage===2?"CÂNION PRISMA":"FLORESTA NEON",VIEW_W/2,105);
+  ctx.shadowColor="#041726";ctx.shadowBlur=13;
+  ctx.fillStyle="#a8ffeb";ctx.font="bold 12px system-ui";
+  ctx.fillText("CHEGANDO EM",VIEW_W/2,74);
+  ctx.fillStyle="#f7feff";ctx.font="bold 27px system-ui";
+  ctx.fillText(activeStage===3?"CIDADE DAS FENDAS":
+    activeStage===2?"CÂNION PRISMA":"FLORESTA NEON",VIEW_W/2,106);
   ctx.restore();
 }
-
 function resetGame() {
   stageArrival.active=false;stageArrival.elapsed=0;
   resetAirDash();
