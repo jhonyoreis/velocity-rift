@@ -1,12 +1,14 @@
 {
   "name": "velocity-rift",
-  "version": "0.2.0",
+  "version": "3.7.2",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node --test",
+    "check": "npm run test && npm run build"
   },
   "devDependencies": {
     "vite": "^7.0.0"

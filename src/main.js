@@ -1,3 +1,24 @@
+import {SECRET_DEFS} from "./data/secretRoutes.js";
+import {ACHIEVEMENTS} from "./data/achievements.js";
+import {createStageOneWorld} from "./levels/forest.js";
+import {createStageTwoWorld} from "./levels/canyon.js";
+import {createStageThreeWorld} from "./levels/city.js";
+import {installSecretRoutes} from "./levels/secretChallenges.js";
+import {gradeForTime as gradeForTimeByStage} from "./game/scoring.js";
+import {computeCampaignCompletion} from "./game/completion.js";
+import {yOnTrack,circleRect,distance,approach,clamp,lerp} from "./game/geometry.js";
+import {renderCityBackground,renderForest} from "./rendering/scenery.js";
+import {renderSecretBackdrop} from "./rendering/secretBackdrop.js";
+import {RIFT_BOSS_ARENA_LEFT,RIFT_WORLD_WIDTH} from "./levels/riftCorridor.js";
+import {riftPlatformPhase,riftElevatorY} from "./game/riftPlatforms.js";
+import {renderRiftCorridorBackground} from "./rendering/riftCorridorBackground.js";
+import {createEnemy as enemy,isCityEnemyType} from "./game/enemies.js";
+import {resolveAirDashDirection} from "./game/dashDirection.js";
+import {calculateCrystalDamage} from "./game/crystals.js";
+import {checkpointReached,checkpointRespawnTarget} from "./game/checkpoints.js";
+import {renderCrystal} from "./rendering/crystals.js";
+import {architectPhase,architectBarrageDuration,spawnArchitectRifts,architectRiftState} from "./bosses/architectPatterns.js";
+
 const canvas = document.querySelector("#game");
 const ctx = canvas.getContext("2d");
 const overlay = document.querySelector("#overlay");
@@ -11,9 +32,10 @@ const achievementsMenu=document.querySelector("#achievementsMenu");
 const settingsMenu=document.querySelector("#settingsMenu");
 const newGameConfirm=document.querySelector("#newGameConfirm");
 const pauseMenu=document.querySelector("#pauseMenu");
+const deathMenu=document.querySelector("#deathMenu");
 const cinematicMenu=document.querySelector("#cinematicMenu");
 const galleryMenu=document.querySelector("#galleryMenu");
-const screens=[mainMenu,stageMenu,resultMenu,achievementsMenu,settingsMenu,newGameConfirm,pauseMenu,cinematicMenu,galleryMenu];
+const screens=[mainMenu,stageMenu,resultMenu,achievementsMenu,settingsMenu,newGameConfirm,pauseMenu,deathMenu,cinematicMenu,galleryMenu];
 let selectedMapStage=1;
 const soundToggle = document.querySelector("#soundToggle");
 const musicToggle = document.querySelector("#musicToggle");
@@ -50,96 +72,6 @@ const GRADE_ORDER=["C","B","A","S"];
 // Nine stepping stones per secret ascent: ~600 units above the normal road.
 // Each optional ascent is hand-authored rather than a repeated tower.
 // Steps are [horizontal offset, rise, platform width, platform behavior].
-const SECRET_DEFS={
-  1:[
-    {id:"canopy",name:"Copa Esmeralda",x:2110,y:350,limit:32,
-      hint:"SALTE ENTRE AS COPAS",
-      steps:[[0,0,155,"fixed"],[82,70,130,"fixed"],[160,140,117,"spring"],
-        [230,210,112,"fixed"],[160,282,113,"moving"],[70,354,110,"fixed"],
-        [-25,426,112,"spring"],[68,498,106,"fixed"],[170,570,135,"fixed"]],
-      hazards:[["moth",2,43,-66,36],["drone",5,-32,-53,32],["mine",7,53,-59,0]]},
-    {id:"lumen",name:"Ninho Luminoso",x:9660,y:353,limit:34,
-      hint:"AS PONTES DE LUZ DESAPARECEM",
-      steps:[[0,0,155,"fixed"],[-90,66,120,"fixed"],[-178,135,110,"phase"],
-        [-90,203,117,"fixed"],[12,269,105,"phase"],[116,339,115,"moving"],
-        [194,407,103,"fixed"],[105,475,111,"phase"],[12,543,107,"fixed"],
-        [-80,611,137,"fixed"]],
-      hazards:[["orbiter",3,31,-60,33],["sentry",6,-25,-62,0],["moth",8,41,-64,28]]},
-    {id:"horizon",name:"Horizonte Neon",x:20630,y:259,limit:30,
-      hint:"USE AS ESTEIRAS PARA GANHAR IMPULSO",
-      steps:[[0,0,153,"fixed"],[112,82,115,"belt-right"],[210,160,105,"fixed"],
-        [105,240,110,"belt-left"],[-12,320,99,"fixed"],[-122,398,107,"belt-right"],
-        [-12,478,104,"fixed"],[105,560,139,"fixed"]],
-      hazards:[["dart",2,18,-70,60],["mine",4,52,-56,0],["drone",6,-34,-62,36]]}
-  ],
-  2:[
-    {id:"echo",name:"Eco Suspenso",x:3260,y:331,limit:35,
-      hint:"ATRAVESSE AS PLATAFORMAS OSCILANTES",
-      steps:[[0,0,153,"fixed"],[115,70,115,"moving"],[223,140,115,"fixed"],
-        [135,210,107,"moving"],[20,280,111,"fixed"],[-94,350,106,"moving"],
-        [5,420,111,"fixed"],[105,490,143,"moving"],[235,560,111,"fixed"],
-        [125,630,141,"fixed"]],
-      hazards:[["drone",3,48,-59,42],["sentry",6,-38,-59,0],["orbiter",8,48,-70,33]]},
-    {id:"prism",name:"Arco Prismático",x:10330,y:306,limit:34,
-      hint:"LEIA O RITMO DOS FEIXES",
-      steps:[[0,0,153,"fixed"],[-102,76,119,"fixed"],[8,154,110,"phase"],
-        [118,228,111,"fixed"],[13,302,107,"fixed"],[-100,380,112,"phase"],
-        [4,455,105,"fixed"],[125,530,111,"fixed"],[220,607,142,"fixed"]],
-      hazards:[["laser",3,8,-57,100],["orbiter",5,33,-62,32],
-        ["sentry",7,51,-61,0]]},
-    {id:"zenith",name:"Zênite Violeta",x:24700,y:259,limit:34,
-      hint:"NÃO PARE SOBRE AS PLATAFORMAS FRÁGEIS",
-      steps:[[0,0,153,"fixed"],[110,85,117,"fixed"],[220,168,109,"crumble"],
-        [110,249,117,"fixed"],[-5,332,109,"crumble"],[-112,412,110,"fixed"],
-        [-10,496,108,"crumble"],[105,578,109,"fixed"],[218,660,144,"fixed"]],
-      hazards:[["hunter",4,69,-58,0],["mine",6,44,-56,0],["dart",7,-35,-75,51]]}
-  ],
-  3:[
-    {id:"antenna",name:"Antenas Perdidas",x:2660,y:305,limit:31,
-      hint:"ESTEIRAS E PLATAFORMAS MÓVEIS",
-      steps:[[0,0,155,"fixed"],[100,78,117,"belt-right"],[205,154,110,"moving"],
-        [102,229,111,"fixed"],[-9,303,101,"phase"],[105,377,108,"moving"],
-        [222,451,104,"belt-left"],[125,527,110,"spring"],
-        [16,604,103,"fixed"],[-84,680,139,"fixed"]],
-      hazards:[["dart",2,36,-67,64],["laser",5,0,-57,108],["hunter",8,55,-70,0]]},
-    {id:"underpass",name:"Subsolo Fantasma",x:8720,y:315,limit:32,
-      hint:"FEIXES E LAJES FRÁGEIS",
-      steps:[[0,0,152,"fixed"],[-99,77,110,"crumble"],[4,153,105,"phase"],
-        [118,229,109,"fixed"],[212,305,105,"crumble"],[114,381,111,"moving"],
-        [8,458,103,"phase"],[-94,535,104,"crumble"],
-        [8,610,112,"fixed"],[115,685,145,"fixed"]],
-      hazards:[["mine",3,40,-61,0],["laser",6,0,-63,117],["dart",8,-30,-70,62]]},
-    {id:"skyline",name:"Coroa dos Arranha-céus",x:15150,y:305,limit:30,
-      hint:"SALTE ENTRE ANTENAS SEM PARAR",
-      steps:[[0,0,157,"fixed"],[116,78,108,"spring"],[223,160,107,"moving"],
-        [110,241,107,"crumble"],[-12,323,102,"belt-left"],[-123,405,108,"moving"],
-        [-20,484,98,"phase"],[95,561,107,"crumble"],[204,640,111,"spring"],
-        [300,720,146,"fixed"]],
-      hazards:[["hunter",3,58,-64,0],["orbiter",6,30,-61,35],["sentry",8,-37,-62,0]]}
-  ]
-};
-const ACHIEVEMENTS=[
-  {id:"first",title:"Primeiro Impulso",description:"Conclua a fase 1."},
-  {id:"canyon",title:"Através do Cânion",description:"Conclua a fase 2."},
-  {id:"s1",title:"Velocidade Pura",description:"Conquiste nota S na fase 1."},
-  {id:"s2",title:"Mestre do Prisma",description:"Conquiste nota S na fase 2."},
-  {id:"zero1",title:"Passos Perfeitos",description:"Conclua a fase 1 sem quedas."},
-  {id:"zero2",title:"Sem Olhar para Baixo",description:"Conclua a fase 2 sem quedas."},
-  {id:"cores1",title:"Memórias da Floresta",description:"Reúna os três núcleos na fase 1."},
-  {id:"cores2",title:"Memórias do Cânion",description:"Reúna os três núcleos na fase 2."},
-  {id:"untouched",title:"Guardião Intocado",description:"Vença o Guardião sem receber dano durante a tentativa."},
-  {id:"explorer",title:"Explorador das Fendas",description:"Conclua uma rota secreta cronometrada."},
-  {id:"forestSecrets",title:"Segredos da Floresta",description:"Conclua as três rotas da fase 1."},
-  {id:"canyonSecrets",title:"Segredos do Prisma",description:"Conclua as três rotas da fase 2."},
-  {id:"sixSecrets",title:"Cartógrafo do Rift",description:"Complete as seis rotas secretas."},
-  {id:"city",title:"Metropole Dominada",description:"Conclua a Cidade das Fendas."},
-  {id:"cityS",title:"Rastro nas Estrelas",description:"Consiga nota S na Cidade das Fendas."},
-  {id:"cityCores",title:"Memorias da Cidade",description:"Recupere os três núcleos da terceira fase."},
-  {id:"dash",title:"Nucleo de Impeto",description:"Desbloqueie o dash aéreo."},
-  {id:"architect",title:"Fim do Arquiteto",description:"Derrote o Arquiteto do Vazio."},
-  {id:"citySecrets",title:"Nas Alturas",description:"Complete os três desafios secretos da cidade."},
-  {id:"nineSecrets",title:"Cartografo Dimensional",description:"Descubra todas as nove rotas secretas."}
-];
 let activeStage = 1;
 let debugMode = false;
 let debugUsedThisRun = false;
@@ -187,10 +119,9 @@ try { musicEnabled = localStorage.getItem("velocity-rift-music") !== "off"; } ca
 try { soundEnabled = localStorage.getItem("velocity-rift-sound") !== "off"; } catch (_) { /* unavailable storage */ }
 const audioLevels=loadAudioLevels();
 
-// Air dash: one mid-air charge, refreshed on landing. The pointer controls
-// the direction; keyboard-only users dash toward Flux's facing direction.
-const airDash={active:false,available:true,time:0,dx:1,dy:0,trail:0,
-  aimX:0,aimY:0,hasAim:false};
+// Aerial dash is always horizontal, locked to Flux's facing direction
+// at activation. No mouse aiming, diagonal movement or vertical boost.
+const airDash={active:false,available:true,time:0,dx:1,dy:0,trail:0};
 const DASH_SECONDS=.255,DASH_SPEED=1140;
 const cityDashCore={x:3730,y:396};
 let dashUnlockFlash=0;
@@ -198,18 +129,14 @@ function dashUnlocked(){
   return campaign.aerialDash||((debugMode||debugUsedThisRun)&&activeStage===3);
 }
 function resetAirDash(){
-  Object.assign(airDash,{active:false,available:true,time:0,trail:0,hasAim:false});
+  Object.assign(airDash,{active:false,available:true,time:0,trail:0,dx:1,dy:0});
   dashUnlockFlash=0;
 }
 function startAirDash(){
   if(!gameStarted||paused||cinematic.active||stageArrival.active||gameCleared||
     !dashUnlocked()||player.onGround||!airDash.available)return false;
-  const dx=airDash.hasAim?airDash.aimX-(player.x-cameraX):player.facing;
-  const dy=airDash.hasAim?airDash.aimY-(player.y-cameraY):0;
-  const len=Math.hypot(dx,dy)||1;
-  airDash.dx=dx/len;airDash.dy=dy/len;
-  // Prefer stable horizontal movement when a pointer is nearly vertical.
-  if(!airDash.hasAim){airDash.dx=player.facing;airDash.dy=0;}
+  const direction=resolveAirDashDirection(player.facing);
+  airDash.dx=direction.dx;airDash.dy=direction.dy;
   airDash.active=true;airDash.available=false;
   airDash.time=DASH_SECONDS;airDash.trail=1;
   player.vx=airDash.dx*DASH_SPEED;
@@ -240,7 +167,7 @@ function collectCityDashCore(){
   if(!debugUsedThisRun){campaign.aerialDash=true;saveCampaign();grantAchievement("dash");}
   airDash.available=true;dashUnlockFlash=2;
   notification.title="NÚCLEO DE ÍMPETO RECUPERADO";
-  notification.subtitle="PULE E APERTE PULO NOVAMENTE · MIRE COM CURSOR";
+  notification.subtitle="PULE E APERTE PULO NOVAMENTE · DASH NA DIREÇÃO DO FLUX";
   notification.timer=3.4;
   emitParticles(cityDashCore.x,cityDashCore.y,"#ffe89c",42,250);
   playSfx("dash-unlock");
@@ -285,92 +212,22 @@ const player = {
 };
 
 
-const spawn = { x: 90, y: 402 };
-// One continuous route with deliberate jumps between the two ground gaps.
-const tracks = [
-  track(0,420,1200,420,"intro"),track(1200,420,1800,455,"descent"),
-  track(1800,455,2600,455,"intro"),track(2600,455,3500,420,"rise"),
-  track(3500,420,4650,420,"rhythm"),track(4790,440,5400,440,"rhythm"),
-  track(5400,440,6100,350,"rise"),track(6100,350,6750,350,"rhythm"),
-  track(6750,350,7000,430,"descent"),track(7000,430,8000,430,"slide"),
-  track(8000,430,8600,460,"descent"),track(8600,460,9900,460,"slide"),
-  track(9900,460,10700,420,"rise"),track(10700,420,12100,420,"boost"),
-  track(12100,420,13000,470,"descent"),track(13000,470,14500,470,"boost"),
-  track(14500,470,15200,470,"mastery"),track(15200,470,15900,370,"rise"),
-  track(15900,370,17000,370,"mastery"),track(17150,410,18000,410,"mastery"),
-  track(18000,410,19000,450,"descent"),track(19000,450,19800,450,"finale"),
-  track(19800,450,20600,350,"rise"),track(20600,350,21300,350,"finale"),
-  track(21300,350,21900,420,"descent"),track(21900,420,22700,420,"finale"),
-];
-const chapters = [
-  {x:0,title:"01 / PRIMEIROS PASSOS"},{x:3500,title:"02 / RITMO E SALTOS"},
-  {x:7000,title:"03 / TUNEIS DE LUZ"},{x:10700,title:"04 / ENERGIA CINETICA"},
-  {x:14500,title:"05 / PROVA DE DOMINIO"},{x:19000,title:"06 / RETA FINAL"},
-];
-const signs = [
-  {x:280,title:"MOVER",hint:"A / D OU SETAS"},
-  {x:730,title:"PULAR",hint:"ESPACO / W"},
-  {x:2050,title:"CRISTAIS",hint:"COLETE PARA PONTUAR"},
-  {x:3760,title:"IMPULSO",hint:"USE O TERRENO"},
-  {x:4440,title:"SALTE",hint:"SUPERAR VAO"},
-  {x:7120,title:"DESLIZAR",hint:"S / SETA PARA BAIXO"},
-  {x:10690,title:"ENERGIA",hint:"SOMENTE ORBES RECARREGAM"},
-  {x:11440,title:"PORTAO",hint:"BOOST: SHIFT OU J"},
-  {x:15370,title:"COMBINE",hint:"PULO + SLIDE"},
-  {x:18830,title:"ULTIMO DESAFIO",hint:"GUARDE ENERGIA"},
-  {x:21850,title:"CHEGADA",hint:"SIGA EM FRENTE"},
-  {x:5000,title:"ELETROPULSOS",hint:"PARE OU SALTE O FEIXE"},
-  {x:12250,title:"CICLO DE ENERGIA",hint:"LUZ VERMELHA = PERIGO"},
-  {x:17180,title:"REFLEXOS",hint:"OBSERVE A JANELA SEGURA"},
-];
-const checkpoints = [2900,6600,10100,14200,18300].map(x=>({
-  x,y:groundY(x)-PLAYER_RADIUS,active:false
-}));
-const walls = [
-  rect(-120,0,120,WORLD_H,"left-wall"),
-  rect(11690,346,45,74,"break-gate"),
-  rect(19560,376,45,74,"break-gate"),
-];
-const tunnels = [
-  {x:7480,w:390,ground:430},{x:8910,w:460,ground:460},
-  {x:16320,w:455,ground:370},
-];
-const enemies = [1450,3150,3850,5480,6230,8140,9670,12370,13420,15080,
-  16050,17600,18650,20100,21490,22160].map((x,i)=>
-  enemy(x,groundY(x)-3,i%3===0?36:0)
-);
-const rings = [];
-for (const [start,count,spacing] of [
-  [320,9,62],[1650,10,60],[3650,12,65],[4970,7,64],
-  [5730,8,68],[7070,9,60],[8230,7,65],[9530,8,68],
-  [10980,9,66],[12380,10,64],[13600,8,65],[14900,10,58],
-  [16000,8,65],[17250,9,65],[18550,7,62],[19800,9,66],
-  [20900,8,58],[21870,10,60],
-]) {
-  for(let i=0;i<count;i++){
-    const x=start+i*spacing,ground=groundY(x);
-    if(ground!==null) rings.push({
-      x,y:ground-33-Math.sin(i/Math.max(count-1,1)*Math.PI)*14,
-      r:8,active:true
-    });
-  }
-}
-const boostOrbs = [930,4010,7160,8630,10840,12700,14680,16140,19160,21060]
-  .map(x=>orb(x,groundY(x)-34));
-const springs = [4600,16930].map(x=>({
-  x,y:groundY(x)-10,w:36,h:15,powerX:480,powerY:-680
-}));
-const boostPads = [];
-const spikes = [2320,4090,5820,8390,9780,13130,15100,17900,20550,21640]
-  .map(x=>({x,y:groundY(x)-22,w:65,h:22}));
-// Five visible rhythmic hazards. Each can be cleared by jumping or timing.
-const pulseGates = [5250,9520,12520,17370,20750].map((x,i)=>({
-  x,y:groundY(x)-105,w:18,h:81,phase:i*.47,period:2.7,live:1.05
-}));
-const memoryCores = [4920,10220,19060].map((x,i)=>({
-  x,y:groundY(x)-91,r:13,id:i,active:true
-}));
-const goal = {x:22550,y:348,w:54,h:72};
+const stageOneWorld=createStageOneWorld({track,rect,enemy,orb,yOnTrack,PLAYER_RADIUS,WORLD_H,worldW:WORLD_W});
+const spawn={...stageOneWorld.spawn},goal={...stageOneWorld.goal};
+const tracks=stageOneWorld.tracks.map(x=>({...x}));
+const chapters=stageOneWorld.chapters.map(x=>({...x}));
+const signs=stageOneWorld.signs.map(x=>({...x}));
+const checkpoints=stageOneWorld.checkpoints.map(x=>({...x}));
+const walls=stageOneWorld.walls.map(x=>({...x}));
+const tunnels=stageOneWorld.tunnels.map(x=>({...x}));
+const enemies=stageOneWorld.enemies.map(x=>({...x}));
+const rings=stageOneWorld.rings.map(x=>({...x}));
+const boostOrbs=stageOneWorld.boostOrbs.map(x=>({...x}));
+const springs=stageOneWorld.springs.map(x=>({...x}));
+const boostPads=stageOneWorld.boostPads.map(x=>({...x}));
+const spikes=stageOneWorld.spikes.map(x=>({...x}));
+const pulseGates=stageOneWorld.pulseGates.map(x=>({...x}));
+const memoryCores=stageOneWorld.memoryCores.map(x=>({...x}));
 const guardian={
   x:33360,y:336,hp:3,maxHp:3,active:false,defeated:false,
   state:"telegraph",timer:0,cycle:0,arenaLeft:32710,arenaRight:33670,
@@ -388,376 +245,11 @@ const riftPortal={opening:false,open:false,time:0,particleTimer:0};
 // Switching stages replaces only world data; the physics and Flux controls stay shared.
 const WORLD_KEYS=["tracks","chapters","signs","checkpoints","walls","tunnels",
   "enemies","rings","boostOrbs","springs","boostPads","spikes","pulseGates","memoryCores"];
-const stageOneWorld={
-  worldW:WORLD_W, spawn:{...spawn}, goal:{...goal},
-  tracks:tracks.map(t=>({...t})),chapters:chapters.map(t=>({...t})),
-  signs:signs.map(t=>({...t})),checkpoints:checkpoints.map(t=>({...t})),
-  walls:walls.map(t=>({...t})),tunnels:tunnels.map(t=>({...t})),
-  enemies:enemies.map(t=>({...t})),rings:rings.map(t=>({...t})),
-  boostOrbs:boostOrbs.map(t=>({...t})),springs:springs.map(t=>({...t})),
-  boostPads:boostPads.map(t=>({...t})),spikes:spikes.map(t=>({...t})),
-  pulseGates:pulseGates.map(t=>({...t})),memoryCores:memoryCores.map(t=>({...t})),
-  pits:[]
-};
-
-function createStageTwoWorldOriginal() {
-  const base=[
-    track(0,420,1150,420,"intro"),track(1150,420,1900,405,"rise"),
-    track(2130,435,2900,435,"canyon"),track(2900,435,3620,435,"canyon"),
-    track(3620,435,3900,345,"rise"),track(3900,345,4650,345,"cliff"),
-    track(4870,395,5610,395,"canyon"),
-    track(5840,420,6580,420,"canyon"),track(6580,420,7400,465,"drop"),
-    track(7400,465,7780,465,"cliff"),track(8020,450,8750,450,"canyon"),
-    track(8750,450,9200,355,"rise"),track(9200,355,9950,355,"cliff"),
-    track(10180,405,10800,405,"canyon"),track(10800,405,11600,440,"drop"),
-    track(11600,440,12300,440,"cliff"),track(12560,460,13300,460,"canyon"),
-    track(13300,460,14000,375,"rise"),track(14000,375,14900,375,"cliff"),
-    track(15130,410,16400,410,"canyon"),track(16400,410,16900,360,"rise"),
-    track(16900,360,17600,360,"finish")
-  ];
-  const lookup=x=>{
-    const floor=base.find(t=>x>=t.x1&&x<=t.x2);
-    return floor?yOnTrack(floor,x):null;
-  };
-  const pits=[[1900,2130],[4650,4870],[5610,5840],[7780,8020],
-    [9950,10180],[12300,12560],[14900,15130]];
-  // Platforms float above pits or reward an optional high route.
-  const ledges=[
-    track(1670,310,1970,310,"platform"),
-    track(2730,315,3030,315,"platform"),
-    track(4390,260,4690,260,"platform"),
-    track(7630,350,7930,350,"platform"),
-    track(9710,270,10070,270,"platform"),
-    track(12100,335,12430,335,"platform"),
-    track(14700,290,15020,290,"platform"),
-    track(15700,315,16010,315,"platform")
-  ];
-  // Moving platforms are useful shortcuts, never mandatory.
-  const moving=[
-    {x:5330,y:300,width:175,swing:72,speed:1.1,phase:0},
-    {x:8700,y:313,width:170,swing:96,speed:.9,phase:1.1},
-    {x:13390,y:294,width:185,swing:86,speed:1,phase:2.3},
-  ].map(obj=>{
-    const p=track(obj.x,obj.y,obj.x+obj.width,obj.y,"moving");
-    // Match the starting position so moving ledges never teleport on frame one.
-    p.originX=obj.x-Math.sin(obj.phase)*obj.swing;
-    p.swing=obj.swing;p.speed=obj.speed;p.phase=obj.phase;
-    return p;
-  });
-  const stageTracks=[...base,...ledges,...moving];
-  const stageRings=[];
-  for (const [start,count,gap] of [
-    [280,11,57],[2200,10,60],[3230,7,56],[3940,9,63],
-    [4940,8,60],[5890,10,58],[6920,8,58],[8100,10,57],
-    [9030,8,64],[10270,8,59],[11450,10,60],
-    [12630,10,59],[13640,8,57],[15190,10,61],[16630,11,58]
-  ]) {
-    for(let i=0;i<count;i++){
-      const x=start+i*gap,y=lookup(x);
-      if(y!=null)stageRings.push({x,y:y-34-Math.sin(i/(count-1)*Math.PI)*12,r:8,active:true});
-    }
-  }
-  const stageEnemies=[
-    [860,"walker",30],[2530,"sentry",0],[3300,"drone",78],
-    [4140,"walker",70],[5220,"drone",65],[6140,"sentry",0],
-    [7160,"walker",90],[8370,"drone",65],[9350,"sentry",0],
-    [10530,"drone",90],[11290,"walker",70],[11880,"sentry",0],
-    [13130,"drone",85],[14180,"walker",65],[15360,"sentry",0],
-    [16200,"drone",75],[17020,"walker",85]
-  ].map(([x,type,patrol])=>{
-    const y=lookup(x);
-    const bad=enemy(x, y-(type==="drone"?46:2), patrol);
-    bad.type=type;bad.w=type==="sentry"?46:42;bad.h=type==="drone"?25:type==="sentry"?38:28;
-    return bad;
-  });
-  const checkpoints2=[2400,6020,9050,12860,15840].map(x=>({
-    x,y:lookup(x)-PLAYER_RADIUS,active:false
-  }));
-  const stageSigns=[
-    {x:250,title:"CANION PRISMA",hint:"NOVOS INIMIGOS E ABISMOS"},
-    {x:1460,title:"PRIMEIRO ABISMO",hint:"GANHE IMPULSO E PULE"},
-    {x:2570,title:"SENTINELA",hint:"EVITE OU USE BOOST"},
-    {x:3200,title:"DRONE",hint:"VOA E PATRULHA O AR"},
-    {x:4360,title:"PLATAFORMAS",hint:"BUSQUE UM CAMINHO ALTO"},
-    {x:7490,title:"NOVO SALTO",hint:"ACERTE A HORA DE PULAR"},
-    {x:11550,title:"ABISMO MAIOR",hint:"PREPARE SUA CORRIDA"},
-    {x:14610,title:"ULTIMO VAO",hint:"JUMP + CONTROLE"},
-    {x:16940,title:"CHEGADA",hint:"O CANION FOI SUPERADO"}
-  ];
-  return {
-    worldW:17600,spawn:{x:90,y:402},goal:{x:17460,y:288,w:55,h:72},
-    tracks:stageTracks,
-    chapters:[{x:0,title:"01 / PORTAL PRISMA"},{x:2900,title:"02 / PRIMEIRAS PLATAFORMAS"},
-      {x:5900,title:"03 / ABISMOS"},{x:8900,title:"04 / DRONES"},
-      {x:12300,title:"05 / RISCO E PRECISAO"},{x:15100,title:"06 / ESCAPE"}],
-    signs:stageSigns,
-    checkpoints:checkpoints2,
-    walls:[rect(-120,0,120,WORLD_H,"left-wall"),
-      rect(6340,346,44,74,"break-gate"),rect(13760,336,44,80,"break-gate")],
-    tunnels:[{x:3500,w:240,ground:435},{x:10630,w:290,ground:405}],
-    enemies:stageEnemies,rings:stageRings,
-    boostOrbs:[510,2250,5920,8420,10390,12660,13430,15630,16990]
-      .map(x=>orb(x,lookup(x)-32)),
-    springs:[{x:1840,y:394,w:36,h:15,powerX:540,powerY:-700},
-      {x:7650,y:449,w:36,h:15,powerX:525,powerY:-690},
-      {x:14830,y:359,w:36,h:15,powerX:560,powerY:-720}],
-    boostPads:[],
-    spikes:[3100,4160,6810,8640,11030,12950,14270,16140]
-      .map(x=>({x,y:lookup(x)-22,w:60,h:22})),
-    pulseGates:[{x:7050,y:lookup(7050)-102,w:18,h:76,phase:.7,period:2.8,live:1.05},
-      {x:14380,y:lookup(14380)-105,w:18,h:81,phase:1.2,period:2.7,live:1}],
-    memoryCores:[{x:2820,y:277,r:13,id:0,active:true},
-      {x:9860,y:225,r:13,id:1,active:true},
-      {x:15800,y:267,r:13,id:2,active:true}],
-    pits
-  };
-}
-// Rebuild Prism Canyon as a main stage: preserve the tested foundation, then
-// add progressively harder landings, enemy combinations and upper risk routes.
-function createStageTwoWorld() {
-  const world=createStageTwoWorldOriginal();
-  const additions=[
-    [17600,360,18820,360],[19050,400,21350,395],
-    [21600,420,23340,420],[23590,445,25700,360],
-    [25940,410,27980,410],[28230,440,30140,365],
-    [30390,400,32070,435],[32320,410,34000,410]
-  ];
-  const ground=[];
-  for(const [x1,y1,x2,y2] of additions){
-    if(y1===y2)ground.push(track(x1,y1,x2,y2,"canyon"));
-    else {
-      const middle=x1+Math.min(700,(x2-x1)*.42);
-      ground.push(track(x1,y1,middle,y2,y2<y1?"rise":"drop"));
-      ground.push(track(middle,y2,x2,y2,"canyon"));
-    }
-  }
-  const groundY2=x=>{
-    const f=ground.find(q=>x>=q.x1&&x<=q.x2);
-    return f?yOnTrack(f,x):null;
-  };
-  const highs=[
-    [18330,275,18980],[20580,292,21250],[22830,320,23540],
-    [25370,263,26040],[27500,300,28220],[29520,271,30280],
-    [31620,315,32320],[32930,290,33500]
-  ].map(([start,y,end])=>track(start,y,end,y,"platform"));
-  const moving=[
-    [18790,285,175,88,.88,.4],[23300,324,170,105,.9,1.2],
-    [27970,307,180,95,1.02,.7],[31940,300,175,92,1.06,1.4]
-  ].map(([x,y,width,swing,speed,phase])=>{
-    const p=track(x,y,x+width,y,"moving");
-    p.originX=x-Math.sin(phase)*swing;
-    p.swing=swing;p.speed=speed;p.phase=phase;return p;
-  });
-  world.tracks.push(...ground,...highs,...moving);
-  world.worldW=34000;
-  world.goal={x:33820,y:338,w:55,h:72};
-  world.pits.push(...additions.slice(0,-1).map((v,i)=>[v[2],additions[i+1][0]]));
-  world.chapters=[
-    {x:0,title:"01 / ENTRADA NO CANION"},
-    {x:3800,title:"02 / PLATAFORMAS DE PRECISAO"},
-    {x:7600,title:"03 / SALTOS EM SEQUENCIA"},
-    {x:11400,title:"04 / CAMINHOS ELEVADOS"},
-    {x:15100,title:"05 / GAUNTLET DE INIMIGOS"},
-    {x:18700,title:"06 / PLATAFORMAS MOVEIS"},
-    {x:22800,title:"07 / ENERGIA E CONTROLE"},
-    {x:27000,title:"08 / RITMO ALTO"},
-    {x:31100,title:"09 / DESAFIO FINAL"}
-  ];
-  world.signs.push(...[
-    [18120,"NOVA ESCALADA","PREPARE A ATERRISSAGEM"],
-    [20450,"DUAS ROTAS","VIA ALTA TEM MAIS CRISTAIS"],
-    [22570,"SENTINELAS","PULO OU BOOST"],
-    [25000,"PLATAFORMAS","OLHE ANTES DE SALTAR"],
-    [27520,"CORREDOR RAPIDO","SLIDE E SALTO"],
-    [28480,"RECARREGUE","ORBE ANTES DO PORTAO"],
-    [29460,"VIGIAS DO CANION","DESVIE DOS DRONES"],
-    [31190,"ULTIMA PROVA","MOMENTO EXATO DO PULO"],
-    [32800,"GUARDIAO DO PRISMA","SALTE / DESLIZE / USE BOOST"]
-  ].map(([x,title,hint])=>({x,title,hint})));
-  world.checkpoints.push(...[19400,23850,28510,32570].map(x=>({
-    x,y:groundY2(x)-PLAYER_RADIUS,active:false
-  })));
-  const robots=[
-    [18160,"walker",85],[19900,"drone",88],[20780,"sentry",0],
-    [21840,"walker",85],[22600,"drone",90],[24320,"sentry",0],
-    [25030,"walker",90],[26400,"drone",80],[27220,"sentry",0],
-    [27690,"walker",95],[29060,"drone",80],[29730,"sentry",0],
-    [30740,"walker",85],[31590,"drone",88],[33180,"sentry",0],
-    [33590,"walker",70]
-  ];
-  for(const [x,type,patrol] of robots){
-    const bad=enemy(x,groundY2(x)-(type==="drone"?48:2),patrol);
-    bad.type=type;bad.w=type==="sentry"?46:42;
-    bad.h=type==="drone"?25:type==="sentry"?38:28;
-    world.enemies.push(bad);
-  }
-  for(const start of [17820,19300,20100,21780,22580,23910,
-    24610,25500,26530,27090,28560,29450,30720,32600,33200]){
-    for(let i=0;i<9;i++){
-      const x=start+i*58,y=groundY2(x);
-      if(y!==null)world.rings.push({x,y:y-33-12*Math.sin(i/8*Math.PI),r:8,active:true});
-    }
-  }
-  world.boostOrbs.push(...[18060,19260,21000,22400,23900,26120,
-    28420,28620,29010,30700,32830,33030].map(x=>orb(x,groundY2(x)-32)));
-  world.walls.push(rect(28960,291,44,74,"break-gate"));
-  world.tunnels.push({x:22100,w:310,ground:420},
-    {x:26670,w:260,ground:410},{x:32600,w:260,ground:410});
-  world.springs.push({x:18720,y:345,w:36,h:15,powerX:535,powerY:-700},
-    {x:25610,y:345,w:36,h:15,powerX:540,powerY:-710},
-    {x:31870,y:395,w:36,h:15,powerX:550,powerY:-715});
-  world.spikes.push(...[20300,22000,24920,26540,27630,28780,
-    30680,32910].map(x=>({x,y:groundY2(x)-22,w:62,h:22})));
-  world.pulseGates.push(...[20870,27170,31400].map((x,i)=>({
-    x,y:groundY2(x)-104,w:18,h:79,phase:i*.56+.4,period:2.8,live:1.03
-  })));
-  // An isolated 960px boss chamber: no common enemies, signs, rings, spikes,
-  // tunnels, springs, moving platforms or original boost pickups inside it.
-  // The full-length ground stays flat at y=410.
-  const chamberStart=guardian.arenaLeft-10;
-  for(const key of ["enemies","rings","spikes","tunnels","springs","signs",
-    "boostOrbs","pulseGates","memoryCores"]){
-    world[key]=world[key].filter(item=>(item.x??0)<chamberStart);
-  }
-  world.tracks=world.tracks.filter(t=>t.kind!=="platform"&&t.kind!=="moving"||
-    t.x1<chamberStart);
-  world.tracks.push(
-    track(32850,320,33050,320,"boss-platform"),
-    track(33115,269,33325,269,"boss-platform"),
-    track(33435,308,33610,308,"boss-platform")
-  );
-  world.signs.push({x:32450,title:"GUARDIÃO ADIANTE",
-    hint:"ARENA ISOLADA · PREPARE O BOOST"});
-  world.memoryCores=[
-    {x:2820,y:277,r:13,id:0,active:true},
-    {x:9860,y:225,r:13,id:1,active:true},
-    {x:15800,y:267,r:13,id:2,active:true}
-  ];
-  return world;
-}
-
-function createStageThreeWorld(){
-  // Rooftops are safer elevated shortcuts. Streets have more enemies.
-  const parts=[[0,1600,422],[1600,3020,438],[3020,4500,418],[4500,5900,430],
-    [5900,7240,430],[7670,9050,416],[9050,10630,412],
-    [11110,12630,425],[13120,14750,413],[14750,16100,413],
-    [16100,17600,410],[17600,19200,410]];
-  const ground=parts.map(([a,b])=>track(a,422,b,422,"city-street"));
-  const roofs=[[510,298,950],[1450,280,1820],[2190,305,2630],[2980,265,3460],
-    [3540,295,4080],[4760,279,5350],[5500,290,6130],[6350,284,6980],
-    [7740,283,8270],[8410,268,8980],[9270,281,9850],[9960,255,10580],
-    [11170,283,11780],[11980,263,12560],[13160,279,13670],[13840,267,14590],
-    [14960,281,15510],[15860,288,16320],[16880,290,17360]]
-    .map(([a,y,b])=>track(a,y,b,y,"city-roof"));
-  const lifts=[[7120,304,160,110,1.15,.4],[10690,293,165,115,.95,1.1],
-    [12680,277,160,112,1.06,1.8]].map(([x,y,w,swing,speed,phase])=>{
-    const f=track(x,y,x+w,y,"moving");f.originX=x-Math.sin(phase)*swing;
-    f.swing=swing;f.speed=speed;f.phase=phase;return f;
-  });
-  const groundY=x=>ground.find(t=>x>=t.x1&&x<=t.x2)?.y1??418;
-  const bads=[[830,"city-drone",90,300],[1320,"city-hunter",80,0],
-    [2180,"city-drone",105,307],[2650,"city-turret",0,0],
-    [3140,"city-drone",105,270],[4820,"city-hunter",80,0],
-    [5260,"city-drone",90,272],[6160,"city-turret",0,0],
-    [6670,"city-drone",90,302],[8000,"city-drone",95,280],
-    [8520,"city-hunter",75,0],[9390,"city-turret",0,0],
-    [9860,"city-drone",105,270],[11330,"city-drone",85,278],
-    [11830,"city-hunter",76,0],[13310,"city-turret",0,0],
-    [13970,"city-drone",80,272],[15020,"city-hunter",70,0],
-    [15830,"city-drone",88,286],[16650,"city-turret",0,0],
-    [17100,"city-drone",72,285]]
-    .map(([x,type,patrol,flightY])=>{
-      const b=enemy(x,flightY||groundY(x)-3,patrol);
-      b.type=type;b.w=type==="city-hunter"?46:45;
-      b.h=type==="city-drone"?28:38;b.shotTimer=.6+x%3*.2;
-      b.doubleShots=0;return b;
-    });
-  const rings=[];
-  for(const [a,b] of [[200,1500],[1920,2900],[3340,4250],[4810,5610],
-    [6150,6990],[7800,8950],[9300,10480],[11320,12400],
-    [13220,14500],[14930,15800],[16200,17300]]){
-    for(let x=a;x<b;x+=62)rings.push({x,y:groundY(x)-49,r:8,active:true});
-  }
-  const signs=[
-    [210,"CIDADE DAS FENDAS","TELHADOS SEGUROS · RUAS PERIGOSAS"],
-    [1700,"DRONES DE ASSALTO","TIROS DUPLOS · BOOST NÃO BLOQUEIA"],
-    [3370,"NÚCLEO DE ÍMPETO","COLETE PARA APRENDER O DASH"],
-    [4710,"DASH AÉREO","APERTE PULO DUAS VEZES · MIRE COM O CURSOR"],
-    [6640,"VÃO DIMENSIONAL","O DASH É OBRIGATÓRIO"],
-    [9620,"ROTAS ELEVADAS","TELHADOS MAIS SEGUROS · RUAS COM PATRULHAS"],
-    [10490,"PASSAGEM OBRIGATÓRIA","DASH AÉREO NECESSÁRIO"],
-    [12460,"PROJÉTEIS","BOOST E DASH NÃO BLOQUEIAM TIROS"],
-    [13720,"RITMO FINAL","ENCADEIE SALTO E DASH"],
-    [17290,"O ARQUITETO","QUATRO NÚCLEOS · RAJADAS DUPLAS"]
-  ].map(([x,title,hint])=>({x,title,hint}));
-  return {worldW:19200,spawn:{x:90,y:404},goal:{x:19040,y:338,w:54,h:72},
-    tracks:[...ground,...roofs,...lifts],
-    chapters:[{x:0,title:"01 / LUZES DA METRÓPOLE"},
-      {x:3250,title:"02 / NÚCLEO DE ÍMPETO"},
-      {x:5850,title:"03 / SALTO SOBRE O VAZIO"},
-      {x:9100,title:"04 / TELHADOS OU RUAS"},
-      {x:12900,title:"05 / FENDAS DO CÉU"},
-      {x:17200,title:"06 / ARQUITETO DO VAZIO"}],
-    signs,checkpoints:[2550,5330,8000,11530,14450,17330]
-      .map(x=>({x,y:groundY(x)-PLAYER_RADIUS,active:false})),
-    walls:[rect(-120,0,120,WORLD_H,"left-wall")],
-    tunnels:[],enemies:bads,rings,
-    boostOrbs:[700,2100,3090,4950,6310,7940,9510,11610,13440,15340,17020]
-      .map(x=>orb(x,groundY(x)-35)),
-    springs:[],boostPads:[],
-    spikes:[2350,4970,6210,8340,9710,11900,13580,15530,16920]
-      .map(x=>({x,y:groundY(x)-22,w:56,h:22})),
-    pulseGates:[],
-    memoryCores:[{x:2920,y:227,r:13,id:0,active:true},
-      {x:9530,y:232,r:13,id:1,active:true},
-      {x:15650,y:230,r:13,id:2,active:true}],
-    pits:[[7240,7670],[10630,11110],[12630,13120]]};
-}
-
-const STAGES={1:stageOneWorld,2:createStageTwoWorld(),3:createStageThreeWorld()};
-function installSecretRoutes(world,stage){
-  world.secretTrials=SECRET_DEFS[stage].map(def=>{
-    const platforms=def.steps.map(([dx,rise,width,behavior],step)=>{
-      const x=def.x+dx,y=def.y-rise;
-      const kind="secret-"+behavior;
-      const floor=track(x-width/2,y,x+width/2,y,kind);
-      floor.secretId=def.id;floor.step=step;
-      floor.behavior=behavior;
-      floor.broken=false;floor.crumbleTime=0;
-      if(behavior==="moving"){
-        floor.originX=floor.x1;floor.originX2=floor.x2;
-        floor.swing=step%2?33:26;
-        floor.speed=step%2?1.3:1.05;
-        floor.phase=stage+step*.7;
-      }
-      if(behavior==="phase")floor.phase=step*.9;
-      if(behavior==="belt-right"||behavior==="belt-left")
-        floor.belt=behavior==="belt-right"?225:-190;
-      world.tracks.push(floor);
-      return {x,y,step,behavior,width};
-    });
-    const sentinels=def.hazards.map(([type,at,dx,dy,range],i)=>({
-      type,step:at,baseX:platforms[at].x+dx,
-      baseY:platforms[at].y+dy,patrol:range,
-      phase:i*.94+stage*.38,
-      x:platforms[at].x+dx,y:platforms[at].y+dy
-    }));
-    const xs=platforms.map(p=>p.x);
-    return {id:def.id,name:def.name,hint:def.hint,
-      startX:platforms[0].x,startY:platforms[0].y-PLAYER_RADIUS,
-      targetX:platforms[platforms.length-1].x,
-      targetY:platforms[platforms.length-1].y-PLAYER_RADIUS,
-      limit:def.limit,platforms,sentinels,
-      leftBound:Math.min(...xs)-205,rightBound:Math.max(...xs)+205,
-      cameraX:(Math.min(...xs)+Math.max(...xs))/2,
-      shots:[],shotTimer:1.5,active:false,completed:false,elapsed:0,
-      armed:true,failed:false};
-  });
-}
-
-installSecretRoutes(STAGES[1],1);
-installSecretRoutes(STAGES[2],2);
-installSecretRoutes(STAGES[3],3);
+const levelApi={track,rect,enemy,orb,yOnTrack,PLAYER_RADIUS,WORLD_H};
+const STAGES={1:stageOneWorld,2:createStageTwoWorld({...levelApi,guardian}),3:createStageThreeWorld(levelApi)};
+installSecretRoutes(STAGES[1],1,{track,PLAYER_RADIUS});
+installSecretRoutes(STAGES[2],2,{track,PLAYER_RADIUS});
+installSecretRoutes(STAGES[3],3,{track,PLAYER_RADIUS});
 
 function activateStage(stage=1) {
   if(!STAGES[stage])throw new Error("Unknown level "+stage);
@@ -786,6 +278,7 @@ function activateStage(stage=1) {
 }
 
 function secretPlatformSolid(floor){
+  if(floor.kind==="rift-phase")return riftPlatformPhase(floor,gameTime).solid;
   if(!floor.secretId)return true;
   const trial=secretTrials.find(t=>t.id===floor.secretId);
   if(!trial?.active)return true;
@@ -799,6 +292,14 @@ function secretPlatformSolid(floor){
 }
 function updateMovingPlatforms(dt) {
   for(const floor of tracks){
+    if(activeStage===3&&floor.kind==="rift-elevator"){
+      const newY=riftElevatorY(floor,gameTime),dy=newY-floor.y1;
+      floor.y1=newY;floor.y2=newY;
+      if(player.onGround&&player.ground===floor){
+        player.y+=dy;player.prevY+=dy;
+      }
+      continue;
+    }
     if(floor.secretId){
       const trial=secretTrials.find(t=>t.id===floor.secretId);
       if(floor.behavior==="moving"){
@@ -848,20 +349,6 @@ function rect(x, y, w, h, kind) {
   return { x, y, w, h, kind, active: true };
 }
 
-function enemy(x, y, patrol) {
-  return {
-    x,
-    y,
-    baseX: x,
-    yBase: y,
-    w: 38,
-    h: 28,
-    patrol,
-    phase: Math.random() * Math.PI * 2,
-    alive: true,
-  };
-}
-
 function orb(x, y) {
   return { x, y, r: 15, active: true };
 }
@@ -884,12 +371,7 @@ function arcRings(x, y, count, gap) {
   }));
 }
 
-function gradeForTime(time, stage=activeStage) {
-  if (stage===3) return time<90?"S":time<130?"A":time<175?"B":"C";
-  if (stage===2) return time<105?"S":time<145?"A":time<195?"B":"C";
-  return time<75?"S":time<100?"A":time<145?"B":"C";
-}
-
+function gradeForTime(time,stage=activeStage){return gradeForTimeByStage(time,stage);}
 function defaultStageProgress() {
   return { completed:false, clears:0, bestTime:0, bestGrade:"", bestCrystals:0, bestCores:0 };
 }
@@ -1584,13 +1066,7 @@ function recordCampaignSecret(stage,id){
   saveCampaign();
   return true;
 }
-function campaignCompletion(){
-  const stages=Number(campaign.stage1Completed)+Number(campaign.stage2Completed)+
-    Number(campaign.stage3Completed);
-  const cores=[1,2,3].reduce((n,i)=>n+campaign.extras.cores["stage"+i].length,0);
-  const secrets=[1,2,3].reduce((n,i)=>n+campaign.extras.secrets["stage"+i].length,0);
-  return {stages,cores,secrets,percent:Math.round(100*(stages/4*.4+cores/12*.3+secrets/12*.3))};
-}
+function campaignCompletion(){return computeCampaignCompletion(campaign);}
 function nextCampaignStage(){
   return campaign.stage2Completed&&campaign.lastStage===3?3:campaign.stage1Completed&&campaign.lastStage===2?2:1;
 }
@@ -1822,6 +1298,69 @@ function showScreen(target) {
   target.querySelector?.('button:not([disabled]),input')?.focus?.();
 }
 
+function showDeathScreen(fell, lost){
+  // End the current run; permanent campaign progress is not reset.
+  gameStarted=false;gameCleared=false;paused=false;accumulator=0;
+  airDash.active=false;airDash.time=0;
+  document.querySelector("#deathStageLabel").textContent=
+    ["","Floresta Neon","Cânion Prisma","Cidade das Fendas"][activeStage];
+  document.querySelector("#deathReason").textContent=fell
+    ?"Flux caiu na fenda. Todos os cristais foram perdidos."
+    :"Flux ficou sem cristais para resistir ao impacto.";
+  document.querySelector("#deathCrystalLoss").textContent=
+    lost+" cristal"+(lost===1?" perdido":"is perdidos");
+  const checkpoint=checkpointRespawnTarget(checkpoints,checkpointIndex,spawn);
+  document.querySelector("#deathRestartButton").textContent=
+    checkpoint.fromCheckpoint?"↺ VOLTAR AO CHECKPOINT":"↺ REINICIAR FASE";
+  showScreen(deathMenu);
+}
+function restartAfterDeath(){
+  const target=checkpointRespawnTarget(checkpoints,checkpointIndex,spawn);
+  if(!target.fromCheckpoint){
+    // No checkpoint: restart the full stage as before.
+    startGame(activeStage,true,false);
+    return;
+  }
+  // Keep the current attempt, timer, cores, secrets and permanent progress.
+  // Do NOT call resetGame(): it clears the activated checkpoint.
+  stageArrival.active=false;
+  gameCleared=false;
+  paused=false;
+  gameStarted=true;
+  accumulator=0;
+  keys.clear();jumpHeld=false;jumpBuffer=0;coyoteTimer=0;
+  resetAirDash();
+  resetFluxFx();
+  sentryShots=[];
+  particles=[];
+  player.x=target.x;player.y=target.y;
+  player.prevX=target.x;player.prevY=target.y;
+  player.vx=0;player.vy=0;
+  player.facing=1;
+  player.onGround=false;player.ground=null;
+  player.boost=0;
+  player.invulnerable=1.8;
+  player.sliding=false;player.downhillSliding=false;player.boosting=false;
+  player.trail=[];
+  player.animationPhase=0;
+  // All crystals lost in a pit stay lost, but collectible objects in the
+  // next section can be collected again after respawn.
+  rings.forEach(item=>{if(item.x>=target.x)item.active=true;});
+  boostOrbs.forEach(item=>{if(item.x>=target.x)item.active=true;});
+  if(activeStage===3&&cityBoss.active&&!cityBoss.defeated)resetCityBoss();
+  if(activeStage===2&&guardian.active&&!guardian.defeated)resetGuardian();
+  cameraAnchorX=VIEW_W*CAMERA_IDLE_ANCHOR;
+  cameraX=clamp(target.x-cameraAnchorX,0,Math.max(0,WORLD_W-VIEW_W));
+  cameraY=clamp(target.y-VIEW_H*.56,0,WORLD_H-VIEW_H);
+  screens.forEach(screen=>{screen.hidden=true;});
+  overlay.classList.add("is-hidden");
+  const panel=document.querySelector(".game-panel");
+  panel.classList.remove("menu-active","pause-active");
+  if(debugToggle)debugToggle.hidden=false;
+  syncPauseButton();
+  syncMusic();
+  ensureLoop();
+}
 function showMainMenu() {showScreen(mainMenu);}
 function showSettingsMenu(){showScreen(settingsMenu);refreshAudioSettings();}
 function showStageMenu(){
@@ -2080,6 +1619,7 @@ function resetGame() {
     t.sentinels.forEach(e=>{e.x=e.baseX;e.y=e.baseY;});
   });
   tracks.forEach(t=>{
+    if(t.kind==="rift-elevator"){t.y1=t.initialY;t.y2=t.initialY;}
     if(!t.secretId)return;
     t.broken=false;t.crumbleTime=0;
     if(t.originX!==undefined){
@@ -2135,7 +1675,7 @@ function loop(now) {
 
   if (gameStarted && !gameCleared && !paused) {
     accumulator += dt;
-    while (accumulator >= FIXED_DT) {
+    while (accumulator >= FIXED_DT && gameStarted && !paused && !gameCleared) {
       update(FIXED_DT);
       accumulator -= FIXED_DT;
     }
@@ -2163,31 +1703,82 @@ function loop(now) {
 // ----------------- Guardian of the Prism: arena fight -----------------
 // The Void Architect: four weak-point hits with the *aerial* dash,
 // a twin-shot telegraph, guarded and exposed windows, cinematic collapse.
-const cityBoss={x:18390,y:324,arenaLeft:17640,arenaRight:19200,
- active:false,defeated:false,state:"intro",timer:0,hp:4,maxHp:4,shot:0,fx:0};
+const cityBoss={x:RIFT_BOSS_ARENA_LEFT+750,y:324,
+ arenaLeft:RIFT_BOSS_ARENA_LEFT,arenaRight:RIFT_WORLD_WIDTH,
+ active:false,defeated:false,state:"intro",timer:0,hp:4,maxHp:4,shot:0,fx:0,
+ rifts:[]};
 const cityShards=[];
 function resetCityBoss(){
  Object.assign(cityBoss,{active:false,defeated:false,state:"intro",
-   timer:0,hp:4,shot:0,fx:0});
+   timer:0,hp:4,shot:0,fx:0,rifts:[]});
  cityShards.length=0;
 }
 function beginCityBoss(){
- Object.assign(cityBoss,{active:true,state:"intro",timer:0,shot:0});
+ Object.assign(cityBoss,{active:true,state:"intro",timer:0,shot:0,rifts:[]});
  musicStep=0;
  if(audioContext&&audioContext.state==="running")
    nextMusicNote=audioContext.currentTime+.07;
  syncTrackLabel();playSfx("boss-enter");
 }
+function beginCityBossTelegraph(){
+ cityBoss.timer=0;cityBoss.shot=0;cityBoss.state="telegraph";
+ cityBoss.rifts=spawnArchitectRifts({
+   phase:architectPhase(cityBoss.hp),playerX:player.x,facing:player.facing,
+   arenaLeft:cityBoss.arenaLeft,arenaRight:cityBoss.arenaRight
+ });
+}
 function cityBossFire(){
+ const config=architectPhase(cityBoss.hp);
  const x=cityBoss.x-65,y=cityBoss.y-19;
  const a=Math.atan2(player.y-y,player.x-x);
- for(const delta of [-.14,.14]){
+ for(let i=0;i<config.projectiles;i++){
    if(sentryShots.length>=42)break;
-   const v=cityBoss.hp<=2?515:455;
-   sentryShots.push({x,y,vx:Math.cos(a+delta)*v,vy:Math.sin(a+delta)*v,
-     life:3,r:10,unblockable:true,cityShot:true});
+   const offset=(i-(config.projectiles-1)/2)*.105;
+   sentryShots.push({x,y,vx:Math.cos(a+offset)*config.speed,
+     vy:Math.sin(a+offset)*config.speed,life:3,r:9,
+     unblockable:true,cityShot:true});
  }
  playSfx("boss-alert");
+}
+function updateArchitectGroundRifts(dt){
+ if(!cityBoss.active||cityBoss.defeated)return;
+ for(const rift of cityBoss.rifts){
+   rift.age+=dt;
+   if(architectRiftState(rift.age)!=="active")continue;
+   if(circleRect(player.x,player.y,PLAYER_RADIUS,
+     {x:rift.x-rift.width/2,y:317,w:rift.width,h:96})){
+     damagePlayer(false);
+     if(!gameStarted)return;
+   }
+ }
+ cityBoss.rifts=cityBoss.rifts.filter(rift=>architectRiftState(rift.age)!=="expired");
+}
+function drawArchitectGroundRifts(){
+ if(activeStage!==3||!cityBoss.active||cityBoss.defeated)return;
+ for(const rift of cityBoss.rifts){
+   const state=architectRiftState(rift.age);
+   if(state==="expired")continue;
+   ctx.save();
+   ctx.strokeStyle=state==="warning"?"#ffd08b":"#ff5bba";
+   ctx.lineWidth=state==="warning"?4:8;
+   ctx.shadowColor=state==="warning"?"#ffe498":"#ff51a8";
+   ctx.shadowBlur=state==="warning"?10:25;
+   const left=rift.x-rift.width/2,right=rift.x+rift.width/2;
+   ctx.beginPath();
+   ctx.moveTo(left,410);ctx.lineTo(rift.x-23,397);
+   ctx.lineTo(rift.x,408);ctx.lineTo(rift.x+21,396);
+   ctx.lineTo(right,410);ctx.stroke();
+   if(state==="active"){
+     ctx.fillStyle="rgba(240,64,178,.27)";
+     ctx.beginPath();ctx.moveTo(left,410);
+     ctx.lineTo(rift.x-17,326);ctx.lineTo(rift.x+14,335);
+     ctx.lineTo(right,410);ctx.closePath();ctx.fill();
+     ctx.strokeStyle="#ffc4ef";ctx.lineWidth=2;
+     ctx.beginPath();ctx.moveTo(rift.x-17,326);
+     ctx.lineTo(rift.x,350);ctx.lineTo(rift.x+14,335);ctx.stroke();
+   }
+   ctx.restore();
+ }
 }
 function hurtCityBoss(){
  if(cityBoss.state!=="exposed"||!airDash.active)return;
@@ -2199,7 +1790,10 @@ function hurtCityBoss(){
      vx:Math.cos(angle)*v,vy:Math.sin(angle)*v,life:1.5});
  }
  if(cityShards.length>66)cityShards.splice(0,cityShards.length-66);
- if(cityBoss.hp===0)sentryShots=sentryShots.filter(p=>!p.cityShot);
+ if(cityBoss.hp===0){
+   sentryShots=sentryShots.filter(p=>!p.cityShot);
+   cityBoss.rifts=[];
+ }
  airDash.active=false;airDash.time=0;
  player.vy=-230;player.vx=-420;
  playSfx(cityBoss.hp===0?"boss-collapse":"boss-crack");
@@ -2207,7 +1801,7 @@ function hurtCityBoss(){
  cityBoss.state=cityBoss.hp===0?"collapse":"recovery";
 }
 function updateCityBoss(dt){
- if(activeStage!==3||cityBoss.defeated)return;
+ if(activeStage!==3||cityBoss.defeated||!gameStarted)return;
  if(!cityBoss.active){
    if(player.x<cityBoss.arenaLeft)return;
    beginCityBoss();
@@ -2219,28 +1813,36 @@ function updateCityBoss(dt){
    player.x=cityBoss.arenaRight-PLAYER_RADIUS;player.vx=Math.min(0,player.vx);
  }
  cityBoss.timer+=dt;
+ updateArchitectGroundRifts(dt);
+ if(!gameStarted)return;
+ const phase=architectPhase(cityBoss.hp);
  if(cityBoss.state==="intro"&&cityBoss.timer>=2.55){
-   cityBoss.timer=0;cityBoss.state="telegraph";
- }else if(cityBoss.state==="telegraph"&&cityBoss.timer>=.95){
+   beginCityBossTelegraph();
+ }else if(cityBoss.state==="telegraph"&&cityBoss.timer>=phase.telegraph){
    cityBoss.timer=0;cityBoss.shot=0;cityBoss.state="barrage";
  }else if(cityBoss.state==="barrage"){
-   if(cityBoss.shot===0&&cityBoss.timer>.06){cityBossFire();cityBoss.shot++;}
-   if(cityBoss.shot===1&&cityBoss.timer>.51){cityBossFire();cityBoss.shot++;}
-   if(cityBoss.timer>1.15){cityBoss.timer=0;cityBoss.state="exposed";}
+   if(cityBoss.shot<phase.volleys&&cityBoss.timer>=.06+cityBoss.shot*phase.gap){
+     cityBossFire();cityBoss.shot++;
+   }
+   if(cityBoss.timer>architectBarrageDuration(phase)){
+     cityBoss.timer=0;cityBoss.state="exposed";
+   }
  }else if(cityBoss.state==="exposed"){
    if(distance(player.x,player.y,cityBoss.x,cityBoss.y)<PLAYER_RADIUS+52&&airDash.active)
      hurtCityBoss();
-   else if(cityBoss.timer>3.1){cityBoss.timer=0;cityBoss.state="telegraph";}
- }else if(cityBoss.state==="recovery"&&cityBoss.timer>1.05){
-   cityBoss.timer=0;cityBoss.state="telegraph";
+   else if(cityBoss.timer>phase.exposed)beginCityBossTelegraph();
+ }else if(cityBoss.state==="recovery"&&cityBoss.timer>phase.recovery){
+   beginCityBossTelegraph();
  }else if(cityBoss.state==="collapse"&&cityBoss.timer>2.65){
    cityBoss.defeated=true;cityBoss.state="defeated";cityBoss.timer=0;
+   cityBoss.rifts=[];
    playSfx("portal-open");musicStep=0;syncTrackLabel();
  }
  if(["telegraph","barrage"].includes(cityBoss.state)&&circleRect(
    player.x,player.y,PLAYER_RADIUS,
    {x:cityBoss.x-49,y:cityBoss.y-70,w:98,h:132}))damagePlayer(false);
 }
+
 function updateCityBossFX(dt){
  cityBoss.fx=Math.max(0,cityBoss.fx-dt*1.6);
  for(const p of cityShards){p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;}
@@ -2256,7 +1858,7 @@ function drawCityBoss(){
  for(let x=cityBoss.arenaLeft;x<cityBoss.arenaRight;x+=115){
    ctx.beginPath();ctx.moveTo(x,102);ctx.lineTo(x+45,410);ctx.stroke();
  }
- if(cityBoss.defeated){ctx.restore();drawCityExit();return;}
+ if(cityBoss.defeated){ctx.restore();return;}
  ctx.translate(cityBoss.x,cityBoss.y+Math.sin(visualTime*3)*4);
  if(cityBoss.state==="intro"){
    const v=clamp(cityBoss.timer/2.55,0,1);
@@ -2298,15 +1900,37 @@ function drawCityBoss(){
 }
 function drawCityExit(){
  if(activeStage!==3||!cityBoss.defeated)return;
- ctx.save();ctx.translate(goal.x+goal.w/2,goal.y+goal.h*.45);
- for(let i=0;i<5;i++){
+ const cx=goal.x+goal.w/2,cy=goal.y+goal.h*.45;
+ ctx.save();ctx.translate(cx,cy);
+ const breathe=1+Math.sin(visualTime*3.2)*.065;
+ ctx.scale(breathe,breathe);
+ const glow=ctx.createRadialGradient(0,0,10,0,0,140);
+ glow.addColorStop(0,"rgba(141,255,234,.52)");
+ glow.addColorStop(.65,"rgba(192,116,255,.22)");
+ glow.addColorStop(1,"rgba(156,80,250,0)");
+ ctx.fillStyle=glow;ctx.fillRect(-145,-145,290,290);
+ ctx.shadowBlur=28;ctx.shadowColor="#9affed";
+ for(let i=4;i>=0;i--){
    ctx.strokeStyle=i%2?"#bda7ff":"#70ffe8";
-   ctx.globalAlpha=.22+i*.12;ctx.lineWidth=7-i;
-   ctx.beginPath();ctx.ellipse(0,0,35+i*5,52+i*5,
-     visualTime*.15+i*.1,0,0,Math.PI*2);ctx.stroke();
+   ctx.globalAlpha=.42+(4-i)*.115;ctx.lineWidth=5;
+   ctx.beginPath();ctx.ellipse(0,0,33+i*5,51+i*5,
+     Math.sin(visualTime*.35+i)*.16,0,Math.PI*2);ctx.stroke();
  }
+ ctx.globalAlpha=1;ctx.shadowBlur=14;
+ ctx.fillStyle="rgba(147,108,235,.66)";
+ ctx.beginPath();ctx.ellipse(0,0,36,57,0,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle="#b3fffa";
+ ctx.beginPath();ctx.moveTo(0,-45);ctx.lineTo(28,0);
+ ctx.lineTo(0,45);ctx.lineTo(-28,0);ctx.closePath();ctx.fill();
+ ctx.fillStyle="#151247";
+ ctx.beginPath();ctx.moveTo(0,-32);ctx.lineTo(19,0);
+ ctx.lineTo(0,32);ctx.lineTo(-19,0);ctx.closePath();ctx.fill();
+ ctx.shadowBlur=0;ctx.textAlign="center";
+ ctx.font="bold 16px system-ui";ctx.fillStyle="#e1fff5";
+ ctx.fillText("ENTRE NA FENDA",0,-98);
  ctx.restore();
 }
+
 function drawCityBossCinematic(){
  if(activeStage!==3||!cityBoss.active||cityBoss.defeated)return;
  if(!["intro","collapse"].includes(cityBoss.state))return;
@@ -2976,13 +2600,18 @@ function update(dt) {
   resolveCityRiftGates();
   updateCheckpoints();
   updateEnemies(dt);
+  if(!gameStarted)return;
   updateSentryShots(dt);
+  if(!gameStarted)return;
   updateCityBoss(dt);
+  if(!gameStarted)return;
   updateCityBossFX(dt);
   collectItems();
   collectCityDashCore();
   handleHazards();
+  if(!gameStarted)return;
   handlePulseGates();
+  if(!gameStarted)return;
   handleBoostPads();
   handleSprings();
   updateGuardian(dt);
@@ -3007,7 +2636,7 @@ function update(dt) {
     player.x=guardian.arenaRight-PLAYER_RADIUS;player.vx=Math.min(0,player.vx);
   }
 
-  if(!debugMode&&player.y>720){damagePlayer(true);}
+  if(!debugMode&&player.y>720){damagePlayer(true);if(!gameStarted)return;}
 
   // Stage 1 keeps its original exit. Stage 2 requires entering a fully open
   // dimensional portal; touching the inactive spawn point cannot win.
@@ -3217,7 +2846,7 @@ function updateEnemies(dt) {
     const box = { x: bad.x - bad.w / 2, y: bad.y - bad.h, w: bad.w, h: bad.h };
     if (!circleRect(player.x, player.y, PLAYER_RADIUS, box)) continue;
 
-    const cityEnemy=bad.type.startsWith("city-");
+    const cityEnemy=isCityEnemyType(bad.type);
     const stomp=bad.type!=="sentry"&&bad.type!=="city-turret"&&
       player.prevY+PLAYER_RADIUS<=box.y+8&&player.vy>80&&!airDash.active;
     const smash=player.boosting&&!cityEnemy&&
@@ -3416,29 +3045,7 @@ function interruptSecretTrials(){
     if(trial.active)failSecretTrial(trial);
 }
 
-function drawSecretBackdrop(){
-  const trial=secretTrials.find(t=>t.active);
-  if(!trial)return;
-  const palettes={
-    canopy:["rgba(5,54,41,.65)","rgba(117,246,137,.26)","◆"],
-    lumen:["rgba(20,35,72,.70)","rgba(179,222,255,.30)","✧"],
-    horizon:["rgba(54,27,42,.65)","rgba(255,191,115,.25)","➤"],
-    echo:["rgba(21,15,72,.69)","rgba(153,124,255,.30)","◉"],
-    prism:["rgba(44,15,69,.65)","rgba(249,118,232,.25)","◇"],
-    zenith:["rgba(37,15,67,.74)","rgba(246,166,206,.28)","✦"]
-  };
-  const [fill,line,symbol]=palettes[trial.id];
-  ctx.save();
-  ctx.fillStyle=fill;ctx.fillRect(cameraX,cameraY,VIEW_W,VIEW_H);
-  ctx.strokeStyle=line;ctx.lineWidth=3;
-  for(const x of [trial.leftBound+40,trial.rightBound-40]){
-    ctx.beginPath();ctx.moveTo(x,trial.targetY-110);
-    ctx.lineTo(x,trial.startY+95);ctx.stroke();
-  }
-  ctx.font="bold 32px system-ui";ctx.textAlign="center";ctx.fillStyle=line;
-  for(const pad of trial.platforms)ctx.fillText(symbol,pad.x+75,pad.y-48);
-  ctx.restore();
-}
+function drawSecretBackdrop(){const trial=secretTrials.find(t=>t.active);if(trial)renderSecretBackdrop(ctx,trial,{cameraX,cameraY,VIEW_W,VIEW_H});}
 function drawSecretEnemy(trial,bad){
   const {x,y}=secretEnemyPosition(trial,bad),t=trial.elapsed;
   ctx.save();ctx.translate(x,y);ctx.lineWidth=2.5;
@@ -3664,8 +3271,7 @@ function handleSprings() {
 
 function updateCheckpoints() {
   checkpoints.forEach((point, index) => {
-    if (index > checkpointIndex && player.x >= point.x && player.onGround
-      && Math.abs(player.y-point.y)<48) {
+    if (index > checkpointIndex && checkpointReached(point,player)) {
       checkpointIndex = index;
       point.active = true;
       emitParticles(point.x, point.y - 45, "#75ffcc", 20, 130);
@@ -3674,66 +3280,26 @@ function updateCheckpoints() {
   });
 }
 function damagePlayer(fall) {
-  if (debugMode || (player.invulnerable > 0 && !fall)) return;
-  // Taking a hit interrupts aerial momentum: a dash never grants a shield.
-  if(airDash.active){
-    airDash.active=false;airDash.time=0;
-  }
-  runDamageCount++;
-  interruptSecretTrials();
-  if(activeStage===2&&guardian.active&&!guardian.defeated)bossDamagedThisRun=true;
-  if (fall) player.falls += 1;
-  shakeTime = 0.22;
-  triggerFluxFx("hurt");
-  emitParticles(player.x, player.y, "#ff896d", 13, 155);
-  playSfx("hurt");
-
-  if (fall || player.rings <= 0) {
-    const respawn = checkpointIndex >= 0 ? checkpoints[checkpointIndex] : spawn;
-    player.x = respawn.x;
-    player.y = respawn.y;
-    player.prevX = respawn.x;
-    player.prevY = respawn.y;
-    player.onGround = false;
-    player.ground = null;
-    player.vx = 0;
-    player.vy = 0;
-    player.rings = Math.max(0, Math.floor(player.rings / 2));
-    resetAirDash();
-    player.boost = 0;
-    player.sliding = false;
-    player.downhillSliding = false;
-    resetFluxFx();
-    boostOrbs.forEach(item => { if (item.x > respawn.x) item.active = true; });
-    memoryCores.forEach(item => { if (item.x > respawn.x) item.active = true; });
-    // A respawn teleports the camera too; it must not pan across half the level.
-    cameraAnchorX = VIEW_W * CAMERA_IDLE_ANCHOR;
-    cameraX = clamp(player.x - cameraAnchorX, 0, WORLD_W - VIEW_W);
-    cameraY = clamp(player.y - VIEW_H * 0.56, 0, WORLD_H - VIEW_H);
-    coyoteTimer = 0;
-    jumpBuffer = 0;
-    player.invulnerable = 1.3;
-    if(activeStage===3&&cityBoss.active&&!cityBoss.defeated){
-      player.x=cityBoss.arenaLeft+75;player.y=410-PLAYER_RADIUS;
-      player.prevX=player.x;player.prevY=player.y;
-      cameraX=cityBoss.arenaLeft;cameraY=0;
-      resetCityBoss();beginCityBoss();
-    }
-    if(activeStage===2&&guardian.active&&!guardian.defeated) {
-      // Restart inside the room, not beyond its locked entrance.
-      player.x=guardian.arenaLeft+65;player.y=guardian.arenaFloor-PLAYER_RADIUS;
-      player.prevX=player.x;player.prevY=player.y;
-      cameraX=guardian.arenaLeft;cameraY=0;
-      resetGuardian();
-      beginGuardianFight(true);
-    }
-    return;
-  }
-
-  player.rings = Math.max(0, player.rings - 8);
-  player.vx = -player.facing * 250;
-  player.vy = -450;
-  player.invulnerable = 1.1;
+ if(debugMode||(player.invulnerable>0&&!fall)||!gameStarted)return;
+ if(airDash.active){airDash.active=false;airDash.time=0;}
+ runDamageCount++;
+ interruptSecretTrials();
+ if(activeStage===2&&guardian.active&&!guardian.defeated)bossDamagedThisRun=true;
+ if(fall)player.falls+=1;
+ shakeTime=.22;
+ triggerFluxFx("hurt");
+ emitParticles(player.x,player.y,"#ff896d",13,155);
+ playSfx("hurt");
+ const result=calculateCrystalDamage(player.rings,{fall});
+ player.rings=result.remaining;
+ if(result.dead){
+   showDeathScreen(fall,result.lost);
+   return;
+ }
+ // Surviving a normal collision: lose substantial crystals and bounce away.
+ player.vx=-player.facing*250;
+ player.vy=-450;
+ player.invulnerable=1.1;
 }
 
 function updateTrail(dt) {
@@ -3766,6 +3332,8 @@ function draw() {
   drawCityDashCore();
   drawSentryShots();
   drawCityBoss();
+  drawArchitectGroundRifts();
+  drawCityExit();
   drawGuardian();
   drawGuardianVisuals();
   drawRiftPortal();
@@ -3808,47 +3376,16 @@ function drawSky() {
 }
 
 function drawCityBackground(){
-  // Parallax layers of staggered towers, rooftop facades and illuminated
-  // windows. Both the low street and high rooftops remain navigable.
-  for(const [step,shift,color] of [[222,.17,"#121e41"],
-    [170,.33,"#19294d"],[140,.57,"#233860"]]){
-    const first=Math.floor(cameraX/step)-2;
-    const last=first+Math.ceil(VIEW_W/step)+6;
-    ctx.fillStyle=color;
-    for(let i=first;i<=last;i++){
-      const x=i*step+cameraX*(1-shift);
-      const height=195+((i%5+5)%5)*43;
-      ctx.fillRect(x,460-height,step*.72,height+160);
-      if(shift>.3){
-        ctx.fillStyle=shift>.5?"rgba(255,199,161,.32)":"rgba(113,248,255,.20)";
-        for(let row=0;row<6;row++)for(let col=0;col<3;col++){
-          if((row*3+col+i)%5===0)continue;
-          ctx.fillRect(x+18+col*29,474-height+row*36,8,13);
-        }
-        ctx.fillStyle=color;
-      }
-    }
-  }
-  for(const floor of tracks){
-    if(floor.kind!=="city-roof"||floor.x2<cameraX-30||floor.x1>cameraX+VIEW_W+30)continue;
-    ctx.fillStyle="#172d4d";
-    ctx.fillRect(floor.x1,floor.y1+6,floor.x2-floor.x1,570-floor.y1);
-    ctx.fillStyle="rgba(111,254,229,.52)";
-    for(let x=floor.x1+23;x<floor.x2-15;x+=47)
-      for(let y=floor.y1+29;y<510;y+=52)
-        if((Math.floor(x/47)+Math.floor(y/52))%4!==0)
-          ctx.fillRect(x,y,15,20);
-    ctx.strokeStyle="#d9b7fa";ctx.lineWidth=3;
-    ctx.beginPath();ctx.moveTo(floor.x1,floor.y1);
-    ctx.lineTo(floor.x2,floor.y2);ctx.stroke();
-  }
-  ctx.strokeStyle="rgba(131,245,241,.27)";
-  for(let i=0;i<7;i++){
-    const x=Math.floor(cameraX/420)*420+i*420-80;
-    ctx.beginPath();ctx.moveTo(x,160);ctx.lineTo(x+210,160);ctx.stroke();
+  renderCityBackground(ctx,{cameraX,VIEW_W,tracks});
+  const area=STAGES[3].riftCorridor;
+  const approach=cameraX+VIEW_W*.55;
+  const mix=clamp((approach-(area.start-400))/700,0,1);
+  if(mix>0){
+    ctx.save();ctx.globalAlpha=mix;
+    renderRiftCorridorBackground(ctx,{cameraX,cameraY,VIEW_W,VIEW_H,time:visualTime});
+    ctx.restore();
   }
 }
-
 function drawBackground() {
   if(activeStage===3){drawCityBackground();return;}
   if(activeStage===2){drawCanyonBackground();return;}
@@ -3971,33 +3508,36 @@ function drawChasms() {
   }
 }
 
-function drawForest() {
-  if(activeStage===2)return;
-  // Procedural shapes repeat without external assets and are culled off-screen.
-  const first = Math.floor(cameraX / 235) - 2;
-  const last = Math.ceil((cameraX + VIEW_W) / 235) + 2;
-  for (let i = first; i <= last; i += 1) {
-    const x = i * 235 + 115, ground = groundY(x);
-    if (ground == null) continue;
-    const height = 55 + ((i % 4 + 4) % 4) * 21;
-    ctx.fillStyle = i % 2 ? "#123e42" : "#17555a";
-    ctx.fillRect(x - 6, ground - height + 18, 12, height);
-    ctx.fillStyle = i % 3 ? "#18766f" : "#22918b";
-    ctx.beginPath();
-    ctx.moveTo(x - 47, ground - height + 20);
-    ctx.lineTo(x, ground - height - 30);
-    ctx.lineTo(x + 47, ground - height + 20);
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = "#5bf0df";
-    ctx.fillRect(x - 3, ground - height + 4, 6, 6);
-  }
-}
+function drawForest(){if(activeStage!==1)return;renderForest(ctx,{cameraX,VIEW_W,groundY});}
 function drawTracks() {
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
   for (const floor of tracks) {
     if (floor.x2 < cameraX - 120 || floor.x1 > cameraX + VIEW_W + 120) continue;
+    if(floor.kind==="rift-phase"){
+      const {solid,warning}=riftPlatformPhase(floor,gameTime);
+      ctx.save();
+      ctx.globalAlpha=solid?1:.22;
+      ctx.strokeStyle=warning?"#ffd18e":"#be9bff";
+      ctx.lineWidth=18;ctx.beginPath();
+      ctx.moveTo(floor.x1,floor.y1);ctx.lineTo(floor.x2,floor.y2);ctx.stroke();
+      ctx.strokeStyle=warning?"#ff986e":"#fff0fd";
+      ctx.lineWidth=3;ctx.setLineDash([11,8]);
+      ctx.beginPath();ctx.moveTo(floor.x1+3,floor.y1-7);
+      ctx.lineTo(floor.x2-3,floor.y2-7);ctx.stroke();
+      ctx.setLineDash([]);ctx.restore();continue;
+    }
+    if(floor.kind==="rift-elevator"){
+      ctx.save();
+      ctx.fillStyle="rgba(129,255,228,.15)";
+      ctx.fillRect(floor.x1,floor.y1-13,floor.x2-floor.x1,13);
+      ctx.strokeStyle="#aafbe9";ctx.lineWidth=17;
+      ctx.beginPath();ctx.moveTo(floor.x1,floor.y1);ctx.lineTo(floor.x2,floor.y2);ctx.stroke();
+      ctx.strokeStyle="#ffe6af";ctx.lineWidth=3;
+      ctx.beginPath();ctx.moveTo(floor.x1+12,floor.y1-10);
+      ctx.lineTo(floor.x2-12,floor.y2-10);ctx.stroke();
+      ctx.restore();continue;
+    }
     if(floor.secretId){
       const trial=secretTrials.find(t=>t.id===floor.secretId);
       const solid=secretPlatformSolid(floor);
@@ -4194,13 +3734,8 @@ function drawObjects() {
     }
   }
 
-  for (const ring of rings) {
-    if (!ring.active) continue;
-    ctx.strokeStyle = "#ffd75a";
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.arc(ring.x, ring.y, ring.r, 0, Math.PI * 2);
-    ctx.stroke();
+  for(const ring of rings){
+    if(ring.active)renderCrystal(ctx,ring,visualTime);
   }
 
   for (const boostOrb of boostOrbs) {
@@ -4648,7 +4183,7 @@ function drawHud() {
     ctx.fillStyle="#f7b7df";ctx.fillRect(326,138,320*cityBoss.hp/4,12);
     ctx.font="12px system-ui";ctx.fillStyle="#fff2b5";
     ctx.fillText(cityBoss.state==="exposed"?"NÚCLEO ABERTO · USE O DASH":
-      "DESVIE DAS RAJADAS DUPLAS",326,168);
+      (cityBoss.hp<=2?"CUIDADO COM AS FENDAS DO CHÃO":"DESVIE DOS PROJÉTEIS"),326,168);
   }
   if(activeStage===3&&dashUnlocked()){
     ctx.fillStyle="#fff0b4";ctx.font="bold 12px system-ui";
@@ -4686,35 +4221,6 @@ function drawHud() {
     ctx.fillText('Pressione P para continuar', VIEW_W / 2, VIEW_H / 2 + 40);
     ctx.textAlign = 'left';
   }
-}
-
-function yOnTrack(floor, x) {
-  const t = clamp((x - floor.x1) / (floor.x2 - floor.x1), 0, 1);
-  return lerp(floor.y1, floor.y2, t);
-}
-
-function circleRect(cx, cy, radius, box) {
-  const nearestX = clamp(cx, box.x, box.x + box.w);
-  const nearestY = clamp(cy, box.y, box.y + box.h);
-  return distance(cx, cy, nearestX, nearestY) <= radius;
-}
-
-function distance(x1, y1, x2, y2) {
-  return Math.hypot(x2 - x1, y2 - y1);
-}
-
-function approach(value, target, amount) {
-  if (value < target) return Math.min(value + amount, target);
-  if (value > target) return Math.max(value - amount, target);
-  return target;
-}
-
-function clamp(value, min, max) {
-  return Math.max(min, Math.min(max, value));
-}
-
-function lerp(a, b, t) {
-  return a + (b - a) * t;
 }
 
 function roundRect(x, y, w, h, radius) {
@@ -5248,13 +4754,6 @@ function warpToGuardian(){
 }
 if(debugToggle)debugToggle.addEventListener("click",toggleDebugMode);
 
-canvas.addEventListener?.("pointermove",event=>{
-  const rect=canvas.getBoundingClientRect?.();
-  if(!rect||!rect.width||!rect.height)return;
-  airDash.aimX=(event.clientX-rect.left)/rect.width*VIEW_W;
-  airDash.aimY=(event.clientY-rect.top)/rect.height*VIEW_H;
-  airDash.hasAim=true;
-});
 window.addEventListener("keydown",(event)=>{
   const key=event.key.toLowerCase();
   if(cinematic.active){
@@ -5362,6 +4861,8 @@ menuButton.addEventListener("click",showMainMenu);
 pauseButton.addEventListener("click",togglePause);
 document.querySelector("#resumeButton").addEventListener("click",resumeGame);
 document.querySelector("#restartPauseButton").addEventListener("click",()=>startGame(activeStage));
+document.querySelector("#deathRestartButton").addEventListener("click",restartAfterDeath);
+document.querySelector("#deathMainButton").addEventListener("click",showMainMenu);
 // All menu button feedback uses the existing SFX bus and stored effect volume.
 document.querySelectorAll("button:not([data-key])").forEach(button=>{
   button.addEventListener("click",()=>{

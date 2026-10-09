@@ -1,0 +1,22 @@
+export const ACHIEVEMENTS=[
+  {id:"first",title:"Primeiro Impulso",description:"Conclua a fase 1."},
+  {id:"canyon",title:"Através do Cânion",description:"Conclua a fase 2."},
+  {id:"s1",title:"Velocidade Pura",description:"Conquiste nota S na fase 1."},
+  {id:"s2",title:"Mestre do Prisma",description:"Conquiste nota S na fase 2."},
+  {id:"zero1",title:"Passos Perfeitos",description:"Conclua a fase 1 sem quedas."},
+  {id:"zero2",title:"Sem Olhar para Baixo",description:"Conclua a fase 2 sem quedas."},
+  {id:"cores1",title:"Memórias da Floresta",description:"Reúna os três núcleos na fase 1."},
+  {id:"cores2",title:"Memórias do Cânion",description:"Reúna os três núcleos na fase 2."},
+  {id:"untouched",title:"Guardião Intocado",description:"Vença o Guardião sem receber dano durante a tentativa."},
+  {id:"explorer",title:"Explorador das Fendas",description:"Conclua uma rota secreta cronometrada."},
+  {id:"forestSecrets",title:"Segredos da Floresta",description:"Conclua as três rotas da fase 1."},
+  {id:"canyonSecrets",title:"Segredos do Prisma",description:"Conclua as três rotas da fase 2."},
+  {id:"sixSecrets",title:"Cartógrafo do Rift",description:"Complete as seis rotas secretas."},
+  {id:"city",title:"Metropole Dominada",description:"Conclua a Cidade das Fendas."},
+  {id:"cityS",title:"Rastro nas Estrelas",description:"Consiga nota S na Cidade das Fendas."},
+  {id:"cityCores",title:"Memorias da Cidade",description:"Recupere os três núcleos da terceira fase."},
+  {id:"dash",title:"Nucleo de Impeto",description:"Desbloqueie o dash aéreo."},
+  {id:"architect",title:"Fim do Arquiteto",description:"Derrote o Arquiteto do Vazio."},
+  {id:"citySecrets",title:"Nas Alturas",description:"Complete os três desafios secretos da cidade."},
+  {id:"nineSecrets",title:"Cartografo Dimensional",description:"Descubra todas as nove rotas secretas."}
+];

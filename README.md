@@ -1,4 +1,4 @@
-# Velocity Rift — Cidade das Fendas (versão 3.7 em desenvolvimento)
+# Velocity Rift — Cidade das Fendas (versão 3.7.2 em teste)
 
 Um prototipo web 2D inspirado em jogos de plataforma de alta velocidade. Ele usa
 HTML, CSS e Canvas, sem assets oficiais. O Vite é uma dependência de desenvolvimento.
@@ -33,6 +33,33 @@ com JavaScript, sem precisar migrar a engine.
 
 https://github.com/jhonyoreis/velocity-rift
 
+## Velocity Rift 3.7.2 — Arquiteto, cristais e tela de derrota
+
+- Corrigido o retorno após a tela **VOCÊ MORREU**: quando existe um checkpoint ativado, o botão agora **volta ao último checkpoint** sem executar `resetGame()`. O tempo da tentativa permanece, a penalidade por queda continua zerando os cristais e os itens coletáveis após o checkpoint reaparecem para permitir continuar; sem checkpoint, o jogo reinicia a fase normalmente.
+- O checkpoint pode ser ativado ao passar perto da bandeira mesmo sem estar exatamente apoiado no chão, desde que Flux esteja na altura certa.
+
+
+- O **portal final** da Cidade das Fendas tem renderização própria após a derrota do Arquiteto, com brilho, símbolo central e legenda. Foi aproximado no final da arena para aparecer mais claramente quando a câmera revela a saída.
+- O Arquiteto escala de **2 para 5 projéteis por rajada** à medida que perde vida, com velocidade crescente e janelas de vulnerabilidade menores. Com 2 HP surgem fendas temporárias no chão, e com 1 HP surgem duas. Há um aviso visível antes da fase perigosa.
+- **Cristais**: ao sofrer dano comum, perde-se no mínimo 8 ou 35% do total atual (limitado pelo saldo). Se Flux sofrer dano sem cristais, a tentativa acaba. Se cair em um abismo, **perde 100% dos cristais** e a tentativa acaba, mesmo que ainda tivesse cristais.
+- A nova tela **VOCÊ MORREU** oferece **Reiniciar fase** (recomeça o capítulo, sem repetir cutscene) e **Menu principal**. Recordes e progresso permanente continuam preservados.
+- Os coletáveis de todas as três fases deixam de ser anéis e ganham desenho vetorial procedural de **cristal facetado vermelho/laranja**, inspirado na referência visual fornecida.
+- **Validar** no navegador a dificuldade da luta, o portal, os controles e a interface mobile; os testes automatizados não substituem a experiência real.
+
+## Velocity Rift 3.7.1 — manutenção e organização
+
+- Extração de módulos para layouts das três fases, desafios, conquistas, geometria, classificação, progresso e cenários.
+- As três rotas secretas da Cidade das Fendas receberam paletas próprias, eliminando uma falha de renderização.
+- Inimigos comuns agora recebem o tipo padrão `walker`; a identificação de inimigos da cidade tolera registros antigos sem `type`, evitando congelamentos em colisões.
+- O dash aéreo avança **sempre na horizontal**, exclusivamente para a direção em que Flux está olhando (esquerda ou direita) ao ativar. Cursor/mouse não controlam o dash; não há dash vertical ou diagonal. Velocidade, duração e recarga permanecem as mesmas.
+- Ícone local do jogo para evitar a requisição automática sem recurso `/favicon.ico` em navegadores.
+- A rotina de desenho da Floresta Neon passou a ser executada apenas na primeira fase.
+- Testes automáticos e guia de regressão adicionados. Execute `npm install`, `npm test` e `npm run build`.
+- Corrigido o skyline urbano que desaparecia ao avançar a câmera, ajustando o culling para o fator real de parallax.
+- Inserido **Corredor das Fendas**, antes do Arquiteto: novo fundo dimensional, seis vãos com dash obrigatório, cinco plataformas verticais, três plataformas intermitentes, armadilhas e dois checkpoints. O chefe e a saída foram deslocados.
+- A nota da fase 3 foi ajustada para a fase maior (S abaixo de 110s, A abaixo de 155s, B abaixo de 205s).
+- A física, a campanha, os chefes e os controles foram preservados; a quarta fase continua indisponível.
+
 ## Velocity Rift 3.7 — Cidade das Fendas (terceira de quatro fases)
 
 **O jogo está planejado em quatro fases:** Floresta Neon, Cânion Prisma, Cidade das Fendas e **Fenda Original**, a futura etapa final com o Soberano da Ruptura e o resgate de Alicia. A quarta região já aparece no mapa como prévia, sem acesso antecipado.
@@ -40,22 +67,26 @@ https://github.com/jhonyoreis/velocity-rift
 ### A terceira fase — caminhos elevados ou ruas perigosas
 
 - Cenário original de metrópole dimensional, com **19 prédios acessíveis pelos telhados**, linhas de energia, janelas iluminadas, passagens baixas e plataformas de manutenção que se movem.
-- Seis setores ao longo de **19.200 unidades**. A via superior permite caminhos de maior precisão; o percurso inferior reúne mais inimigos e tiros.
+- Sete setores ao longo de **23.560 unidades**. A via superior permite caminhos de maior precisão; o percurso inferior reúne mais inimigos e tiros.
 - **21 patrulhas** formadas por drones de assalto, torres de disparo e caçadores. Drones e torres atiram **pares de projéteis** com intervalos curtos, e **o boost não anula esses tiros**.
-- Três vãos dimensionais de **430, 480 e 490 unidades** com **barreiras luminosas verticais** que só podem ser atravessadas durante o dash aéreo, tanto pelo caminho das ruas quanto pelos telhados. O dash também causa dano por contato nos inimigos, mas **não fornece imunidade a espinhos nem projéteis**.
+- Três vãos dimensionais de **430, 480 e 490 unidades** na cidade, mais **seis vãos de 215 unidades** no corredor pré-boss, todos protegidos por barreiras que exigem dash ativo. O dash também causa dano por contato nos inimigos, mas **não fornece imunidade a espinhos nem projéteis**.
 - **3 núcleos de memória** e **3 novas rotas secretas de escalada**: Antenas Perdidas, Subsolo Fantasma e Coroa dos Arranha-céus. Cada uma combina plataformas e inimigos diferentes, com limite de 30–32 segundos e somente uma tentativa até reiniciar a fase.
 
 ### Como testar os novos desafios
 
-Acesse a Cidade das Fendas pelo mapa após concluir o Cânion Prisma, ou use DEBUG apenas para testes. O Núcleo de Ímpeto aparece no começo da cidade; pule normalmente, solte o botão e aperte **pulo novamente no ar** para impulsionar Flux na direção do cursor (sem cursor, na direção para a qual ele olha). O comando também funciona com o botão de pulo na tela.
+Acesse a Cidade das Fendas pelo mapa após concluir o Cânion Prisma, ou use DEBUG apenas para testes. O Núcleo de Ímpeto aparece no começo da cidade; pule normalmente, solte o botão e aperte **pulo novamente no ar** para impulsionar Flux **na horizontal, para o lado em que ele está olhando**. O comando também funciona com o botão de pulo na tela.
 
 O dash recarrega quando Flux aterrissa. Três membranas dimensionais exigem um dash ativo para passar. Os drones disparam projéteis em pares; boost e dash não bloqueiam esses tiros. O chefe Arquiteto do Vazio precisa de quatro colisões com dash durante janelas em que o escudo está aberto. O chefe possui introdução e música próprias.
 
 **Validação:** verificações simuladas do percurso integral, dos três vãos com/sem dash, das 27 ligações entre plataformas nos desafios secretos, das regras de dano e dos quatro acertos do chefe; comparação das fases 1 e 2 com diferença zero na física. O build real e testes de navegador ainda precisam ser executados em um ambiente com acesso ao repositório e às dependências.
 
+### Corredor das Fendas — prova de domínio
+
+Entre a metrópole e a arena do Arquiteto, o Corredor das Fendas propõe plataforma pura, sem inimigos: seis passagens de dash horizontal obrigatório, elevadores verticais, plataformas que desaparecem conforme um ciclo visual, espinhos e checkpoints no início e no fim. A paisagem da cidade se transforma gradualmente em pilares suspensos e fendas dimensionais. Os limites de nota da fase consideram o percurso maior.
+
 ### Núcleo de Ímpeto e dash aéreo
 
-Flux recolhe o **Núcleo de Ímpeto** ainda no começo da cidade. A coleta desbloqueia permanentemente o dash na campanha, inclusive ao voltar às fases anteriores. O dash funciona ao **apertar o pulo pela segunda vez durante um salto** (Espaço, W, ↑ ou K). No computador, o impulso segue a direção do **cursor na área de jogo**; sem cursor apontado, segue a direção em que Flux está olhando. Cada salto concede um dash, recarregado ao tocar uma plataforma.
+Flux recolhe o **Núcleo de Ímpeto** ainda no começo da cidade. A coleta desbloqueia permanentemente o dash na campanha, inclusive ao voltar às fases anteriores. O dash funciona ao **apertar o pulo pela segunda vez durante um salto** (Espaço, W, ↑ ou K). O impulso segue **somente a direção em que Flux está olhando**, para a esquerda ou para a direita. Não existe mira pelo mouse, dash vertical ou diagonal. Cada salto concede um dash, recarregado ao tocar uma plataforma.
 
 O artefato é salvo em `velocity-rift-campaign-v3`, sem apagar os recordes antigos. O DEBUG permite testar o deslocamento e o chefe sem registrar a obtenção.
 
