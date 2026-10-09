@@ -778,29 +778,42 @@ function cinemaStars(clock,color="#cefff6",density=36){
   }
   ctx.restore();
 }
+// Use the EXACT sprite renderer used by gameplay, including the helmet,
+ // cyan crest/visor, dark body, orange scarf and little running feet.
 function cinemaFlux(x,y,scale=1,clock=0,run=false){
-  ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);
-  const stride=run?Math.sin(clock*17)*13:Math.sin(clock*2)*1.5;
-  ctx.fillStyle="#062936";
-  ctx.beginPath();ctx.ellipse(0,2,33,7,0,0,Math.PI*2);ctx.fill();
-  ctx.lineCap="round";ctx.lineWidth=11;ctx.strokeStyle="#163d54";
-  for(const direction of [-1,1]){
-    ctx.beginPath();ctx.moveTo(direction*8,-21);
-    ctx.lineTo(direction*(13+stride/2),-5);ctx.stroke();
-  }
-  ctx.fillStyle="#f7ae55";ctx.beginPath();
-  ctx.ellipse(0,-25,24,17,0,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle="#ecfaff";ctx.beginPath();
-  ctx.ellipse(0,-49,28,27,0,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle="#2a5363";ctx.beginPath();
-  ctx.ellipse(8,-47,18,12,-.2,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle="#85fff0";ctx.beginPath();
-  ctx.ellipse(12,-50,11,5,-.1,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle="#c9eff8";ctx.beginPath();
-  ctx.moveTo(-17,-72);ctx.lineTo(-30,-88);ctx.lineTo(-6,-76);ctx.fill();
-  ctx.strokeStyle="#edb970";ctx.lineWidth=7;
-  ctx.beginPath();ctx.moveTo(19,-28);ctx.lineTo(34,-36+stride/5);ctx.stroke();
-  ctx.fillStyle="#ffad61";ctx.beginPath();ctx.ellipse(36,-36+stride/5,7,6,0,0,Math.PI*2);ctx.fill();
+  ctx.save();
+  ctx.translate(x,y-15*scale*2.3);
+  ctx.scale(scale*2.3,scale*2.3);
+  const actor={x:0,y:0,facing:1,onGround:true,ground:null,
+    sliding:false,boosting:run,invulnerable:0,
+    vx:run?480:0,vy:0,animationPhase:clock*(run?16:2)};
+  const fx={boost:run?.5:0,turn:0,landing:0,takeoff:0,hit:0,run:run?1:0};
+  drawFluxBody(actor,fx,clock);
+  ctx.restore();
+}
+// The same silhouette seen from the rear for the portal-arrival reveal.
+function cinemaFluxBack(x,y,scale=1,clock=0){
+  ctx.save();ctx.translate(x,y-15*scale*2.3);
+  ctx.scale(scale*2.3,scale*2.3);
+  const sway=Math.sin(clock*1.4)*.7;
+  ctx.fillStyle="rgba(64,209,202,.20)";
+  ctx.beginPath();ctx.ellipse(-9,3,25,18,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#ffba5e";ctx.beginPath();
+  ctx.moveTo(-11,-7+sway);ctx.lineTo(-27,-14);
+  ctx.lineTo(-19,0);ctx.lineTo(-11,sway);ctx.closePath();ctx.fill();
+  ctx.fillStyle="#ffbd65";ctx.beginPath();
+  ctx.ellipse(-8,15+sway,10,5,-.18,0,Math.PI*2);
+  ctx.ellipse(9,15+sway,11,5,.12,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#124955";ctx.beginPath();
+  ctx.ellipse(-2,5+sway,13,14,-.16,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#f2fffd";ctx.beginPath();
+  ctx.ellipse(0,-5+sway,17,15,-.13,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#55d8dc";ctx.beginPath();
+  ctx.moveTo(-12,-17+sway);ctx.lineTo(-16,-24+sway);
+  ctx.lineTo(0,-19+sway);ctx.lineTo(7,-18+sway);
+  ctx.closePath();ctx.fill();
+  ctx.strokeStyle="#a1e6e1";ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(-8,-4+sway);ctx.quadraticCurveTo(0,0+sway,9,-4+sway);ctx.stroke();
   ctx.restore();
 }
 function cinemaAlicia(x,y,scale=1,clock=0,lift=0){
@@ -3590,34 +3603,25 @@ function drawFluxGhosts(){
   }
 }
 
-function drawPlayer() {
-  const moving = Math.abs(player.vx) > 40;
-  const airborne = !player.onGround;
-  const fast = clamp(Math.abs(player.vx) / SLIDE_DOWNHILL_CAP, 0, 1);
-
-  for (const dot of player.trail) {
-    ctx.globalAlpha = clamp(dot.life / 0.24, 0, 0.65);
-    ctx.fillStyle = "#59f4e6";
-    ctx.beginPath();
-    ctx.arc(dot.x, dot.y, 16 * dot.life / 0.24, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.globalAlpha = 1;
+function drawFluxBody(actor,fx,clock){
+  const moving=Math.abs(actor.vx)>40;
+  const airborne=!actor.onGround;
+  const fast=clamp(Math.abs(actor.vx)/SLIDE_DOWNHILL_CAP,0,1);
 
   ctx.save();
-  ctx.translate(player.x, player.y);
-  ctx.scale(player.facing, 1);
-  if (player.invulnerable > 0 && Math.floor(visualTime * 12) % 2 === 0) {
+  ctx.translate(actor.x, actor.y);
+  ctx.scale(actor.facing, 1);
+  if (actor.invulnerable > 0 && Math.floor(clock * 12) % 2 === 0) {
     ctx.globalAlpha = 0.42;
   }
 
   // Ground shadow, engine glow and momentum streaks.
-  ctx.fillStyle = player.boosting ? "rgba(71,242,255,.44)" : "rgba(64,209,202,.20)";
+  ctx.fillStyle = actor.boosting ? "rgba(71,242,255,.44)" : "rgba(64,209,202,.20)";
   ctx.beginPath();
-  ctx.ellipse(-9 - fast * 7, player.sliding ? -2 : 3,
-    25 + fast * 20, player.sliding ? 8 : 18, 0, 0, Math.PI * 2);
+  ctx.ellipse(-9 - fast * 7, actor.sliding ? -2 : 3,
+    25 + fast * 20, actor.sliding ? 8 : 18, 0, 0, Math.PI * 2);
   ctx.fill();
-  if (player.boosting || fluxFx.boost>.1) {
+  if (actor.boosting || fx.boost>.1) {
     ctx.strokeStyle = "rgba(94,243,250,.8)";
     ctx.lineWidth = 3;
     for (let i = 0; i < 3; i += 1) {
@@ -3628,13 +3632,13 @@ function drawPlayer() {
     }
   }
 
-  if (player.sliding) {
+  if (actor.sliding) {
     // Collider center remains at ground - PLAYER_RADIUS. The sprite bounds
     // stay within [-8,+7] of that center, above the 19px ground stroke.
-    const incline=player.ground?trackSlope(player.ground):0;
-    ctx.rotate(player.facing*Math.atan(incline));
+    const incline=actor.ground?trackSlope(actor.ground):0;
+    ctx.rotate(actor.facing*Math.atan(incline));
     ctx.translate(0,-3);
-    const flick=Math.sin(visualTime*14)*1.3;
+    const flick=Math.sin(clock*14)*1.3;
     ctx.fillStyle="rgba(255,183,95,.18)";
     ctx.beginPath();ctx.ellipse(-7,-1,25,9,0,0,Math.PI*2);ctx.fill();
     ctx.fillStyle="#f8b85a";ctx.beginPath();
@@ -3649,22 +3653,22 @@ function drawPlayer() {
     ctx.fillStyle="#85fff0";ctx.fillRect(15,-3,3,2);
     ctx.fillStyle="#f9ba61";roundRect(-23,4,46,3,1.5);ctx.fill();
   } else {
-    const stride = moving && !airborne ? Math.sin(player.animationPhase) : 0;
-    const swing = Math.cos(player.animationPhase);
-    const bounce = airborne ? Math.sin(visualTime * 7) * 1.5 : moving ? Math.abs(stride) * -1.6 : Math.sin(visualTime * 2.5) * 1.2;
+    const stride = moving && !airborne ? Math.sin(actor.animationPhase) : 0;
+    const swing = Math.cos(actor.animationPhase);
+    const bounce = airborne ? Math.sin(clock * 7) * 1.5 : moving ? Math.abs(stride) * -1.6 : Math.sin(clock * 2.5) * 1.2;
     const legFront = airborne ? -3 : stride * 6;
     const legBack = airborne ? 5 : -stride * 6;
 
-    ctx.rotate((airborne ? clamp(player.vy/2100,-.29,.29) : fast*.11)
-      + fluxFx.turn*.08);
-    if (!player.sliding) ctx.scale(1+fluxFx.landing*.055-fluxFx.takeoff*.035,
-      1-fluxFx.landing*.15+fluxFx.takeoff*.11);
+    ctx.rotate((airborne ? clamp(actor.vy/2100,-.29,.29) : fast*.11)
+      + fx.turn*.08);
+    if (!actor.sliding) ctx.scale(1+fx.landing*.055-fx.takeoff*.035,
+      1-fx.landing*.15+fx.takeoff*.11);
 
     // Scarf reacts to motion and gives Flux a recognizable profile.
     ctx.fillStyle = "#ffba5e";
     ctx.beginPath();
     ctx.moveTo(-11, -7 + bounce);
-    ctx.lineTo(-25 - fast * 15, -13 + Math.sin(visualTime * 12) * 3);
+    ctx.lineTo(-25 - fast * 15, -13 + Math.sin(clock * 12) * 3);
     ctx.lineTo(-19 - fast * 9, 0);
     ctx.lineTo(-11, 0 + bounce);
     ctx.closePath();
@@ -3678,8 +3682,8 @@ function drawPlayer() {
 
     // Arms alternate with the footfall rhythm and tuck during jumps.
     ctx.strokeStyle="#43788a";ctx.lineWidth=6;ctx.lineCap="round";
-    const armFront=airborne?(player.vy<0?-7:6):-swing*7*fluxFx.run;
-    const armBack=airborne?(player.vy<0?8:-6):swing*7*fluxFx.run;
+    const armFront=airborne?(actor.vy<0?-7:6):-swing*7*fx.run;
+    const armBack=airborne?(actor.vy<0?8:-6):swing*7*fx.run;
     ctx.beginPath();ctx.moveTo(-7,0+bounce);
     ctx.lineTo(-13+armBack,7+bounce);ctx.stroke();
     ctx.beginPath();ctx.moveTo(7,0+bounce);
@@ -3716,19 +3720,33 @@ function drawPlayer() {
     ctx.ellipse(7, -6 + bounce, 10, 6, -0.12, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = "#73fff0";
-    if(visualTime%4.8>4.67)ctx.fillRect(7,-8+bounce,7,1.5);
+    if(clock%4.8>4.67)ctx.fillRect(7,-8+bounce,7,1.5);
     else{ctx.beginPath();ctx.ellipse(9,-8+bounce,4,2,0,0,Math.PI*2);ctx.fill();}
     ctx.fillStyle = "#f0c06c";
     ctx.fillRect(12, -1 + bounce, 6, 2);
   }
-  if(fluxFx.hit>.01){
-    ctx.strokeStyle="rgba(255,142,176,"+(fluxFx.hit*.72)+")";
+  if(fx.hit>.01){
+    ctx.strokeStyle="rgba(255,142,176,"+(fx.hit*.72)+")";
     ctx.lineWidth=2.5;ctx.beginPath();
-    ctx.arc(0,0,22+fluxFx.hit*12,0,Math.PI*2);ctx.stroke();
+    ctx.arc(0,0,22+fx.hit*12,0,Math.PI*2);ctx.stroke();
   }
   ctx.restore();
 }
+function drawPlayer() {
+  const moving = Math.abs(player.vx) > 40;
+  const airborne = !player.onGround;
+  const fast = clamp(Math.abs(player.vx) / SLIDE_DOWNHILL_CAP, 0, 1);
+  for (const dot of player.trail) {
+    ctx.globalAlpha = clamp(dot.life / 0.24, 0, 0.65);
+    ctx.fillStyle = "#59f4e6";
+    ctx.beginPath();
+    ctx.arc(dot.x, dot.y, 16 * dot.life / 0.24, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
 
+  drawFluxBody(player,fluxFx,visualTime);
+}
 function updateParticles(dt) {
   for (const p of particles) {
     p.x += p.vx * dt;
