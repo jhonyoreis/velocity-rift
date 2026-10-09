@@ -1502,10 +1502,9 @@ function replayCinematic(key){
 
 // 3.0 campaign pointer: legacy progress/achievements remain a separate archive.
 // This creates a safe migration from v2 on first use without modifying its key.
-// Completion is based on 14 milestones currently in the game:
-// 2 cleared stages (20% each), 6 memory cores (5% each) and
-// 6 secret routes (5% each). Permanent records remain a separate archive.
-const GAME_COMPLETION_STAGES=2;
+// The final fourth chapter remains planned. Reserve its share of the
+// campaign completion so defeating the city's boss never shows 100%.
+const GAME_COMPLETION_STAGES=4;
 const GAME_COMPLETION_CORES_PER_STAGE=3;
 const GAME_COMPLETION_ROUTES_PER_STAGE=3;
 function emptyCampaignExtras(){
@@ -1590,7 +1589,7 @@ function campaignCompletion(){
     Number(campaign.stage3Completed);
   const cores=[1,2,3].reduce((n,i)=>n+campaign.extras.cores["stage"+i].length,0);
   const secrets=[1,2,3].reduce((n,i)=>n+campaign.extras.secrets["stage"+i].length,0);
-  return {stages,cores,secrets,percent:Math.round(100*(stages/3*.4+cores/9*.3+secrets/9*.3))};
+  return {stages,cores,secrets,percent:Math.round(100*(stages/4*.4+cores/12*.3+secrets/12*.3))};
 }
 function nextCampaignStage(){
   return campaign.stage2Completed&&campaign.lastStage===3?3:campaign.stage1Completed&&campaign.lastStage===2?2:1;
@@ -1714,9 +1713,9 @@ function refreshMapView(){
   document.querySelector("#mapCampaignSummary").textContent=
     "Conclusão "+completion.percent+"%";
   document.querySelector("#mapCoresSummary").textContent=
-    "Núcleos "+completion.cores+"/9";
+    "Núcleos "+completion.cores+"/12";
   document.querySelector("#mapSecretsSummary").textContent=
-    "Segredos "+completion.secrets+"/9";
+    "Segredos "+completion.secrets+"/12";
   document.querySelector("#mapAchievementsSummary").textContent=
     "Conquistas "+Object.values(progress.achievements).filter(Boolean).length+
     "/"+ACHIEVEMENTS.length;
@@ -1772,8 +1771,8 @@ function refreshProgressView() {
     "aria-valuenow",String(completion.percent));
   document.querySelector("#campaignProgressFill").style.width=completion.percent+"%";
   document.querySelector("#campaignCompletionBreakdown").textContent=
-    "Fases "+completion.stages+"/3  ·  Núcleos "+completion.cores+
-    "/9  ·  Rotas secretas "+completion.secrets+"/9";
+    "Fases "+completion.stages+"/4  ·  Núcleos "+completion.cores+
+    "/12  ·  Rotas secretas "+completion.secrets+"/12";
   const continueButton=document.querySelector("#startButton");
   continueButton.disabled=!campaign.started;
   document.querySelector("#continueDescription").textContent=campaign.started
@@ -1849,8 +1848,7 @@ function showResults(time, crystals, cores = 0) {
   if(!debugUsedThisRun)grantClearAchievements(result.grade,cores);
   document.querySelector("#resultSecrets").textContent=secretTrials.filter(t=>t.completed).length+"/3";
   const nextStageButton=document.querySelector("#nextStageButton");
-  // Only stage 2 is playable after stage 1. A debug-only clear must
-  // never unlock it permanently, although active debug mode can test it.
+  // Stages 2/3 unlock in order. Debug-only clears never grant permanent access.
   const nextPlayable=(activeStage===1&&(campaign.stage1Completed||debugMode))||
     (activeStage===2&&(campaign.stage2Completed||debugMode));
   nextStageButton.disabled=!nextPlayable;
@@ -2011,7 +2009,7 @@ function drawStageArrivalOverlay(){
   ctx.fillStyle="#abfff0";ctx.font="bold 13px system-ui";
   ctx.fillText("UMA NOVA ETAPA DA JORNADA",VIEW_W/2,75);
   ctx.fillStyle="#fff5ee";ctx.font="bold 24px system-ui";
-  ctx.fillText(activeStage===2?"CÂNION PRISMA":"FLORESTA NEON",VIEW_W/2,105);
+  ctx.fillText(activeStage===3?"CIDADE DAS FENDAS":activeStage===2?"CÂNION PRISMA":"FLORESTA NEON",VIEW_W/2,105);
   ctx.restore();
 }
 
@@ -3676,6 +3674,10 @@ function updateCheckpoints() {
 }
 function damagePlayer(fall) {
   if (debugMode || (player.invulnerable > 0 && !fall)) return;
+  // Taking a hit interrupts aerial momentum: a dash never grants a shield.
+  if(airDash.active){
+    airDash.active=false;airDash.time=0;
+  }
   runDamageCount++;
   interruptSecretTrials();
   if(activeStage===2&&guardian.active&&!guardian.defeated)bossDamagedThisRun=true;
@@ -4570,10 +4572,10 @@ function drawHud() {
   ctx.fillStyle = '#fff';
   ctx.font = 'bold 11px system-ui';
   const section = chapters.slice().reverse().find(part => player.x >= part.x);
-  ctx.fillText(section ? section.title : (activeStage===2 ? "CÂNION PRISMA" : "PRIMEIRO IMPULSO"), 335, 54);
+  ctx.fillText(section ? section.title : (activeStage===3?"CIDADE DAS FENDAS":activeStage===2?"CÂNION PRISMA":"PRIMEIRO IMPULSO"),335,54);
   ctx.fillText(Math.round(progress * 100) + '%', 704, 54);
   ctx.fillStyle="#f9cb83";ctx.font="bold 13px system-ui";ctx.fillText("Núcleos "+player.cores+"/3",335,80);
-  if(activeStage===2){ctx.fillStyle="#ffa2be";ctx.fillText("Quedas "+player.falls,610,80);}
+  if(activeStage>=2){ctx.fillStyle="#ffa2be";ctx.fillText("Quedas "+player.falls,610,80);}
   ctx.fillStyle="#baffed";ctx.font="bold 12px system-ui";
   ctx.fillText("Rotas secretas "+secretTrials.filter(t=>t.completed).length+"/3",335,99);
   const timedRoute=secretTrials.find(t=>t.active);
@@ -5342,7 +5344,11 @@ document.querySelectorAll('[data-key]').forEach(button => {
     button.setPointerCapture(event.pointerId);
     unlockAudio();
     keys.add(key);
-    if (key === ' ' && !jumpHeld) { jumpBuffer = 0.13; jumpHeld = true; }
+    if(key===' '&&!jumpHeld){
+      if(!player.onGround&&dashUnlocked()&&startAirDash()){
+        jumpHeld=true;
+      }else{jumpBuffer=.13;jumpHeld=true;}
+    }
   });
   button.addEventListener('pointerup', release);
   button.addEventListener('pointercancel', release);
