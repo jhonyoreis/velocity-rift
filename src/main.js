@@ -2980,6 +2980,14 @@ function cameraAnchorFor(vx, facing) {
 
 function updateCamera(dt) {
   // Full arena is exactly one viewport wide. No look-ahead, no following.
+  if(activeStage===3&&cityBoss.active&&!cityBoss.defeated){
+    cameraX=cityBoss.x-VIEW_W*.60;
+    cameraY=0;return;
+  }
+  if(activeStage===3&&cityBoss.defeated&&player.x>=cityBoss.arenaLeft){
+    cameraX=lerp(cameraX,Math.max(0,WORLD_W-VIEW_W),1-Math.exp(-5*dt));
+    cameraY=0;return;
+  }
   if(activeStage===2&&guardian.active&&!guardian.defeated){
     cameraX=guardian.arenaLeft;
     cameraY=0;
@@ -3085,7 +3093,7 @@ function updateSentryShots(dt){
     // A fast boost can intercept plasma; debug mode ignores collision.
     if(distance(shot.x,shot.y,player.x,player.y)<PLAYER_RADIUS+shot.r){
       shot.life=0;
-      if(player.boosting&&Math.abs(player.vx)>BOOST_SMASH_MIN_SPEED){
+      if(!shot.unblockable&&player.boosting&&Math.abs(player.vx)>BOOST_SMASH_MIN_SPEED){
         emitParticles(shot.x,shot.y,"#ff9ccb",6,80);
       }else damagePlayer(false);
     }
@@ -3095,9 +3103,9 @@ function updateSentryShots(dt){
 }
 function drawSentryShots(){
   for(const shot of sentryShots){
-    ctx.fillStyle="rgba(255,107,179,.2)";
+    ctx.fillStyle=shot.cityShot?"rgba(255,176,103,.23)":"rgba(255,107,179,.2)";
     ctx.beginPath();ctx.arc(shot.x,shot.y,shot.r+7,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle="#ff82c5";
+    ctx.fillStyle=shot.cityShot?"#ffac79":"#ff82c5";
     ctx.beginPath();ctx.arc(shot.x,shot.y,shot.r,0,Math.PI*2);ctx.fill();
     ctx.fillStyle="#ffe8f6";
     ctx.beginPath();ctx.arc(shot.x-2,shot.y-2,3,0,Math.PI*2);ctx.fill();
@@ -3107,9 +3115,27 @@ function drawSentryShots(){
 function updateEnemies(dt) {
   for (const bad of enemies) {
     if (!bad.alive) continue;
-    bad.phase += dt*(bad.type==="drone"?2.3:1.8);
+    bad.phase += dt*(["drone","city-drone"].includes(bad.type)?2.3:1.8);
     if (bad.patrol>0)bad.x=bad.baseX+Math.sin(bad.phase)*bad.patrol;
-    if (bad.type==="drone")bad.y=bad.yBase+Math.sin(bad.phase*1.6)*15;
+    if(["drone","city-drone"].includes(bad.type))
+      bad.y=bad.yBase+Math.sin(bad.phase*1.6)*15;
+    if(bad.type==="city-hunter"&&Math.abs(bad.x-player.x)<300)
+      bad.x+=Math.sign(player.x-bad.x)*Math.min(100*dt,Math.abs(player.x-bad.x));
+    if(activeStage===3&&["city-drone","city-turret"].includes(bad.type)){
+      bad.shotTimer-=dt;
+      if(bad.shotTimer<=0&&Math.abs(bad.x-player.x)<760&&sentryShots.length<34){
+        const x=bad.x,y=bad.y-bad.h*.7;
+        const a=Math.atan2(player.y-y,player.x-x);
+        const speed=bad.type==="city-drone"?450:500;
+        for(const offset of [-.115,.115]){
+          sentryShots.push({x,y,vx:Math.cos(a+offset)*speed,
+            vy:Math.sin(a+offset)*speed,life:3,r:8,
+            unblockable:true,cityShot:true});
+        }
+        bad.shotTimer=bad.type==="city-drone"?1.22:1.55;
+        playSfx("boss-alert");
+      }
+    }
     if(bad.type==="sentry"){
       bad.shotTimer=(bad.shotTimer??(.75+(bad.baseX%4)*.23))-dt;
       const dist=Math.hypot(bad.x-player.x,(bad.y-27)-player.y);
@@ -3130,10 +3156,13 @@ function updateEnemies(dt) {
     const box = { x: bad.x - bad.w / 2, y: bad.y - bad.h, w: bad.w, h: bad.h };
     if (!circleRect(player.x, player.y, PLAYER_RADIUS, box)) continue;
 
-    const stomp = bad.type!=="sentry" && player.prevY + PLAYER_RADIUS <= box.y + 8 && player.vy > 80;
-    const smash = player.boosting && Math.abs(player.vx) > BOOST_SMASH_MIN_SPEED;
-
-    if (stomp || smash) {
+    const cityEnemy=bad.type.startsWith("city-");
+    const stomp=bad.type!=="sentry"&&bad.type!=="city-turret"&&
+      player.prevY+PLAYER_RADIUS<=box.y+8&&player.vy>80&&!airDash.active;
+    const smash=player.boosting&&!cityEnemy&&
+      Math.abs(player.vx)>BOOST_SMASH_MIN_SPEED;
+    const cut=cityEnemy&&airDash.active;
+    if(stomp||smash||cut){
       bad.alive = false;
       emitParticles(bad.x, bad.y - 12, "#ff956f", 12, 145);
       playSfx("hit");
@@ -3655,6 +3684,7 @@ function draw() {
   drawForest();
   drawStageArrivalRunway();
   if(activeStage===2)drawChasms();
+  if(activeStage===3)drawCityChasms();
   if(activeStage===2)drawGuardianBackdrop();
   drawTracks();
   drawTunnels();
@@ -3682,7 +3712,11 @@ function draw() {
 
 function drawSky() {
   const grad = ctx.createLinearGradient(0, cameraY, 0, cameraY + VIEW_H);
-  if (activeStage===2) {
+  if(activeStage===3){
+    grad.addColorStop(0,"#080f31");
+    grad.addColorStop(.53,"#203063");
+    grad.addColorStop(1,"#27335a");
+  }else if(activeStage===2) {
     grad.addColorStop(0,"#170f33");
     grad.addColorStop(.53,"#2d2453");
     grad.addColorStop(1,"#132b4a");
@@ -3701,7 +3735,50 @@ function drawSky() {
   }
 }
 
+function drawCityBackground(){
+  // Parallax layers of staggered towers, rooftop facades and illuminated
+  // windows. Both the low street and high rooftops remain navigable.
+  for(const [step,shift,color] of [[222,.17,"#121e41"],
+    [170,.33,"#19294d"],[140,.57,"#233860"]]){
+    const first=Math.floor(cameraX/step)-2;
+    const last=first+Math.ceil(VIEW_W/step)+6;
+    ctx.fillStyle=color;
+    for(let i=first;i<=last;i++){
+      const x=i*step+cameraX*(1-shift);
+      const height=195+((i%5+5)%5)*43;
+      ctx.fillRect(x,460-height,step*.72,height+160);
+      if(shift>.3){
+        ctx.fillStyle=shift>.5?"rgba(255,199,161,.32)":"rgba(113,248,255,.20)";
+        for(let row=0;row<6;row++)for(let col=0;col<3;col++){
+          if((row*3+col+i)%5===0)continue;
+          ctx.fillRect(x+18+col*29,474-height+row*36,8,13);
+        }
+        ctx.fillStyle=color;
+      }
+    }
+  }
+  for(const floor of tracks){
+    if(floor.kind!=="city-roof"||floor.x2<cameraX-30||floor.x1>cameraX+VIEW_W+30)continue;
+    ctx.fillStyle="#172d4d";
+    ctx.fillRect(floor.x1,floor.y1+6,floor.x2-floor.x1,570-floor.y1);
+    ctx.fillStyle="rgba(111,254,229,.52)";
+    for(let x=floor.x1+23;x<floor.x2-15;x+=47)
+      for(let y=floor.y1+29;y<510;y+=52)
+        if((Math.floor(x/47)+Math.floor(y/52))%4!==0)
+          ctx.fillRect(x,y,15,20);
+    ctx.strokeStyle="#d9b7fa";ctx.lineWidth=3;
+    ctx.beginPath();ctx.moveTo(floor.x1,floor.y1);
+    ctx.lineTo(floor.x2,floor.y2);ctx.stroke();
+  }
+  ctx.strokeStyle="rgba(131,245,241,.27)";
+  for(let i=0;i<7;i++){
+    const x=Math.floor(cameraX/420)*420+i*420-80;
+    ctx.beginPath();ctx.moveTo(x,160);ctx.lineTo(x+210,160);ctx.stroke();
+  }
+}
+
 function drawBackground() {
+  if(activeStage===3){drawCityBackground();return;}
   if(activeStage===2){drawCanyonBackground();return;}
   // Three parallax layers, rendered in screen space with distinct scroll factors.
   ctx.fillStyle = "#163b50";
@@ -3757,6 +3834,18 @@ function drawCanyonBackground() {
     ctx.beginPath();ctx.moveTo(x-24,gy-34);ctx.lineTo(x,gy-81);
     ctx.lineTo(x+24,gy-34);ctx.closePath();ctx.fill();
   }
+}
+
+function drawCityChasms(){
+ for(const [from,to] of STAGES[3].pits){
+   if(to<cameraX-40||from>cameraX+VIEW_W+40)continue;
+   ctx.fillStyle="#090e28";
+   ctx.fillRect(from,403,to-from,290);
+   ctx.strokeStyle="#ffb9a0";ctx.lineWidth=3;
+   ctx.beginPath();ctx.moveTo(from,518);ctx.lineTo(to,518);ctx.stroke();
+   ctx.fillStyle="#ffe3be";ctx.font="bold 12px system-ui";
+   ctx.fillText("DASH AÉREO",from+12,531);
+ }
 }
 
 function drawChasms() {
@@ -3845,7 +3934,10 @@ function drawTracks() {
       }
       ctx.restore();continue;
     }
-    ctx.strokeStyle = activeStage===2
+    ctx.strokeStyle = activeStage===3?
+      floor.kind==="city-roof"?"#f0b1fe":
+      floor.kind==="moving"?"#fff2a7":"#a0eafb":
+      activeStage===2
       ? floor.kind==="moving" ? "#ffcf82" : (floor.kind==="secret"||floor.kind==="secret-moving") ? "#76ffeb" : floor.kind==="platform" ? "#bb91ff" : floor.kind==="finish" ? "#a2f5ff" : "#a47df7"
       : (floor.kind==="secret"||floor.kind==="secret-moving") ? "#9bfff0" : floor.kind==="boost" ? "#f6ac43" : floor.kind==="finale" ? "#b785ef" : "#38dcd0";
     ctx.lineWidth = 19;
@@ -3853,7 +3945,7 @@ function drawTracks() {
     ctx.moveTo(floor.x1, floor.y1);
     ctx.lineTo(floor.x2, floor.y2);
     ctx.stroke();
-    ctx.strokeStyle = activeStage===2 ? "#43366b" : "#14444d";
+    ctx.strokeStyle = activeStage===3?"#303c67":activeStage===2 ? "#43366b" : "#14444d";
     ctx.lineWidth = 8;
     ctx.beginPath();
     ctx.moveTo(floor.x1, floor.y1 + 5);
@@ -4014,7 +4106,29 @@ function drawObjects() {
 
   for (const bad of enemies) {
     if (!bad.alive) continue;
-    if(bad.type==="drone"){
+    if(["city-drone","city-hunter","city-turret"].includes(bad.type)){
+      const isDrone=bad.type==="city-drone",isHunter=bad.type==="city-hunter";
+      ctx.fillStyle=isDrone?"#ffbd7a":isHunter?"#f079af":"#a4b5f7";
+      ctx.strokeStyle="#f8e4ff";ctx.lineWidth=2.4;
+      ctx.beginPath();
+      if(isDrone){
+        ctx.ellipse(bad.x,bad.y-bad.h*.6,26,17,0,0,Math.PI*2);
+      }else{
+        ctx.rect(bad.x-bad.w/2,bad.y-bad.h,bad.w,bad.h);
+      }
+      ctx.fill();ctx.stroke();
+      ctx.fillStyle="#15233d";
+      ctx.fillRect(bad.x-12,bad.y-bad.h*.72,24,9);
+      ctx.fillStyle="#95fff0";
+      ctx.fillRect(bad.x-9,bad.y-bad.h*.7,18,4);
+      if(isDrone){
+        ctx.strokeStyle="#fff4bc";ctx.lineWidth=3;
+        ctx.beginPath();ctx.moveTo(bad.x-37,bad.y-22);
+        ctx.lineTo(bad.x-23,bad.y-18);
+        ctx.moveTo(bad.x+23,bad.y-18);
+        ctx.lineTo(bad.x+37,bad.y-22);ctx.stroke();
+      }
+    } else if(bad.type==="drone"){
       const bob=Math.sin(visualTime*15+bad.baseX)*3;
       ctx.fillStyle="rgba(214,137,255,.24)";
       ctx.beginPath();ctx.ellipse(bad.x,bad.y-12,31,26,0,0,Math.PI*2);ctx.fill();
