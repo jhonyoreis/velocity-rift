@@ -131,7 +131,14 @@ const ACHIEVEMENTS=[
   {id:"explorer",title:"Explorador das Fendas",description:"Conclua uma rota secreta cronometrada."},
   {id:"forestSecrets",title:"Segredos da Floresta",description:"Conclua as três rotas da fase 1."},
   {id:"canyonSecrets",title:"Segredos do Prisma",description:"Conclua as três rotas da fase 2."},
-  {id:"sixSecrets",title:"Cartógrafo do Rift",description:"Complete as seis rotas secretas."}
+  {id:"sixSecrets",title:"Cartógrafo do Rift",description:"Complete as seis rotas secretas."},
+  {id:"city",title:"Metropole Dominada",description:"Conclua a Cidade das Fendas."},
+  {id:"cityS",title:"Rastro nas Estrelas",description:"Consiga nota S na Cidade das Fendas."},
+  {id:"cityCores",title:"Memorias da Cidade",description:"Recupere os três núcleos da terceira fase."},
+  {id:"dash",title:"Nucleo de Impeto",description:"Desbloqueie o dash aéreo."},
+  {id:"architect",title:"Fim do Arquiteto",description:"Derrote o Arquiteto do Vazio."},
+  {id:"citySecrets",title:"Nas Alturas",description:"Complete os três desafios secretos da cidade."},
+  {id:"nineSecrets",title:"Cartografo Dimensional",description:"Descubra todas as nove rotas secretas."}
 ];
 let activeStage = 1;
 let debugMode = false;
@@ -230,7 +237,7 @@ function updateAirDash(dt){
 function collectCityDashCore(){
   if(activeStage!==3||campaign.aerialDash||player.x<cityDashCore.x-32||
     player.x>cityDashCore.x+32||Math.abs(player.y-cityDashCore.y)>60)return;
-  if(!debugUsedThisRun){campaign.aerialDash=true;saveCampaign();}
+  if(!debugUsedThisRun){campaign.aerialDash=true;saveCampaign();grantAchievement("dash");}
   airDash.available=true;dashUnlockFlash=2;
   notification.title="NÚCLEO DE ÍMPETO RECUPERADO";
   notification.subtitle="PULE E APERTE PULO NOVAMENTE · MIRE COM CURSOR";
@@ -923,9 +930,9 @@ function loadProgress() {
     // no-death/boss achievements that older saves never tracked.
     for(const stage of [1,2,3]){
       const record=result["stage"+stage];
-      if(record.completed)if(stage<3)result.achievements[stage===1?"first":"canyon"]=true;
-      if(record.bestGrade==="S")if(stage<3)result.achievements[stage===1?"s1":"s2"]=true;
-      if(record.bestCores===3)if(stage<3)result.achievements[stage===1?"cores1":"cores2"]=true;
+      if(record.completed)result.achievements[stage===1?"first":stage===2?"canyon":"city"]=true;
+      if(record.bestGrade==="S")result.achievements[stage===1?"s1":stage===2?"s2":"cityS"]=true;
+      if(record.bestCores===3)result.achievements[stage===1?"cores1":stage===2?"cores2":"cityCores"]=true;
     }
     if(result.secrets.stage1.length+result.secrets.stage2.length>0)
       result.achievements.explorer=true;
@@ -933,6 +940,9 @@ function loadProgress() {
     if(result.secrets.stage2.length===3)result.achievements.canyonSecrets=true;
     if(result.secrets.stage1.length+result.secrets.stage2.length===6)
       result.achievements.sixSecrets=true;
+    if(result.secrets.stage3.length===3)result.achievements.citySecrets=true;
+    if(result.secrets.stage1.length+result.secrets.stage2.length+
+      result.secrets.stage3.length===9)result.achievements.nineSecrets=true;
     if (!saved?.stage1 && bestTime>0 && Number.isFinite(bestTime)) {
       result.stage1={completed:true,clears:1,bestTime,bestGrade:gradeForTime(bestTime,1),bestCrystals:0,bestCores:0};
     }
@@ -3239,20 +3249,25 @@ function grantAchievement(id){
 }
 function updateRouteAchievements(){
   if(debugUsedThisRun)return;
-  const one=progress.secrets.stage1.length,two=progress.secrets.stage2.length;
-  if(one+two>0)grantAchievement("explorer");
+  const one=progress.secrets.stage1.length,
+    two=progress.secrets.stage2.length,
+    three=progress.secrets.stage3.length;
+  if(one+two+three>0)grantAchievement("explorer");
   if(one===3)grantAchievement("forestSecrets");
   if(two===3)grantAchievement("canyonSecrets");
   if(one+two===6)grantAchievement("sixSecrets");
+  if(three===3)grantAchievement("citySecrets");
+  if(one+two+three===9)grantAchievement("nineSecrets");
 }
 function grantClearAchievements(grade,cores){
   const stage=activeStage;
-  grantAchievement(stage===1?"first":"canyon");
-  if(grade==="S")grantAchievement(stage===1?"s1":"s2");
-  if(player.falls===0)grantAchievement(stage===1?"zero1":"zero2");
-  if(cores===3)grantAchievement(stage===1?"cores1":"cores2");
-  if(stage===2&&guardian.defeated&&!bossDamagedThisRun)
-    grantAchievement("untouched");
+  grantAchievement(stage===1?"first":stage===2?"canyon":"city");
+  if(grade==="S")grantAchievement(stage===1?"s1":stage===2?"s2":"cityS");
+  if(stage===1&&player.falls===0)grantAchievement("zero1");
+  if(stage===2&&player.falls===0)grantAchievement("zero2");
+  if(cores===3)grantAchievement(stage===1?"cores1":stage===2?"cores2":"cityCores");
+  if(stage===2&&guardian.defeated&&!bossDamagedThisRun)grantAchievement("untouched");
+  if(stage===3&&cityBoss.defeated)grantAchievement("architect");
 }
 // ---------------------- Vertical secret ascent -----------------------
 // A route is a single attempt per stage run. Checkpoints do NOT rearm it.
@@ -3535,10 +3550,11 @@ function refreshAchievementsView(){
   const summary=document.querySelector("#secretCollection");
   if(summary)summary.textContent="Rotas: Floresta "+
     progress.secrets.stage1.length+"/3 · Cânion "+
-    progress.secrets.stage2.length+"/3";
+    progress.secrets.stage2.length+"/3 · Cidade "+
+    progress.secrets.stage3.length+"/3";
   const list=document.querySelector("#achievementList");
   const routes=document.querySelector("#secretRouteList");
-  if(routes)routes.innerHTML=[1,2].flatMap(stage=>
+  if(routes)routes.innerHTML=[1,2,3].flatMap(stage=>
     SECRET_DEFS[stage].map(def=>{
       const earned=progress.secrets["stage"+stage].includes(def.id);
       const time=progress.secretTimes["stage"+stage][def.id];
