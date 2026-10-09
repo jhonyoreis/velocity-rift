@@ -1541,7 +1541,11 @@ function loadCampaign(){
     const d1=saved.stage1Completed===true,d2=d1&&saved.stage2Completed===true;
     const d3=d2&&saved.stage3Completed===true;
     const started=saved.started===true||d1||d2||d3;
-    const last=d2&&saved.lastStage===3?3:d1&&saved.lastStage===2?2:1;
+    // A completed 3.5.x campaign had no stage-3 field; Continue should
+    // open the newly unlocked city, not replay the cleared canyon.
+    const legacyBeforeCity=!Object.prototype.hasOwnProperty.call(saved,"stage3Completed");
+    const last=d2&&(saved.lastStage===3||legacyBeforeCity)?3:
+      d1&&saved.lastStage===2?2:1;
     return {started,stage1Completed:d1,stage2Completed:d2,stage3Completed:d3,
       lastStage:last,aerialDash:saved.aerialDash===true&&d2,
       extras:sanitizedCampaignExtras(saved,d1,d2,d3),
