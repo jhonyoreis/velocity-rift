@@ -15,17 +15,16 @@
           <section id="mainMenu" class="menu-screen v3-main" aria-labelledby="menuHeading">
             <div class="v3-ambient-orb orb-one" aria-hidden="true"></div>
             <div class="v3-ambient-orb orb-two" aria-hidden="true"></div>
-            <div class="v3-edition">VELOCITY RIFT <span>3.0 // ALÉM DAS FENDAS</span></div>
+            <div class="v3-edition">VELOCITY RIFT <span>3.1 // ALÉM DAS FENDAS</span></div>
             <div class="v3-crest" aria-hidden="true">◇</div>
-            <div class="menu-eyebrow">UMA JORNADA ATRAVÉS DO IMPOSSÍVEL</div>
+            <div class="menu-eyebrow">ENCONTRE ALICIA ALÉM DAS FENDAS</div>
             <h1 id="menuHeading">VELOCITY <span>RIFT</span></h1>
-            <p class="v3-tagline">Cada fenda é um caminho. Cada segundo importa.</p>
+            <p class="v3-tagline">Atravesse cada dimensão para trazer Alicia de volta.</p>
             <div class="v3-campaign-panel">
-              <div class="v3-campaign-heading"><span>◇ PROGRESSO DA CAMPANHA</span><small>ARQUIVO LOCAL</small></div>
-              <div class="menu-stat-grid" aria-label="Seu progresso">
-                <div><small>Campanha</small><strong id="menuProgress">Nova jornada</strong></div>
-                <div><small>Recorde da floresta</small><strong id="menuBest">--</strong></div>
-                <div><small>Melhor nota</small><strong id="menuGrade">--</strong></div>
+              <div class="v3-campaign-heading"><span>◇ PROGRESSO DA CAMPANHA</span><strong id="menuProgress" aria-live="polite">0%</strong></div>
+              <div id="campaignProgressTrack" class="v31-progress-track" role="progressbar"
+                   aria-label="Progresso da campanha" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                <div id="campaignProgressFill" class="v31-progress-fill"></div>
               </div>
             </div>
             <div class="v3-main-actions">
@@ -151,7 +150,52 @@
               <button id="resultsMainButton" class="secondary-action" type="button">Menu principal</button>
             </div>
           </section>
+
+          <section id="pauseMenu" class="menu-screen v31-pause" aria-labelledby="pauseHeading" hidden>
+            <div class="v31-pause-eyebrow">VELOCITY RIFT 3.1 // INTERVALO</div>
+            <h2 id="pauseHeading">JOGO PAUSADO</h2>
+            <p id="pauseStageLabel" class="v31-pause-stage">Flux está a um passo de encontrar Alicia.</p>
+            <div class="v31-pause-body">
+              <div class="v31-pause-actions">
+                <button id="resumeButton" type="button" class="v31-pause-primary">▶ CONTINUAR</button>
+                <button id="restartPauseButton" type="button" class="v31-pause-action">↺ REINICIAR FASE</button>
+                <button id="menuButton" type="button" class="v31-pause-action">⌂ MENU PRINCIPAL</button>
+              </div>
+              <div class="v31-pause-audio">
+                <div class="v31-pause-subtitle">♫ ÁUDIO</div>
+                <div class="v31-compact-volume">
+                  <label for="pause-volume-master">Geral <output id="pause-value-master" for="pause-volume-master">100%</output></label>
+                  <input id="pause-volume-master" type="range" min="0" max="100" step="1" value="100">
+                </div>
+                <div class="v31-compact-volume">
+                  <label for="pause-volume-music">Música <output id="pause-value-music" for="pause-volume-music">100%</output></label>
+                  <input id="pause-volume-music" type="range" min="0" max="100" step="1" value="100">
+                </div>
+                <div class="v31-compact-volume">
+                  <label for="pause-volume-effects">Efeitos <output id="pause-value-effects" for="pause-volume-effects">100%</output></label>
+                  <input id="pause-volume-effects" type="range" min="0" max="100" step="1" value="100">
+                </div>
+                <div class="v31-mute-row">
+                  <button id="musicToggle" class="v31-mute-button" type="button" aria-pressed="true">♫ Música ligada</button>
+                  <button id="soundToggle" class="v31-mute-button" type="button" aria-pressed="true">🔊 Som ligado</button>
+                </div>
+              </div>
+            </div>
+            <div class="v31-pause-controls">
+              <div class="v31-pause-subtitle">⌨ CONTROLES</div>
+              <div class="v31-control-grid">
+                <span><strong>Mover</strong>A/D ou ← →</span>
+                <span><strong>Pular</strong>Espaço, W ou ↑</span>
+                <span><strong>Boost</strong>Shift ou J</span>
+                <span><strong>Deslizar</strong>S ou ↓</span>
+                <span><strong>Pausar</strong>P ou Esc</span>
+                <span><strong>Áudio</strong>M / N</span>
+              </div>
+            </div>
+            <small id="trackNowPlaying" class="v31-track-now-playing" aria-live="polite">♫ Neon Canopy · 108 BPM</small>
+          </section>
         </div>
+        <button id="pauseButton" class="v31-in-game-pause" type="button" aria-label="Pausar o jogo" hidden>Ⅱ PAUSA</button>
         <div class="touch-controls" aria-label="Controles de toque">
           <button type="button" data-key="arrowleft" aria-label="Esquerda">◀</button>
           <button type="button" data-key="arrowright" aria-label="Direita">▶</button>
@@ -161,38 +205,6 @@
         </div>
       </section>
 
-      <div class="game-toolbar">
-        <div class="hero-identity">
-          <strong>FLUX <span>// CORREDOR DA FENDA</span></strong>
-          <small>Capacete de plasma · cachecol âmbar · energia cinética</small>
-          <small id="trackNowPlaying" aria-live="polite">♫ Trilha original: Neon Canopy · 108 BPM</small>
-        </div>
-        <div class="toolbar-actions">
-          <button id="pauseButton" class="sound-toggle" type="button" hidden>Pausar</button>
-          <button id="menuButton" class="sound-toggle" type="button">Menu principal</button>
-          <button id="musicToggle" class="sound-toggle" type="button" aria-label="Ligar ou desligar música" aria-pressed="true">♫ Música ligada</button>
-          <button id="soundToggle" class="sound-toggle" type="button" aria-label="Ligar ou desligar efeitos sonoros" aria-pressed="true">🔊 Som ligado</button>
-        </div>
-      </div>
-
-      <section class="notes" aria-label="Controls">
-        <div>
-          <strong>Mover</strong>
-          <span>A/D ou setas</span>
-        </div>
-        <div>
-          <strong>Pular</strong>
-          <span>Espaço, W ou ↑</span>
-        </div>
-        <div>
-          <strong>Boost</strong>
-          <span>Shift ou J</span>
-        </div>
-        <div>
-          <strong>Slide / Pausa</strong>
-          <span>S / ↓ · P · R · M som · N música · F3 debug</span>
-        </div>
-      </section>
     </main>
 
     <script type="module" src="./src/main.js"></script>
