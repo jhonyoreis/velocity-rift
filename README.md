@@ -590,3 +590,33 @@ fases; ouvir música e efeitos nos volumes 0%, 50% e 100% com o
 distorções; conferir legibilidade de parágrafos longos da história.
 O áudio deve ser testado em alto-falantes e fones em um volume confortável.
 
+
+
+### Android R4 — correção estrutural de controles / diálogos / volume
+
+**Causa-raiz identificada:** o botão Pause e os cinco controles de toque
+estavam aninhados dentro de `#overlay`, que fica invisível e com
+`pointer-events:none` durante a partida. As regras CSS não conseguiam
+fazê-los funcionar. Agora os controles são irmãos do overlay dentro de
+`.game-panel`; uma proteção no JavaScript também move esses elementos
+para fora caso um HTML antigo volte a aninhá-los.
+
+**Cinematográficas:** o balão de fala mostra apenas o parágrafo da
+história (sem título nem narrador), em tamanho reduzido no Android.
+O título do capítulo continua no cabeçalho superior.
+
+**Áudio:** a música está em 4× e os efeitos em 3× dos valores internos
+originais, com o compressor de dinâmica já existente e sliders de áudio
+funcionando em todos os volumes, inclusive 0%.
+
+**Identificação do APK:** na tela inicial mobile aparece
+`v3.7.2 · APK R4`. Se a indicação `APK R4` não aparecer, você está
+testando a compilação anterior. Os APKs debug usam chaves de assinatura
+de CI que podem mudar; nesse caso, a instalação sobreposta falha e é
+preciso desinstalar o APK antigo, o que pode eliminar os saves locais.
+
+Testes regressivos agora conferem a estrutura DOM, isto é,
+Pause/gamepad como irmãos do overlay, e as alterações no áudio e no
+diálogo. Teste visual adicional em viewport 1536×709 confirmou que os
+controles aparecem na borda inferior depois de remover o aninhamento.
+

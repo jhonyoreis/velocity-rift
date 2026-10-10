@@ -67,8 +67,8 @@ test("louder synthesized audio uses a shared dynamics compressor and respects vo
   assert.ok(js.includes("function gameAudioOutput(){"));
   assert.ok(js.includes("createDynamicsCompressor"));
   assert.ok(js.includes("output.ratio.value=10"));
-  assert.ok(js.includes('volume*2.5*effectiveAudioGain("effects")'));
-  assert.ok(js.includes('3.2*effectiveAudioGain("music")'));
+  assert.ok(js.includes('volume*3.0*effectiveAudioGain("effects")'));
+  assert.ok(js.includes('4.0*effectiveAudioGain("music")'));
   assert.ok(js.includes("envelope.connect(gameAudioOutput()||audioContext.destination)"));
   assert.ok(js.includes("musicBus.connect(gameAudioOutput()||audioContext.destination)"));
   assert.ok(js.includes("return master*audioLevels.effects/100"));

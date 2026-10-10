@@ -2734,3 +2734,49 @@ html.mobile-game .vr-film-actions button{
   html.mobile-game .vr-film-dialogue{max-height:27vh;padding:7px 11px;}
   html.mobile-game .vr-film-dialogue p{font-size:.72rem;line-height:1.22;}
 }
+
+
+/* Android R4: gameplay controls must be outside the invisible menu overlay.
+   Give them an explicit position in the panel and keep menu hiding scoped. */
+.game-panel > .touch-controls{
+  position:absolute;
+  inset:auto max(12px,env(safe-area-inset-right))
+    max(12px,env(safe-area-inset-bottom))
+    max(12px,env(safe-area-inset-left));
+}
+html.mobile-game .game-panel.gameplay-active > .touch-controls{
+  display:grid!important;visibility:visible!important;opacity:1!important;
+  z-index:100!important;
+}
+html.mobile-game .game-panel.gameplay-active > .v31-in-game-pause{
+  display:block!important;visibility:visible!important;
+  z-index:101!important;
+}
+
+/* Film dialogue contains only narrative text. Keep chapter information at
+   the top, without repeating speaker and a second title over the artwork. */
+.game-panel.cinematic-active .vr-film-dialogue #cinematicSpeaker,
+.game-panel.cinematic-active .vr-film-dialogue #cinematicTitle{
+  display:none!important;
+}
+html.mobile-game .game-panel.cinematic-active .vr-film-bottom{
+  width:min(48vw,560px);max-width:560px;
+  max-height:40%;
+}
+html.mobile-game .game-panel.cinematic-active .vr-film-dialogue{
+  width:100%;padding:9px 12px;
+  max-height:min(21vh,118px);
+  overflow-y:auto;
+  background:rgba(7,18,38,.78);
+  border-radius:10px;
+}
+html.mobile-game .game-panel.cinematic-active .vr-film-dialogue p{
+  font-size:clamp(.76rem,2.6vh,.95rem);
+  line-height:1.32;margin:0!important;
+}
+
+/* Clear visible build marker prevents accidentally testing an older APK. */
+.v4-home .vr-build-id{display:none;}
+html.mobile-game .v4-home .vr-build-id{
+  display:inline;color:#b0eedb;letter-spacing:.045em;
+}

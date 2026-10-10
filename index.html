@@ -43,7 +43,7 @@
             <div class="v4-home-art" aria-hidden="true">
               <img src="./menu-hero.svg" alt="" width="850" height="760" decoding="async" />
             </div>
-            <small class="v4-home-version">v3.7.2</small>
+            <small class="v4-home-version">v3.7.2 · <span class="vr-build-id">APK R4</span></small>
 
             <!-- Keep existing progress anchors for saves and other menus,
                  without showing a statistics dashboard on the home screen. -->
@@ -445,6 +445,9 @@
         </div>
         <small id="trackNowPlaying" class="v31-track-now-playing" aria-live="polite">♫ Neon Canopy · 108 BPM</small>
       </section>
+        <!-- Menu overlay ends here. HUD buttons MUST NOT be descendants of
+             the overlay: it is hidden and pointer-events:none during gameplay. -->
+        </div>
         <button id="pauseButton" class="v31-in-game-pause" type="button" aria-label="Pausar o jogo" hidden>Ⅱ PAUSA</button>
         <div class="touch-controls" aria-label="Controles de toque">
           <button type="button" data-key="arrowleft" aria-label="Esquerda">◀</button>

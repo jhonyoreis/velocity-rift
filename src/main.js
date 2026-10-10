@@ -38,6 +38,18 @@ const pauseMenu=document.querySelector("#pauseMenu");
 const deathMenu=document.querySelector("#deathMenu");
 const cinematicMenu=document.querySelector("#cinematicMenu");
 const galleryMenu=document.querySelector("#galleryMenu");
+// Gameplay controls are siblings of the menu overlay. If an older HTML
+// template accidentally nests them inside the overlay, move them out
+// before registering pointer events. Hidden overlays block their children.
+const CONTROLS_DOM_LOCATION="game-panel sibling of overlay";
+function placeGameplayControls(){
+  const panel=document.querySelector(".game-panel");
+  for(const element of [pauseButton,document.querySelector(".touch-controls")]){
+    if(element&&overlay.contains(element))panel.appendChild(element);
+  }
+}
+placeGameplayControls();
+
 const screens=[mainMenu,stageMenu,resultMenu,achievementsMenu,settingsMenu,newGameConfirm,pauseMenu,deathMenu,cinematicMenu,galleryMenu];
 let selectedMapStage=1;
 const soundToggle = document.querySelector("#soundToggle");
@@ -4367,9 +4379,9 @@ function playSfx(kind) {
   if (!config) return;
   try {
     const [start, end, duration, waveform, volume] = config;
-    // Approximately +8 dB for feedback sounds, adjustable with the same
+    // Approximately +9.5 dB for feedback sounds, adjustable with the same
     // existing effects slider; no bypass of mute settings.
-    const gain=volume*2.5*effectiveAudioGain("effects");
+    const gain=volume*3.0*effectiveAudioGain("effects");
     const now = audioContext.currentTime;
     const oscillator = audioContext.createOscillator();
     const envelope = audioContext.createGain();
@@ -4442,11 +4454,11 @@ function initMusic(){
 function syncMusic(resetSchedule=true){
   if(!musicBus||!audioContext)return;
   // Raise the original very quiet synthesized soundtrack by roughly
-  // 10 dB. Fade and the Music/Master sliders still scale it to zero.
+  // 12 dB. Fade and the Music/Master sliders still scale it to zero.
   const level=(cinematic.active?.115:
     gameStarted&&!paused&&!gameCleared?
       (activeStage===3?.13:activeStage===2?.13:.14):0)*
-    3.2*effectiveAudioGain("music");
+    4.0*effectiveAudioGain("music");
   const now=audioContext.currentTime;
   musicBus.gain.cancelScheduledValues(now);
   musicBus.gain.setTargetAtTime(level,now,.055);
