@@ -66,7 +66,7 @@ export function createOriginalRiftLayout(){
   {x:13710,y:458,dimension:0},{x:37300,y:228,dimension:0}];
  const runes=[
   {id:0,x:8500,y:245,dimension:0,gravity:-1,label:"CÉU"},
-  {id:1,x:10620,y:430,dimension:1,gravity:1,label:"ECO"},
+  {id:1,x:10620,y:430,dimension:-1,gravity:1,label:"ECO"},
   {id:2,x:13050,y:405,dimension:1,gravity:1,label:"REFLEXO"},
   {id:3,x:14320,y:382,dimension:0,gravity:1,label:"ORIGEM"},
   {id:4,x:35600,y:243,dimension:1,gravity:-1,label:"INVERSÃO"},

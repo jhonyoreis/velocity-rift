@@ -17,6 +17,7 @@ test("final chapter authors nine sectors, six seals, three ascents and safe chec
  assert.equal(RIFT_SECTORS.length,9);assert.equal(map.runes.length,6);assert.equal(map.gates.length,3);
  assert.equal(map.cores.length,3);assert.equal(map.trials.length,3);
  assert.equal(new Set(map.enemies.map(e=>e.type)).size,4);
+ assert.equal(map.runes.find(r=>r.id===1).dimension,-1,"first ECO seal must be activatable from the visible projection before the first gate");
  for(const cp of map.checkpoints){
   assert.ok(map.platforms.some(p=>(p.dimension===-1||p.dimension===cp.dimension)&&
    p.orientation===(cp.gravity>0?"floor":"ceiling")&&cp.x>=p.x1&&cp.x<=p.x2&&

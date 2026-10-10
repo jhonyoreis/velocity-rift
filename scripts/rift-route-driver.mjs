@@ -1,12 +1,13 @@
 // Deterministic player inputs only: solve seals, read boss openings, never edit state.
 import {createOriginalRiftLayout,platformSurface} from "../src/levels/originalRift.js";
+const activeFor=(thing,dimension)=>thing.dimension===undefined||thing.dimension===-1||thing.dimension===dimension;
 export function createRiftRouteDriver({collectExtras=false}={}){
  const world=createOriginalRiftLayout();let jumpAge=99,dashed=false,interactAge=99,fastJump=false,extra=null,extraStep=0,extraExit=null,extraJump=false;
  return function inputs(s,dt=1/120){
   jumpAge+=dt;interactAge+=dt;
   let target=48000,speed=440,needJump=false,needDash=false;
   const rune=world.runes.find(r=>!s.runes.includes(r.id));
-  if(rune&&s.x>rune.x-600&&s.x<rune.x+600&&s.gravity===rune.gravity&&s.dimension===rune.dimension){
+  if(rune&&s.x>rune.x-600&&s.x<rune.x+600&&s.gravity===rune.gravity&&activeFor(rune,s.dimension)){
    target=rune.x;speed=250;needJump=Math.abs(s.x-target)<125;needDash=!s.grounded&&Math.abs(s.x-target)<125;
   }
   const anchor=world.anchors.find(a=>Math.abs(s.x-a.x)<500&&s.dimension!==a.dimension&&a.x>s.checkpoint.x-100);

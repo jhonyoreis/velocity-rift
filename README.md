@@ -1,7 +1,7 @@
-# Velocity Rift — Uma Flor, Enfim (versão 4.0.0)
+# Velocity Rift — Uma Flor, Enfim (versão 4.0.1)
 
 
-## 4.0 — Uma Flor, Enfim (APK R17)
+## 4.0.1 — Uma Flor, Enfim (APK R18)
 
 A campanha agora tem seu desfecho completo: Fenda Original, perseguição do
 Soberano, arena, segunda forma, Flux Rubro, resgate de Alicia e créditos com a
