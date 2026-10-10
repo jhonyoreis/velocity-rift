@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Velocity Rift 3.8.2 — Cidade das Fendas</title>
+    <title>Velocity Rift 4.0.0 — Uma Flor, Enfim</title>
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <link rel="stylesheet" href="./src/styles.css" />
   </head>
   <body>
     <main class="shell">
-      <section class="game-panel" aria-label="Velocity Rift 3.8.2">
+      <section class="game-panel" aria-label="Velocity Rift 4.0.0">
         <canvas id="game" width="960" height="540"></canvas>
         <div id="overlay" class="overlay" role="region" aria-label="Menu do Velocity Rift">
           <section id="mainMenu" class="menu-screen v3-main v4-home" aria-labelledby="menuHeading">
@@ -43,7 +43,7 @@
             <div class="v4-home-art" aria-hidden="true">
               <img src="./menu-hero.svg" alt="" width="850" height="760" decoding="async" />
             </div>
-            <small class="v4-home-version">v3.8.2 · <span class="vr-build-id">APK R16</span></small>
+            <small class="v4-home-version">v4.0.0 · <span class="vr-build-id">APK R17</span></small>
 
             <!-- Keep existing progress anchors for saves and other menus,
                  without showing a statistics dashboard on the home screen. -->
@@ -78,6 +78,9 @@
                 <span class="vr-gallery-number">CAPÍTULO 03</span><strong>Cidade das Fendas</strong>
                 <small id="galleryStageThreeState">Ainda não assistida</small>
               </button>
+              <button id="galleryEnding" class="vr-gallery-entry" type="button" disabled><span class="vr-gallery-number">EPÍLOGO</span><strong>Uma Flor, Enfim</strong><small id="galleryEndingState">Ainda não assistida</small></button>
+              <button id="galleryAwakening" class="vr-gallery-entry" type="button" disabled><span class="vr-gallery-number">DESPERTAR</span><strong>Flux Rubro</strong><small id="galleryAwakeningState">Ainda não assistida</small></button>
+              <button id="galleryStageFour" class="vr-gallery-entry" type="button" disabled><span class="vr-gallery-number">CAPÍTULO FINAL</span><strong>Fenda Original</strong><small id="galleryStageFourState">Ainda não assistida</small></button>
             </div>
             <details class="vr-story-details" id="storyArchiveDetails">
               <summary>ARQUIVO DE HISTÓRIA · <span id="storyArchiveCount">0 de 9 ecos</span></summary>
@@ -232,7 +235,7 @@
                   </button>
                   <button id="mapNodeStageFour" type="button"
                           class="rift-map-node rift-map-node-final is-future"
-                          aria-pressed="false" aria-label="Ver prévia da Fenda Original">
+                          aria-pressed="false" aria-label="Selecionar Fenda Original">
                     <span class="rift-node-emblem" aria-hidden="true">✧</span>
                     <span class="rift-node-number">04</span>
                     <span class="rift-node-title">FENDA ORIGINAL</span>
@@ -306,9 +309,10 @@
                   <div class="rift-detail-main">
                     <h3>Fenda Original</h3>
                     <p class="rift-detail-region">CAPÍTULO FINAL</p>
-                    <p class="rift-detail-story">A travessia oficial: nove setores, fendas conectadas, dimensões alternadas, gravidade invertida e longas descidas de impulso. O confronto final chegará na 4.0.</p>
+                    <p class="rift-detail-story">O mundo desfeito. Selos em duas realidades, uma perseguição implacável e o trono do Soberano. Nove memórias despertarão Flux Rubro. Alicia espera por você.</p>
                   </div>
                   <div class="rift-detail-coming">ALTAR DOS NOVE NÚCLEOS · <strong id="mapStageFourCores">0/9</strong></div>
+                  <div class="rift-detail-coming">RECORDE <strong id="mapStageFourBest">--</strong> · MEMÓRIAS <strong id="mapStageFourMemories">0/3</strong> · ROTAS <strong id="mapStageFourSecrets">0/3</strong></div>
                   <p id="stageFourProgress" class="rift-stage-progress">Entre para ver o altar; recupere os nove núcleos das fases anteriores para abrir a porta.</p>
                   <button id="stageFourButton" class="rift-map-launch" type="button" disabled>CONCLUA A CIDADE PARA ENTRAR</button>
                 </article>
@@ -318,21 +322,6 @@
               <button id="backToMainButton" class="rift-map-back" type="button">← VOLTAR AO MENU</button>
             </footer>
           </section>
-                <section id="riftTraversalMenu" class="menu-screen" hidden aria-labelledby="riftTraversalTitle">
-        <p class="eyebrow">FENDA ORIGINAL · TRAVESSIA</p>
-        <h2 id="riftTraversalTitle">LIMIAR ALCANÇADO</h2>
-        <p>Flux chegou à fortaleza do Soberano. O confronto e o resgate de Alicia continuam na 4.0.</p>
-        <div class="result-stats">
-          <p>Tempo <strong id="riftTraversalTime">—</strong></p>
-          <p>Velocidade máxima <strong id="riftTraversalSpeed">—</strong></p>
-          <p>Cristais <strong id="riftTraversalCrystals">—</strong></p>
-        </div>
-        <p class="rift-stage-progress">A vitória da campanha será registrada após o confronto final.</p>
-        <div class="menu-actions">
-          <button id="riftTraversalRestart" type="button">REPETIR TRAVESSIA ↻</button>
-          <button id="riftTraversalMap" type="button">VOLTAR AO MAPA</button>
-        </div>
-      </section>
 <section id="achievementsMenu" class="menu-screen achievement-screen vr-collection" aria-labelledby="achievementsHeading" hidden>
             <header class="vr-collection-header">
               <div>

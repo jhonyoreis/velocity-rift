@@ -18,5 +18,10 @@ export const ACHIEVEMENTS=[
   {id:"dash",title:"Nucleo de Impeto",description:"Desbloqueie o dash aéreo."},
   {id:"architect",title:"Fim do Arquiteto",description:"Derrote o Arquiteto do Vazio."},
   {id:"citySecrets",title:"Nas Alturas",description:"Complete os três desafios secretos da cidade."},
-  {id:"nineSecrets",title:"Cartografo Dimensional",description:"Descubra todas as nove rotas secretas."}
+  {id:"nineSecrets",title:"Cartografo Dimensional",description:"Descubra todas as nove rotas secretas."},
+  {id:"finale",title:"Uma Flor, Enfim",description:"Derrote o Soberano e resgate Alicia."},
+  {id:"riftS",title:"Além do Impossível",description:"Conquiste S na Fenda Original."},
+  {id:"riftCores",title:"Memórias da Origem",description:"Recupere os três núcleos finais."},
+  {id:"riftSecrets",title:"O Último Cartógrafo",description:"Complete as três rotas finais."},
+  {id:"twelveSecrets",title:"Todos os Mundos",description:"Complete as doze rotas secretas."}
 ];

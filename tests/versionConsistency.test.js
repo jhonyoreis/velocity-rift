@@ -10,7 +10,7 @@ test("project, document title and Android build label have the same version",()=
  assert.match(pkg.version,/^\d+\.\d+\.\d+$/);
  assert.ok(html.includes("<title>Velocity Rift "+pkg.version+" —"),"HTML title outdated");
  assert.ok(html.includes("v"+pkg.version+" ·"),"home screen version outdated");
- assert.ok(readme.includes("# Velocity Rift — Cidade das Fendas (versão "+pkg.version+" em teste)"));
+ assert.ok(readme.includes("# Velocity Rift — Uma Flor, Enfim (versão "+pkg.version+")"));
  const gradle='android { defaultConfig { versionCode 1 versionName "1.0" } }';
  const patched=setAndroidVersion(gradle,pkg.version);
  assert.ok(patched.includes('versionName "'+pkg.version+'"'));

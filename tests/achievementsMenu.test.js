@@ -63,8 +63,8 @@ test("collection counts and progress bar use saved achievements and secret archi
  const document={querySelector(selector){return nodes.get(selector)||null}};
  const progress={
    achievements:{first:true,explorer:true},
-   secrets:{stage1:[SECRET_DEFS[1][0].id],stage2:[],stage3:[]},
-   secretTimes:{stage1:{},stage2:{},stage3:{}}
+   secrets:{stage1:[SECRET_DEFS[1][0].id],stage2:[],stage3:[],stage4:[]},
+   secretTimes:{stage1:{},stage2:{},stage3:{},stage4:{}}
  };
  const run=new Function("document","ACHIEVEMENTS","SECRET_DEFS","progress","secretUpgradeReward","fullTestMode",source+
    "\nreturn refreshAchievementsView;");
@@ -74,7 +74,7 @@ test("collection counts and progress bar use saved achievements and secret archi
  assert.equal(nodes.get("#achievementProgressTrack").attributes["aria-valuemax"],String(ACHIEVEMENTS.length));
  assert.equal(nodes.get("#achievementProgressFill").style.width,
    Math.round(200/ACHIEVEMENTS.length)+"%");
- assert.equal(nodes.get("#secretCollection").textContent,"1 de 9 descobertas");
+ assert.equal(nodes.get("#secretCollection").textContent,"1 de 12 descobertas");
  assert.ok(nodes.get("#achievementList").innerHTML.includes("Primeiro Impulso"));
  assert.ok(nodes.get("#secretRouteList").innerHTML.includes("Recorde"));
 });

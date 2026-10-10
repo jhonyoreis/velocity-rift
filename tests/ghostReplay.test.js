@@ -49,3 +49,9 @@ test("forced finish saves portal position and never duplicates a timestamp",()=>
  assert.equal(recordGhostFrame(frames,.2,{x:77,y:95,facing:1},true),true);
  assert.equal(frames.length,3);
 });
+
+test("final chapter replay preserves inverted gravity and dimension while accepting legacy frames",()=>{
+ const frames=[];recordGhostFrame(frames,0,{x:100,y:200,facing:1,gravity:-1,dimension:1});recordGhostFrame(frames,1,{x:300,y:180,facing:-1,gravity:-1,dimension:1});
+ const ghost=makeGhost(frames,1);assert.equal(ghostFrameAt(ghost,.5).gravity,-1);assert.equal(ghostFrameAt(ghost,.5).dimension,1);
+ assert.equal(sanitizeGhost({duration:1,frames:[[0,100,200,1,5,1],[1,300,180,1,-1,1]]}),null);
+});

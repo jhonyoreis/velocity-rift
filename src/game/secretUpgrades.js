@@ -11,7 +11,7 @@ export const BOOST_UPGRADES={
   rewards:Object.freeze({
     canopy:"capacity",lumen:"power",horizon:"capacity",
     echo:"capacity",prism:"power",zenith:"capacity",
-    antenna:"power",underpass:"capacity",skyline:"power"
+    antenna:"power",underpass:"capacity",skyline:"power",origin:"capacity",paradox:"power",lastlight:"capacity"
   })
 };
 export function secretUpgradeReward(id){
@@ -21,7 +21,7 @@ export function secretUpgradeReward(id){
 }
 export function secretUpgradeStats(savedSecrets){
   const found=new Set();
-  for(const stage of [1,2,3]){
+  for(const stage of [1,2,3,4]){
     const ids=new Set(SECRET_DEFS[stage].map(item=>item.id));
     const saved=savedSecrets?.["stage"+stage];
     if(!Array.isArray(saved))continue;

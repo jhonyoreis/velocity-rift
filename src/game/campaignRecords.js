@@ -4,12 +4,12 @@ const GRADES=["C","B","A","S"];
 export function emptyCampaignRecords(){
  return {stage1:{bestTime:0,bestGrade:"",clears:0},
          stage2:{bestTime:0,bestGrade:"",clears:0},
-         stage3:{bestTime:0,bestGrade:"",clears:0}};
+         stage3:{bestTime:0,bestGrade:"",clears:0},stage4:{bestTime:0,bestGrade:"",clears:0}};
 }
 export function loadCampaignRecords(saved,completed,archive){
  const records=emptyCampaignRecords();
  const hasRecords=!!saved&&typeof saved==="object"&&!Array.isArray(saved);
- for(const stage of [1,2,3]){
+ for(const stage of [1,2,3,4]){
    const key="stage"+stage;
    const from=hasRecords?saved[key]:(completed?.[key]?archive?.[key]:null);
    if(!from||typeof from!=="object")continue;

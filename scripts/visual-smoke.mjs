@@ -150,6 +150,7 @@ try{
  assert.equal(await phone.locator("#mapStageFourCores").innerText(),"9/9");
  await screen(phone,"android-landscape-rift-map");
  await phone.locator("#stageFourButton").click();
+ for(let i=0;i<2;i++)await phone.locator("#cinematicNextButton").click();
  await phone.locator(".game-panel.gameplay-active").waitFor({timeout:10000});
  await sleep(300);
  await verifyCanvas(phone);

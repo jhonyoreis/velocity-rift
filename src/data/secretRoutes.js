@@ -64,5 +64,10 @@ export const SECRET_DEFS={
         [-20,484,98,"phase"],[95,561,107,"crumble"],[204,640,111,"spring"],
         [300,720,146,"fixed"]],
       hazards:[["hunter",3,58,-64,0],["orbiter",6,30,-61,35],["sentry",8,-37,-62,0]]}
+  ],
+  4:[
+    {id:"origin",name:"Memória da Origem",hint:"SUBA PELO ECO",limit:24},
+    {id:"paradox",name:"Paradoxo Suspenso",hint:"ENCONTRE O FAROL ANTES DA INVERSÃO",limit:25},
+    {id:"lastlight",name:"A Última Luz",hint:"UM DESVIO ANTES DO TRONO",limit:25}
   ]
 };

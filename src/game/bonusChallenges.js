@@ -1,5 +1,5 @@
 // Optional clear-time objectives, cosmetics only. No gameplay power upgrade.
-export const BONUS_CHALLENGES=Object.freeze([1,2,3].flatMap(stage=>[
+export const BONUS_CHALLENGES=Object.freeze([1,2,3,4].flatMap(stage=>[
  {id:"no-hit-"+stage,stage,title:"Corrida Intocada",reward:"Traço de luz",
   description:"Conclua a fase sem receber dano."},
  {id:"all-cores-"+stage,stage,title:"Memória Completa",reward:"Brilho de Flux",
@@ -7,7 +7,7 @@ export const BONUS_CHALLENGES=Object.freeze([1,2,3].flatMap(stage=>[
 ]));
 export function earnedBonusChallenges(stage,run){
  const results=[];
- if(![1,2,3].includes(stage)||!run)return results;
+ if(![1,2,3,4].includes(stage)||!run)return results;
  if(Number.isFinite(run.damage)&&run.damage===0)
    results.push("no-hit-"+stage);
  if(Number.isFinite(run.cores)&&run.cores>=3)

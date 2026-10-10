@@ -1,0 +1,95 @@
+# Velocity Rift 4.0.0 — APK R17
+
+A quarta fase encerra a campanha. O portão inicial continua exigindo nove
+núcleos distintos das primeiras três regiões da campanha atual. Há retorno
+para o mapa quando a coleção ainda está incompleta.
+
+## Travessia e decisões
+
+O mundo de 48.000 unidades tem nove setores. Os seis símbolos precisam de
+Dash na gravidade e realidade correspondentes. Três portas exigem pares
+completos; Boost não atravessa portas fechadas. As fendas de retorno do teto
+exigem o símbolo anterior, evitando deixar um símbolo obrigatório para trás.
+
+Pedestais de realidade respondem a uma nova pressão de **Baixo / Slide / X**.
+É possível voltar a alternar a realidade. O salto continua usando **Pular**;
+uma segunda pressão no ar executa Dash. Soltar Pular encurta o salto.
+As rotas elevadas exigem sustentar Pular para os saltos mais altos.
+
+Três faróis opcionais iniciam desafios cronometrados com Baixo / Slide / X.
+Os núcleos podem ser coletados sem vencer o cronômetro. Os faróis permitem
+repetir uma tentativa, inclusive após coletar o núcleo. Os selos, núcleos e
+rotas já encontrados permanecem durante a tentativa após uma morte.
+
+## Inimigos e confrontos
+
+- Sentinela laser: mira travada e aviso tracejado antes do feixe ativo.
+- Sentinela triplo: três disparos em leque. Os dois sentinelas só morrem por
+  Dash; Boost não os elimina. Feixes e disparos já emitidos continuam ativos
+  depois da morte do emissor e causam dano durante Boost e Dash.
+- Perseguição: cinco acertos no núcleo exposto por Dash; barreira móvel
+  consome todos os cristais. Um impacto sem cristais é fatal. Derrotar esse
+  encontro desarma a barreira e libera a catedral.
+- Arena: cinco acertos, rajadas, feixes, invocações e inversões avisadas.
+  Portais laterais permitem escolher o chão ou o teto.
+- Segunda forma invulnerável: derrota narrativa de Flux, sem tela de morte.
+  Alicia o encoraja e os nove núcleos despertam Flux Rubro.
+- Última forma: seis acertos. Dash ou Boost com poder Rubro ferem o núcleo
+  exposto. Cada acerto consome o poder; novas ressonâncias aparecem com aviso,
+  concedendo 7,5 segundos de poder, energia de Boost e oito cristais.
+  Um acerto na arena recupera três cristais. Não há regeneração passiva.
+
+A morte na arena recomeça a forma atual, mantendo o despertar já ocorrido.
+A vitória é salva antes dos créditos. Flux volta à forma normal, Alicia é
+libertada, ambos voltam pela cidade, cânion e floresta até o vale do prólogo.
+A flor, cuja entrega foi interrompida no prólogo, termina na mão de Alicia.
+
+## Música e apresentação
+
+Nove movimentos originais sintetizados, entre 76 e 156 BPM. Forma de 32
+compassos, mudanças harmônicas, inversões, contraponto e pausas de melodia.
+A catedral usa um arranjo espaçado; perseguição, arena e poder Rubro têm
+arranjos próprios. O epílogo termina em uma reprise mais serena.
+
+Arquitetura fragmentada em parallax, eclipse rachado, arcos de catedral,
+plataformas de realidade inativa em transparência, inimigos com emissores
+visíveis, sinais de ataque e aura elétrica escarlate. Arte e música continuam
+nativas, sem dependência de mídia externa ou downloads durante a partida.
+
+## Progresso e compatibilidade
+
+Quatro fases, doze núcleos, doze rotas e 25 conquistas. Três novas recompensas
+permanentes elevam os limites completos a 170 de reserva e +15% de potência.
+Saves 3.x sem stage4 migram com registros finais vazios. Campanha antiga
+completa passa a continuar na Fenda Original. Novo Jogo limpa a campanha e
+preserva arquivos de conquistas, melhorias e melhores ghosts.
+
+Ghost final registra gravidade e dimensão; ghosts antigos de quatro valores
+continuam válidos. Registros e coleções de DEBUG / TESTE 100% não são salvos.
+O teste 100% simula as novas melhorias máximas, mantendo dano e morte ativos.
+
+## Verificação automática
+
+`npm run check` executa testes de lógica, build de produção e Playwright.
+
+O driver usa somente entradas de jogador, sem teleportar, editar coordenadas,
+fornecer cristais ou ativar invulnerabilidade. Duas rotas vencem os três
+confrontos: uma direta e outra com os três núcleos e desafios opcionais.
+Os testes verificam portas, regras de dano, consumo de poder, avisos,
+barreira, pausa narrativa, checkpoint e forma preservada após morte.
+
+No navegador, desktop e Android horizontal percorrem toda a rota opcional,
+assistindo às cenas por seus controles normais. São verificados 100%, save,
+ghost, galeria, menu de resultados, pausa e morte/retorno com gravidade
+invertida. Capturas ficam em `test-artifacts/visual/` no workflow de validação.
+
+## Conferência em aparelho
+
+A validação de navegador não substitui jogar no aparelho físico. No APK:
+
+1. Conferir **v4.0.0 · APK R17** e a coleção anterior após instalar.
+2. Testar Pular, segunda pressão para Dash, Boost e Slide simultâneos.
+3. Alternar os pedestais e conferir legibilidade dos sinais em tela pequena.
+4. Ouvir os movimentos e ajustar volumes de música/efeitos conforme desejado.
+5. Conferir desempenho e áudio numa luta longa, fundo/retorno do aplicativo,
+   créditos, flor recebida e campanha salva após reiniciar.

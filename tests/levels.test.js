@@ -36,9 +36,9 @@ test("original stage sizes, checkpoints and obstacles are preserved",()=>{
   });
 });
 test("all challenge IDs and achievement IDs are unique",()=>{
-  const secrets=[1,2,3].flatMap(stage=>SECRET_DEFS[stage].map(t=>t.id));
-  assert.equal(secrets.length,9);
-  assert.equal(new Set(secrets).size,9);
-  assert.equal(ACHIEVEMENTS.length,20);
-  assert.equal(new Set(ACHIEVEMENTS.map(t=>t.id)).size,20);
+  const secrets=[1,2,3,4].flatMap(stage=>SECRET_DEFS[stage].map(t=>t.id));
+  assert.equal(secrets.length,12);
+  assert.equal(new Set(secrets).size,12);
+  assert.equal(ACHIEVEMENTS.length,25);
+  assert.equal(new Set(ACHIEVEMENTS.map(t=>t.id)).size,25);
 });

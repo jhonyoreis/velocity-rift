@@ -15,7 +15,7 @@ test("altar requires nine distinct cores from this campaign and never trusts dup
  assert.equal(riftGateOpen(9),true);
 });
 test("fourth chapter keeps gravity, dimensions and momentum separate from campaign stages",()=>{
- assert.equal(RIFT_PREVIEW_WIDTH,36600);
+ assert.equal(RIFT_PREVIEW_WIDTH,48000);
  const platforms=previewPlatforms();
  assert.ok(platforms.length>=16);
  assert.ok(platforms.some(x=>x.orientation==="ceiling"));

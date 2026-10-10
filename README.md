@@ -1,4 +1,22 @@
-# Velocity Rift — Cidade das Fendas (versão 3.8.2 em teste)
+# Velocity Rift — Uma Flor, Enfim (versão 4.0.0)
+
+
+## 4.0 — Uma Flor, Enfim (APK R17)
+
+A campanha agora tem seu desfecho completo: Fenda Original, perseguição do
+Soberano, arena, segunda forma, Flux Rubro, resgate de Alicia e créditos com a
+entrega da flor. A fase exige seis selos em duas realidades e gravidades;
+Boost sozinho não abre as três portas. Laser e rajada tripla atravessam a
+proteção ofensiva, e seus emissores só podem ser destruídos com Dash.
+
+Três novos núcleos e rotas cronometradas completam a coleção de 12/12. Saves
+anteriores migram para o capítulo final. A trilha tem nove movimentos, e a
+apresentação inclui catedral fragmentada, eclipse e avisos de ataque.
+
+Execute `npm run check` para lógica, build e QA visual. Controles, regras,
+progressão e roteiro de conferência em aparelho: [QA 4.0](docs/QA-4.0.md).
+
+As seções abaixo preservam o histórico de desenvolvimento das versões 3.x.
 
 Um prototipo web 2D inspirado em jogos de plataforma de alta velocidade. Ele usa
 HTML, CSS e Canvas, sem assets oficiais. O Vite é uma dependência de desenvolvimento.

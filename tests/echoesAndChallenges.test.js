@@ -10,7 +10,7 @@ test("9 optional Alicia holograms cover all 3 playable regions",()=>{
  assert.deepEqual(sanitizeEchoArchive(["forest-voice","forest-voice","unknown"]),["forest-voice"]);
 });
 test("optional challenges grant cosmetic records, no powers",()=>{
- assert.equal(BONUS_CHALLENGES.length,6);
+ assert.equal(BONUS_CHALLENGES.length,8);
  assert.deepEqual(earnedBonusChallenges(2,{damage:0,cores:3}),["no-hit-2","all-cores-2"]);
  assert.deepEqual(earnedBonusChallenges(2,{damage:3,cores:0}),[]);
  assert.deepEqual(sanitizeBonusChallenges(["no-hit-1","no-hit-1","unknown"]),["no-hit-1"]);

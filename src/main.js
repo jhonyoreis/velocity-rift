@@ -1,3 +1,5 @@
+import {FINAL_SCORE,finalScoreStep} from "./audio/finalScore.js";
+import {drawFinaleFrame} from "./rendering/finale.js";
 import {createCinematicArt} from "./rendering/cinematicArt.js";
 import {SECRET_DEFS} from "./data/secretRoutes.js";
 import {secretUpgradeStats,secretUpgradeReward} from "./game/secretUpgrades.js";
@@ -59,8 +61,7 @@ function placeGameplayControls(){
 }
 placeGameplayControls();
 
-const riftTraversalMenu=document.querySelector("#riftTraversalMenu");
-const screens=[riftTraversalMenu,mainMenu,stageMenu,resultMenu,achievementsMenu,settingsMenu,newGameConfirm,pauseMenu,deathMenu,cinematicMenu,galleryMenu];
+const screens=[mainMenu,stageMenu,resultMenu,achievementsMenu,settingsMenu,newGameConfirm,pauseMenu,deathMenu,cinematicMenu,galleryMenu];
 let selectedMapStage=1;
 const soundToggle = document.querySelector("#soundToggle");
 const musicToggle = document.querySelector("#musicToggle");
@@ -123,15 +124,22 @@ let bestTime = 0;
 try { bestTime = Number(localStorage.getItem("velocity-rift-best-time")) || 0; } catch (_) { /* private storage */ }
 const progress=loadProgress();
 const campaign=loadCampaign();
-// The 3.8 traversal uses its own runtime while the 4.0 finale is in development.
+// Final chapter owns gravity, seals and Soberano encounters; campaign state remains shared.
 let boostUpgrades=secretUpgradeStats(progress.secrets);
 let riftQAFrozen=false;
 const riftPreview=createOriginalRift({onExit:()=>showStageMenu(),
-  onDeath:showDeathScreen,onFinish:showRiftTraversalResult,drawFlux:drawFluxBody,
+  onDeath:showDeathScreen,onFinish:finishRiftCampaign,drawFlux:drawFluxBody,
+  drawSovereign:(...args)=>cinemaSovereign(...args),drawAlicia:(...args)=>cinemaAlicia(...args),
+  onStory:key=>launchCinematic(key,()=>{riftPreview.resumeStory();resumeRiftScreen();}),
+  onCore:id=>{if(!debugUsedThisRun)recordCampaignCore(4,id);},
+  onSecret:recordRiftSecret,
+  onFrame:s=>{if(!debugUsedThisRun)recordGhostFrame(ghostRun,s.time,s);},
+  ghostAt:t=>ghostVisible?ghostFrameAt(ghostArchive.stage4,t):null,
+  boostPower:()=>fullTestMode?1.15:boostUpgrades.powerMultiplier,
   isDebug:()=>debugMode,boostCapacity:()=>boostCapacity(),onSound:playSfx});
 // Permanently owned via historical route records (independent of New Game).
-function boostCapacity(){return fullTestMode?150:boostUpgrades.capacity;}
-function boostPower(){return fullTestMode?1.12:boostUpgrades.powerMultiplier;}
+function boostCapacity(){return fullTestMode?170:boostUpgrades.capacity;}
+function boostPower(){return fullTestMode?1.15:boostUpgrades.powerMultiplier;}
 function testUnlocked(){return debugMode||fullTestMode;}
 const secretTrials=[];
 // Independent, permanent collections; never reset by New Game.
@@ -387,10 +395,10 @@ function drawAirDashFX(){
 // World-space replay of the best eligible completed run per stage.
 const GHOST_ARCHIVE_KEY="velocity-rift-ghost-records-v1";
 const GHOST_VISIBLE_KEY="velocity-rift-ghost-enabled-v1";
-const ghostArchive={stage1:null,stage2:null,stage3:null};
+const ghostArchive={stage1:null,stage2:null,stage3:null,stage4:null};
 try{
  const history=JSON.parse(localStorage.getItem(GHOST_ARCHIVE_KEY)||"{}");
- for(const stage of [1,2,3])ghostArchive["stage"+stage]=
+ for(const stage of [1,2,3,4])ghostArchive["stage"+stage]=
    sanitizeGhost(history["stage"+stage]);
 }catch(_){}
 let ghostVisible=true;
@@ -621,14 +629,14 @@ function defaultStageProgress() {
   return { completed:false, clears:0, bestTime:0, bestGrade:"", bestCrystals:0, bestCores:0 };
 }
 function defaultProgress() {
-  return {stage1:defaultStageProgress(),stage2:defaultStageProgress(),stage3:defaultStageProgress(),
-    secrets:{stage1:[],stage2:[],stage3:[]},secretTimes:{stage1:{},stage2:{},stage3:{}},achievements:{}};
+  return {stage1:defaultStageProgress(),stage2:defaultStageProgress(),stage3:defaultStageProgress(),stage4:defaultStageProgress(),
+    secrets:{stage1:[],stage2:[],stage3:[],stage4:[]},secretTimes:{stage1:{},stage2:{},stage3:{},stage4:{}},achievements:{}};
 }
 function loadProgress() {
   const result=defaultProgress();
   try {
     const saved=JSON.parse(localStorage.getItem(PROGRESS_KEY)||"null");
-    for (const id of [1,2,3]) {
+    for (const id of [1,2,3,4]) {
       const item=saved?.["stage"+id];
       if (!item || typeof item!=="object") continue;
       const record=result["stage"+id];
@@ -640,7 +648,7 @@ function loadProgress() {
       record.bestCrystals=Math.floor(clamp(Number(item.bestCrystals)||0,0,1000000));
       record.bestCores=Math.floor(clamp(Number(item.bestCores)||0,0,3));
     }
-    for(const stage of [1,2,3]){
+    for(const stage of [1,2,3,4]){
       const key="stage"+stage,allowed=SECRET_DEFS[stage].map(def=>def.id);
       const existing=saved?.secrets?.[key];
       if(Array.isArray(existing))
@@ -655,11 +663,11 @@ function loadProgress() {
       if(saved?.achievements?.[item.id]===true)result.achievements[item.id]=true;
     // Backfill achievements supported by old records; don't invent unknown
     // no-death/boss achievements that older saves never tracked.
-    for(const stage of [1,2,3]){
+    for(const stage of [1,2,3,4]){
       const record=result["stage"+stage];
-      if(record.completed)result.achievements[stage===1?"first":stage===2?"canyon":"city"]=true;
-      if(record.bestGrade==="S")result.achievements[stage===1?"s1":stage===2?"s2":"cityS"]=true;
-      if(record.bestCores===3)result.achievements[stage===1?"cores1":stage===2?"cores2":"cityCores"]=true;
+      if(record.completed)result.achievements[stage===1?"first":stage===2?"canyon":stage===3?"city":"finale"]=true;
+      if(record.bestGrade==="S")result.achievements[stage===1?"s1":stage===2?"s2":stage===3?"cityS":"riftS"]=true;
+      if(record.bestCores===3)result.achievements[stage===1?"cores1":stage===2?"cores2":stage===3?"cityCores":"riftCores"]=true;
     }
     if(result.secrets.stage1.length+result.secrets.stage2.length>0)
       result.achievements.explorer=true;
@@ -686,6 +694,9 @@ function drawCinematic(){
     t=cinematic.clock,elapsed=cinematic.elapsed,
     ratio=Math.min(1,elapsed/frame.duration);
   ctx.save();ctx.clearRect(0,0,VIEW_W,VIEW_H);
+  if(frame.art.startsWith("final:")){
+    drawFinaleFrame(ctx,frame.art.slice(6),t,ratio,{cinemaLandscape,cinemaPortal,cinemaFlux,cinemaAlicia,cinemaFlower,cinemaSovereign,cinemaCanyon,cinemaMetropolis,cinemaForest});return;
+  }
   switch(frame.art){
     case "peace":
       cinemaLandscape(t);cinemaFlux(328,406,1.2,t);
@@ -693,7 +704,7 @@ function drawCinematic(){
     case "flower":
       cinemaLandscape(t);cinemaFlux(330,408,1.25,t);
       cinemaAlicia(529,406,1.17,t);
-      cinemaFlower(425+ratio*63,306-ratio*8,t,1.15);
+      cinemaFlower(387+ratio*12,306,t,1.15);
       break;
     case "rift":
       cinemaLandscape(t,true);
@@ -782,7 +793,7 @@ function drawCinematic(){
 const CINEMATICS={
   opening:{chapter:"PRÓLOGO · A FLOR E A RUPTURA",frames:[
     {speaker:"O ÚLTIMO DIA DE PAZ",title:"Antes das fendas",text:"No alto de um vale tranquilo, Flux e Alicia contemplavam o pôr do sol.",duration:3.9,art:"peace"},
-    {speaker:"UM PRESENTE SIMPLES",title:"Uma flor para Alicia",text:"Flux oferece uma flor. Alicia a recebe, e por um instante o mundo parece perfeito.",duration:4.1,art:"flower",sound:"cin-flower"},
+    {speaker:"UM PRESENTE SIMPLES",title:"Uma flor para Alicia",text:"Flux prepara uma flor para Alicia. Antes que consiga entregá-la, o horizonte começa a se romper.",duration:4.1,art:"flower",sound:"cin-flower"},
     {speaker:"ALGO DESPERTA",title:"O céu se rompe",text:"Uma rachadura violeta atravessa o horizonte. A luz começa a desaparecer.",duration:3.6,art:"rift",sound:"cin-rupture"},
     {speaker:"O SENHOR DAS FENDAS",title:"O Soberano da Ruptura",text:"Uma presença colossal surge da abertura. Até as montanhas parecem pequenas diante dele.",duration:4.9,art:"sovereign",sound:"cin-ominous"},
     {speaker:"A DISTÂNCIA ENTRE MUNDOS",title:"Alicia desaparece",text:"A energia da fenda envolve Alicia e a leva para além da dimensão. A flor permanece.",duration:4.1,art:"taken",sound:"cin-rupture"},
@@ -808,6 +819,35 @@ const CINEMATICS={
     {speaker:"NA DIREÇÃO DO SOBERANO",title:"Entre arranha-céus",text:"A cidade leva à última grande fenda. Flux precisa dominar um novo poder para atravessá-la.",duration:3.9,art:"cityRun",sound:"cin-chase"}
   ]}
 };
+Object.assign(CINEMATICS,{
+ intro4:{chapter:"CAPÍTULO FINAL · FENDA ORIGINAL",frames:[
+  {speaker:"TODOS OS CAMINHOS CONVERGEM",title:"O mundo depois do mundo",text:"A cidade desaparece atrás de Flux. Ruínas de todas as dimensões flutuam sobre um abismo. Alicia está no centro da ruptura.",duration:5,art:"final:throne",sound:"cin-ominous"},
+  {speaker:"NOVE MEMÓRIAS",title:"A origem guarda as chaves",text:"O altar exige os nove núcleos das regiões anteriores. Aqui, gravidade e realidade precisam ser lidas: nem todo caminho aponta para a frente.",duration:5,art:"final:throne"}
+ ]},
+ sovereignChase:{chapter:"O SOBERANO · PRIMEIRO CONFRONTO",frames:[
+  {speaker:"SOBERANO",title:"Tudo que corre, cai",text:"Você atravessou meus mundos. Agora tente escapar daquilo que os destrói.",duration:4.5,art:"final:chase",sound:"boss-enter"},
+  {speaker:"FLUX",title:"Não vou deixar ninguém para trás",text:"Acerte o núcleo aberto com Dash cinco vezes. A barreira atrás de Flux leva todos os cristais; o próximo golpe será fatal.",duration:5,art:"final:chase"}
+ ]},
+ arenaIntro:{chapter:"TRONO DA RUPTURA",frames:[
+  {speaker:"ALICIA",title:"Você chegou",text:"Eu sabia que você encontraria o caminho. Mas ele controla até o chão sob seus pés.",duration:4.5,art:"final:throne",sound:"cin-flower"},
+  {speaker:"SOBERANO",title:"A última realidade",text:"Desvie das rajadas e leia os avisos de inversão. O núcleo fica exposto depois do ataque. Só o Dash atravessa sua primeira armadura.",duration:5,art:"final:throne",sound:"boss-enter"}
+ ]},
+ awakening:{chapter:"NOVE CORAÇÕES · FLUX RUBRO",frames:[
+  {speaker:"A SEGUNDA FORMA",title:"O poder que não quebra",text:"A armadura se recompõe. O Soberano encerra a luta com uma onda de ruptura. Flux cai; suas forças se esgotam.",duration:4.7,art:"final:form",sound:"boss-enter"},
+  {speaker:"ALICIA",title:"Olhe para mim, Flux",text:"Você não correu sozinho. Cada memória que trouxe guarda um mundo que você salvou. Levante. Eu ainda estou aqui.",duration:6,art:"final:defeat",sound:"cin-flower"},
+  {speaker:"AS NOVE MEMÓRIAS",title:"A promessa desperta",text:"Os nove núcleos se unem. Eletricidade escarlate envolve Flux: o poder Rubro eleva seus saltos, sua velocidade e seu impacto.",duration:5.3,art:"final:awaken",sound:"boss-crack"},
+  {speaker:"FLUX",title:"Eu prometi voltar",text:"Dash ou Boost Rubro ferem o núcleo aberto. Cada acerto consome o poder. Busque a próxima ressonância sinalizada no chão ou no teto antes de atacar de novo.",duration:6,art:"final:awaken"}
+ ]},
+ ending:{chapter:"UMA FLOR, ENFIM · CRÉDITOS",frames:[
+  {speaker:"A RUPTURA SE FECHA",title:"Alicia está livre",text:"A coroa se desfaz. O poder Rubro retorna às memórias; Flux volta a si. Pela primeira vez, Alicia pode caminhar ao seu lado.",duration:6,art:"final:rescue",sound:"boss-win"},
+  {speaker:"ALÉM DAS TORRES",title:"Dois rastros entre estrelas",text:"Flux e Alicia atravessam juntos a Cidade das Fendas. O céu já não precisa ser uma prisão.",duration:7,art:"final:city"},
+  {speaker:"ENTRE AS MONTANHAS",title:"O prisma guarda a luz",text:"As fendas os levam pelo cânion. As memórias recolhidas iluminam o caminho de casa.",duration:7,art:"final:canyon"},
+  {speaker:"ONDE A JORNADA COMEÇOU",title:"A floresta lembra",text:"Sob as copas neon, eles deixam para trás o último portal. A velocidade agora tem outra razão: voltar juntos.",duration:7,art:"final:forest"},
+  {speaker:"O VALE TRANQUILO",title:"Antes das fendas, outra vez",text:"O pôr do sol espera no mesmo lugar. A promessa interrompida finalmente pode continuar.",duration:6,art:"final:home",sound:"cin-flower"},
+  {speaker:"FLUX E ALICIA",title:"Uma flor para Alicia",text:"Flux estende a flor. Desta vez, Alicia a recebe. Nenhuma fenda os separa.",duration:7,art:"final:flower",sound:"cin-flower"},
+  {speaker:"OBRIGADO POR JOGAR",title:"Uma Flor, Enfim",text:"A jornada terminou. As memórias e rotas que faltam continuam esperando por você. Velocity Rift · 4.0.",duration:8,art:"final:promise"}
+ ]}
+});
 const cinematic={active:false,key:null,frameIndex:0,elapsed:0,
   clock:0,onEnd:null,replay:false};
 let cinematicMusicStep=0;
@@ -818,7 +858,7 @@ function showGalleryMenu(){
   refreshStoryArchive();
 }
 function refreshCinematicGallery(){
-  const entries=[["opening","Opening"],["intro1","StageOne"],["intro2","StageTwo"],["intro3","StageThree"]];
+  const entries=[["opening","Opening"],["intro1","StageOne"],["intro2","StageTwo"],["intro3","StageThree"],["intro4","StageFour"],["awakening","Awakening"],["ending","Ending"]];
   for(const [key,name] of entries){
     const seen=fullTestMode||campaign.scenesSeen.includes(key);
     const button=document.querySelector("#gallery"+name);
@@ -899,7 +939,7 @@ function finishCinematic(){
   cinematic.active=false;cinematic.key=null;cinematic.onEnd=null;
   document.querySelector(".game-panel").classList.remove("cinematic-active");
   cinematicMenu.hidden=true;
-  if(!replay&&!testUnlocked()&&!campaign.scenesSeen.includes(key)){
+  if(!replay&&!testUnlocked()&&!(debugUsedThisRun&&["sovereignChase","arenaIntro","awakening","ending"].includes(key))&&!campaign.scenesSeen.includes(key)){
     campaign.scenesSeen.push(key);saveCampaign();
   }
   if(cb)cb();else showMainMenu();
@@ -918,20 +958,19 @@ function replayCinematic(key){
 
 // 3.0 campaign pointer: legacy progress/achievements remain a separate archive.
 // This creates a safe migration from v2 on first use without modifying its key.
-// The final fourth chapter remains planned. Reserve its share of the
-// campaign completion so defeating the city's boss never shows 100%.
+// Four completed regions and their distinct extras contribute to campaign completion.
 const GAME_COMPLETION_STAGES=4;
 const GAME_COMPLETION_CORES_PER_STAGE=3;
 const GAME_COMPLETION_ROUTES_PER_STAGE=3;
 function emptyCampaignExtras(){
-  return {cores:{stage1:[],stage2:[],stage3:[]},secrets:{stage1:[],stage2:[],stage3:[]}};
+  return {cores:{stage1:[],stage2:[],stage3:[],stage4:[]},secrets:{stage1:[],stage2:[],stage3:[],stage4:[]}};
 }
-function sanitizedCampaignExtras(saved,stage1Done,stage2Done,stage3Done=false){
+function sanitizedCampaignExtras(saved,stage1Done,stage2Done,stage3Done=false,stage4Done=false){
   const extras=emptyCampaignExtras();
   const hasExtras=saved?.extras&&typeof saved.extras==="object";
-  for(const stage of [1,2,3]){
+  for(const stage of [1,2,3,4]){
     const key="stage"+stage;
-    const stageDone=stage===1?stage1Done:stage===2?stage2Done:stage3Done;
+    const stageDone=stage===1?stage1Done:stage===2?stage2Done:stage===3?stage3Done:stage4Done;
     // Pre-3.4 saves contain no collection identifiers. Preserve the
     // historically recorded count on completed stages as a best-effort
     // migration; never import archival extras into a freshly reset campaign.
@@ -954,39 +993,39 @@ function loadCampaign(){
   try{saved=JSON.parse(localStorage.getItem(CAMPAIGN_KEY)||"null");}catch(_){}
   if(saved&&typeof saved==="object"){
     const d1=saved.stage1Completed===true,d2=d1&&saved.stage2Completed===true;
-    const d3=d2&&saved.stage3Completed===true;
+    const d3=d2&&saved.stage3Completed===true,d4=d3&&saved.stage4Completed===true;
     const started=saved.started===true||d1||d2||d3;
     // A completed 3.5.x campaign had no stage-3 field; Continue should
     // open the newly unlocked city, not replay the cleared canyon.
     const legacyBeforeCity=!Object.prototype.hasOwnProperty.call(saved,"stage3Completed");
-    const last=d2&&(saved.lastStage===3||legacyBeforeCity)?3:
+    const last=d3?4:d2&&(saved.lastStage===3||legacyBeforeCity)?3:
       d1&&saved.lastStage===2?2:1;
-    return {started,stage1Completed:d1,stage2Completed:d2,stage3Completed:d3,
+    return {started,stage1Completed:d1,stage2Completed:d2,stage3Completed:d3,stage4Completed:d4,
       lastStage:last,aerialDash:saved.aerialDash===true&&d2,
-      records:loadCampaignRecords(saved.records,{stage1:d1,stage2:d2,stage3:d3},progress),
-      extras:sanitizedCampaignExtras(saved,d1,d2,d3),
+      records:loadCampaignRecords(saved.records,{stage1:d1,stage2:d2,stage3:d3,stage4:d4},progress),
+      extras:sanitizedCampaignExtras(saved,d1,d2,d3,d4),
       scenesSeen:Array.isArray(saved.scenesSeen)?
-        [...new Set(saved.scenesSeen.filter(k=>["opening","intro1","intro2","intro3"].includes(k)))]:[]};
+        [...new Set(saved.scenesSeen.filter(k=>["opening","intro1","intro2","intro3","intro4","sovereignChase","arenaIntro","awakening","ending"].includes(k)))]:[]};
   }
   const d1=progress.stage1.completed||progress.stage2.completed||progress.stage3.completed;
   const d2=progress.stage2.completed||progress.stage3.completed;
-  const d3=progress.stage3.completed;
-  return {started:d1,stage1Completed:d1,stage2Completed:d2,stage3Completed:d3,
-    lastStage:d2?3:d1?2:1,aerialDash:false,
-    records:loadCampaignRecords(null,{stage1:d1,stage2:d2,stage3:d3},progress),
-    extras:sanitizedCampaignExtras(null,d1,d2,d3),scenesSeen:[]};
+  const d3=progress.stage3.completed,d4=progress.stage4.completed;
+  return {started:d1,stage1Completed:d1,stage2Completed:d2,stage3Completed:d3,stage4Completed:d4,
+    lastStage:d3?4:d2?3:d1?2:1,aerialDash:false,
+    records:loadCampaignRecords(null,{stage1:d1,stage2:d2,stage3:d3,stage4:d4},progress),
+    extras:sanitizedCampaignExtras(null,d1,d2,d3,d4),scenesSeen:[]};
 }
 function saveCampaign(){
   try{localStorage.setItem(CAMPAIGN_KEY,JSON.stringify(campaign));}catch(_){}
 }
 function resetCampaign(){
   Object.assign(campaign,{started:false,stage1Completed:false,
-    stage2Completed:false,stage3Completed:false,lastStage:1,aerialDash:false,
+    stage2Completed:false,stage3Completed:false,stage4Completed:false,lastStage:1,aerialDash:false,
     records:emptyCampaignRecords(),extras:emptyCampaignExtras(),scenesSeen:[]});
   saveCampaign();
 }
 function recordCampaignCore(stage,index){
-  if(debugUsedThisRun||![1,2,3].includes(stage))return false;
+  if(debugUsedThisRun||![1,2,3,4].includes(stage))return false;
   if(!Number.isInteger(index)||index<0||index>=GAME_COMPLETION_CORES_PER_STAGE)return false;
   const found=campaign.extras.cores["stage"+stage];
   if(found.includes(index))return false;
@@ -995,7 +1034,7 @@ function recordCampaignCore(stage,index){
   return true;
 }
 function recordCampaignSecret(stage,id){
-  if(debugUsedThisRun||![1,2,3].includes(stage)||
+  if(debugUsedThisRun||![1,2,3,4].includes(stage)||
     !SECRET_DEFS[stage].some(route=>route.id===id))return false;
   const found=campaign.extras.secrets["stage"+stage];
   if(found.includes(id))return false;
@@ -1006,7 +1045,7 @@ function recordCampaignSecret(stage,id){
 function campaignCompletion(){return fullTestMode?
  {stages:4,cores:12,secrets:12,percent:100}:computeCampaignCompletion(campaign);}
 function nextCampaignStage(){
-  return campaign.stage2Completed&&campaign.lastStage===3?3:campaign.stage1Completed&&campaign.lastStage===2?2:1;
+  return campaign.stage3Completed?4:campaign.stage2Completed&&campaign.lastStage===3?3:campaign.stage1Completed&&campaign.lastStage===2?2:1;
 }
 function continueCampaign(){
   if(!campaign.started&&!fullTestMode)return;
@@ -1083,7 +1122,8 @@ function recordStageClear(time, crystals, cores = 0) {
     campaign.stage1Completed=true;campaign.stage2Completed=true;campaign.lastStage=3;
   }else if(activeStage===3){
     campaign.stage1Completed=true;campaign.stage2Completed=true;
-    campaign.stage3Completed=true;campaign.lastStage=3;
+    campaign.stage3Completed=true;campaign.lastStage=4;
+  }else if(activeStage===4){campaign.stage4Completed=true;campaign.lastStage=4;
   }
   // Backstop for legacy clears and automated results; normal gameplay
   // already records exact core identities at pickup time.
@@ -1145,19 +1185,19 @@ function refreshMapView(){
   const previewButton=document.querySelector("#stageFourButton");
   previewButton.disabled=!previewAvailable;
   previewButton.textContent=previewAvailable?"JOGAR FENDA ORIGINAL →":"CONCLUA A CIDADE PARA ENTRAR";
-  document.querySelector("#mapStageFourBadge").textContent=previewAvailable?"TRAVESSIA 3.8":"BLOQUEADA";
-  document.querySelector("#mapNodeStageFourStatus").textContent=previewAvailable?"ACESSO AO ALTAR":"BLOQUEADA";
+  document.querySelector("#mapStageFourBadge").textContent=previewAvailable?campaign.stage4Completed?"CONCLUÍDA":"CAPÍTULO FINAL":"BLOQUEADA";
+  document.querySelector("#mapNodeStageFourStatus").textContent=previewAvailable?campaign.stage4Completed?"CONCLUÍDA":"DISPONÍVEL":"BLOQUEADA";
   document.querySelector("#mapStageFourCores").textContent=riftCores+"/9";
   document.querySelector("#stageFourProgress").textContent=riftCores===9?
     "Nove núcleos recuperados · Portão liberado":
     "Altar exige 9 núcleos · Faltam "+(9-riftCores);
   document.querySelector("#stageTwoLock").hidden=unlocked;
-  for(const stage of [1,2,3]){
-    const suffix=["","One","Two","Three"][stage];
+  for(const stage of [1,2,3,4]){
+    const suffix=["","One","Two","Three","Four"][stage];
     const record=campaign.records["stage"+stage];
     document.querySelector("#mapStage"+suffix+"Best").textContent=
       formatTime(record.bestTime);
-    document.querySelector("#mapStage"+suffix+"Cores").textContent=
+    document.querySelector("#mapStage"+suffix+(stage===4?"Memories":"Cores")).textContent=
       (fullTestMode?3:campaign.extras.cores["stage"+stage].length)+"/3";
     document.querySelector("#mapStage"+suffix+"Secrets").textContent=
       (fullTestMode?3:campaign.extras.secrets["stage"+stage].length)+"/3";
@@ -1199,7 +1239,7 @@ function refreshProgressView() {
   continueButton.disabled=!canContinue;
   continueButton.setAttribute("aria-disabled",String(!canContinue));
   const description=canContinue
-    ? "Retomar em "+(["","Primeiro Impulso","Cânion Prisma","Cidade das Fendas"][nextCampaignStage()])
+    ? "Retomar em "+(["","Primeiro Impulso","Cânion Prisma","Cidade das Fendas","Fenda Original"][nextCampaignStage()])
     : "Disponível depois de iniciar sua primeira campanha.";
   continueButton.title=description;
   document.querySelector("#continueDescription").textContent=description;
@@ -1333,16 +1373,16 @@ function showAchievementsMenu(){
   document.querySelector("#achievementsHeading").focus({preventScroll:true});
 }
 
-function showResults(time, crystals, cores = 0) {
-  const result = debugUsedThisRun
+function showResults(time, crystals, cores = 0, recorded=null) {
+  const result = recorded|| (debugUsedThisRun
     ? {grade:gradeForTime(time,activeStage),improvedTime:false}
-    : recordStageClear(time,crystals,cores);
-  if(!debugUsedThisRun){
+    : recordStageClear(time,crystals,cores));
+  if(!debugUsedThisRun&&!recorded){
     saveBestGhost(time,result.archiveRecord);
     recordBonusChallengeClear(activeStage,{damage:runDamageCount,cores,grade:result.grade});
   }
   document.querySelector("#resultGrade").textContent = result.grade;
-  document.querySelector("#resultHeading").textContent = ["","Primeiro Impulso","Cânion Prisma","Cidade das Fendas"][activeStage];
+  document.querySelector("#resultHeading").textContent = ["","Primeiro Impulso","Cânion Prisma","Cidade das Fendas","Fenda Original"][activeStage];
   document.querySelector("#resultTime").textContent = formatTime(time);
   document.querySelector("#resultBest").textContent =
     formatTime(campaign.records["stage"+activeStage].bestTime);
@@ -1355,20 +1395,13 @@ function showResults(time, crystals, cores = 0) {
       " Núcleos " + cores + "/3 · Nesta campanha " +
       campaign.extras.cores["stage"+activeStage].length + "/3.";
   if(!debugUsedThisRun)grantClearAchievements(result.grade,cores);
-  document.querySelector("#resultSecrets").textContent=secretTrials.filter(t=>t.completed).length+"/3";
+  document.querySelector("#resultSecrets").textContent=(activeStage===4?riftPreview.info().secrets.length:secretTrials.filter(t=>t.completed).length)+"/3";
   const nextStageButton=document.querySelector("#nextStageButton");
-  // Stages 2/3 unlock in order. Debug-only clears never grant permanent access.
-  const nextPlayable=(activeStage===1&&(campaign.stage1Completed||testUnlocked()))||
-    (activeStage===2&&(campaign.stage2Completed||testUnlocked()));
+  const nextPlayable=activeStage<4&&(campaign["stage"+activeStage+"Completed"]||testUnlocked());
+  const names=["","Floresta Neon","Cânion Prisma","Cidade das Fendas","Fenda Original"];
   nextStageButton.disabled=!nextPlayable;
-  nextStageButton.textContent=nextPlayable
-    ?("Próxima fase: "+(activeStage===1?"Cânion Prisma":"Cidade das Fendas")+" ➜")
-    :activeStage===3?"Fase final — em desenvolvimento"
-    :"Próxima fase bloqueada";
-  nextStageButton.title=nextPlayable
-    ?("Começar "+(activeStage===1?"Cânion Prisma":"Cidade das Fendas"))
-    :activeStage===3?"A quarta fase ainda está em desenvolvimento"
-    :"Conclua a primeira fase sem DEBUG para desbloquear a próxima";
+  nextStageButton.textContent=nextPlayable?"Próxima fase: "+names[activeStage+1]+" ➜":"ALICIA RESGATADA · JORNADA CONCLUÍDA";
+  nextStageButton.title=nextPlayable?"Começar "+names[activeStage+1]:"Explore as memórias e rotas que faltam para alcançar 100%";
   nextStageButton.classList.toggle("primary-action",nextPlayable);
   nextStageButton.classList.toggle("secondary-action",!nextPlayable);
   const retryButton=document.querySelector("#retryButton");
@@ -1392,10 +1425,10 @@ function showPauseMenu(){
   syncMusic();
   document.querySelector("#pauseStageLabel").textContent=riftPreview.active?
     "Fenda Original · "+riftPreview.info().sector:
-    ["","Primeiro Impulso","Cânion Prisma","Cidade das Fendas"][activeStage];
+    ["","Primeiro Impulso","Cânion Prisma","Cidade das Fendas","Fenda Original"][activeStage];
   document.querySelector("#pauseStatTime").textContent=formatTime(riftPreview.active?riftPreview.info().time:gameTime);
   document.querySelector("#pauseStatCrystals").textContent=String(riftPreview.active?riftPreview.info().crystals:player.rings);
-  document.querySelector("#pauseStatCores").textContent=riftPreview.active?riftPreview.info().cores+"/9":(fullTestMode?3:player.cores)+"/3";
+  document.querySelector("#pauseStatCores").textContent=riftPreview.active?riftPreview.info().runCores.length+"/3":(fullTestMode?3:player.cores)+"/3";
   document.querySelector("#pauseStatSecrets").textContent=riftPreview.active?"—":
     (fullTestMode?3:secretTrials.filter(trial=>trial.completed).length)+"/3";
   document.querySelector("#pauseStatProgress").textContent=riftPreview.active?
@@ -1404,7 +1437,7 @@ function showPauseMenu(){
   document.querySelector("#pauseBoostUpgrades").textContent=
     "BOOST "+boostCapacity()+" · FORÇA +"+
     (fullTestMode?12:boostUpgrades.powerLevels*3)+"% · "+
-    (fullTestMode?9:boostUpgrades.collected)+"/9 MELHORIAS"+(fullTestMode?" · TESTE":"");
+    (fullTestMode?12:boostUpgrades.collected)+"/12 MELHORIAS"+(fullTestMode?" · TESTE":"");
   for(const id of ["pauseAudioDetails","pauseControlsDetails","pauseDebugDetails"])
     document.querySelector("#"+id).open=false;
   if(debugToggle)debugToggle.hidden=false;
@@ -1669,6 +1702,7 @@ function resetGame() {
 }
 
 function startGame(stage=activeStage,skipCinematic=false,withArrival=false) {
+  if(stage===4){startRiftPreview(skipCinematic);return;}
   if(riftPreview.active)riftPreview.stop();
   if(![1,2,3].includes(stage))return;
   if(stage===2&&!campaign.stage1Completed&&!testUnlocked())return;
@@ -1699,24 +1733,36 @@ function startGame(stage=activeStage,skipCinematic=false,withArrival=false) {
   ensureLoop();
 }
 
-function showRiftTraversalResult(result){
-  // Traversal is playable in 3.8; campaign victory requires the 4.0 finale.
-  document.querySelector("#riftTraversalTime").textContent=formatTime(result.time);
-  document.querySelector("#riftTraversalSpeed").textContent=Math.round(result.topSpeed)+" u/s";
-  document.querySelector("#riftTraversalCrystals").textContent=result.crystals;
-  gameStarted=false;gameCleared=false;keys.clear();showScreen(riftTraversalMenu);
+function recordRiftSecret(id,time){
+ if(debugUsedThisRun)return;
+ recordCampaignSecret(4,id);
+ const ids=progress.secrets.stage4;if(!ids.includes(id))ids.push(id);
+ const best=progress.secretTimes.stage4[id];if(!best||time<best)progress.secretTimes.stage4[id]=time;
+ boostUpgrades=secretUpgradeStats(progress.secrets);updateRouteAchievements();storeProgress();
 }
-function startRiftPreview(){
-  if(!campaign.stage3Completed&&!testUnlocked())return;
-  unlockAudio();
-  riftPreview.start(countRiftKeys(campaign,fullTestMode),testUnlocked());
-  activeStage=4;
-  gameStarted=true;gameCleared=false;paused=false;accumulator=0;
-  keys.clear();jumpHeld=false;
-  screens.forEach(screen=>{screen.hidden=true;});
-  overlay.classList.add("is-hidden");
-  document.querySelector(".game-panel").classList.remove("menu-active","pause-active","cinematic-active");
-  syncPauseButton();syncTrackLabel();syncMusic();ensureLoop();
+function finishRiftCampaign(r){
+ runDamageCount=r.damageCount;
+ recordGhostFrame(ghostRun,r.time,r,true);
+ const result=debugUsedThisRun?{grade:gradeForTime(r.time,4),improvedTime:false}:recordStageClear(r.time,r.crystals,r.runCores.length);
+ if(!debugUsedThisRun){saveBestGhost(r.time,result.archiveRecord);grantClearAchievements(result.grade,r.runCores.length);recordBonusChallengeClear(4,{damage:r.damageCount,cores:r.runCores.length});}
+ gameCleared=true;keys.clear();
+ launchCinematic("ending",()=>{gameCleared=true;showResults(r.time,r.crystals,r.runCores.length,result);});
+}
+function resumeRiftScreen(){
+ gameStarted=true;paused=false;accumulator=0;keys.clear();jumpHeld=false;
+ screens.forEach(screen=>{screen.hidden=true;});overlay.classList.add("is-hidden");
+ document.querySelector(".game-panel").classList.remove("menu-active","pause-active","cinematic-active");
+ syncPauseButton();syncTrackLabel();syncMusic();ensureLoop();
+}
+function startRiftPreview(skipCinematic=false){
+ if(!campaign.stage3Completed&&!testUnlocked())return;
+ if(skipCinematic!==true&&!testUnlocked()&&!campaign.scenesSeen.includes("intro4")){
+  riftPreview.stop();launchCinematic("intro4",()=>startRiftPreview(true));return;
+ }
+ unlockAudio();activeStage=4;debugUsedThisRun=debugMode||fullTestMode;ghostRun=[];runDamageCount=0;
+ if(!testUnlocked()){campaign.started=true;campaign.lastStage=4;saveCampaign();}
+ riftPreview.start(countRiftKeys(campaign,fullTestMode),testUnlocked());
+ gameCleared=false;resumeRiftScreen();
 }
 
 function ensureLoop() {
@@ -1772,7 +1818,7 @@ function drawStageExitFX(){
 function loop(now) {
   const dt = Math.min(0.05, Math.max(0, (now - lastTime) / 1000));
   lastTime = now;
-  if(cinematic.active)updateCinematic(dt);
+  if(cinematic.active&&!riftQAFrozen)updateCinematic(dt);
   if(stageExit.active)updateStageExit(dt);
 
   if (gameStarted && !gameCleared && !paused) {
@@ -2999,14 +3045,16 @@ function updateRouteAchievements(){
   if(one+two===6)grantAchievement("sixSecrets");
   if(three===3)grantAchievement("citySecrets");
   if(one+two+three===9)grantAchievement("nineSecrets");
+  if(progress.secrets.stage4.length===3)grantAchievement("riftSecrets");
+  if(one+two+three+progress.secrets.stage4.length===12)grantAchievement("twelveSecrets");
 }
 function grantClearAchievements(grade,cores){
   const stage=activeStage;
-  grantAchievement(stage===1?"first":stage===2?"canyon":"city");
-  if(grade==="S")grantAchievement(stage===1?"s1":stage===2?"s2":"cityS");
+  grantAchievement(stage===1?"first":stage===2?"canyon":stage===3?"city":"finale");
+  if(grade==="S")grantAchievement(stage===1?"s1":stage===2?"s2":stage===3?"cityS":"riftS");
   if(stage===1&&player.falls===0)grantAchievement("zero1");
   if(stage===2&&player.falls===0)grantAchievement("zero2");
-  if(cores===3)grantAchievement(stage===1?"cores1":stage===2?"cores2":"cityCores");
+  if(cores===3)grantAchievement(stage===1?"cores1":stage===2?"cores2":stage===3?"cityCores":"riftCores");
   if(stage===2&&guardian.defeated&&!bossDamagedThisRun)grantAchievement("untouched");
   if(stage===3&&cityBoss.defeated)grantAchievement("architect");
 }
@@ -3284,12 +3332,12 @@ function refreshAchievementsView(){
   const fill=document.querySelector("#achievementProgressFill");
   if(fill)fill.style.width=(total?Math.round(100*unlocked/total):0)+"%";
   const summary=document.querySelector("#secretCollection");
-  const discovered=fullTestMode?9:[1,2,3].reduce((n,stage)=>n+progress.secrets["stage"+stage].length,0);
-  const available=[1,2,3].reduce((n,stage)=>n+SECRET_DEFS[stage].length,0);
+  const discovered=fullTestMode?12:[1,2,3,4].reduce((n,stage)=>n+progress.secrets["stage"+stage].length,0);
+  const available=[1,2,3,4].reduce((n,stage)=>n+SECRET_DEFS[stage].length,0);
   if(summary)summary.textContent=discovered+" de "+available+" descobertas";
   const list=document.querySelector("#achievementList");
   const routes=document.querySelector("#secretRouteList");
-  if(routes)routes.innerHTML=[1,2,3].flatMap(stage=>
+  if(routes)routes.innerHTML=[1,2,3,4].flatMap(stage=>
     SECRET_DEFS[stage].map(def=>{
       const earned=fullTestMode||progress.secrets["stage"+stage].includes(def.id);
       const time=progress.secretTimes["stage"+stage][def.id];
@@ -4781,24 +4829,13 @@ function scheduleCityBossTheme(at,step){
     synthMusic(465+beat*27,at,.1,.029,"sawtooth");
 }
 
-// Original Rift: a distinct 151 BPM motif with a darker echo and Soberano swell.
-const RIFT_MOTIF=[0,null,7,10,12,null,10,7,3,null,5,7,1,null,0,null,
-  0,3,7,12,null,15,12,10,7,null,3,1,0,null,-2,null];
-function scheduleRiftTheme(at,step){
-  const beat=step%16,section=riftPreview.musicSection;
-  const root=[37,39,34,42][Math.floor(step/16)%4];
-  if([0,3,6,8,11,14].includes(beat))
-    synthMusic(section===4?48:section===3?62:56,at,.10,section===4?.18:.12,"sine");
-  if(beat===4||beat===12)synthMusic(178,at,.09,.06,"square");
-  if(beat%2||section===3||section===4)synthMusic(1900,at,.035,.016,"triangle");
-  prismVoice(midiToHz(root+[0,0,7,3][beat%4]),at,RIFT_STEP_SECONDS*1.9,.07,"bass");
-  const note=RIFT_MOTIF[step%RIFT_MOTIF.length];
-  if(note!==null)prismVoice(midiToHz(root+28+note+(section===4?12:section===2?7:0)),
-    at,RIFT_STEP_SECONDS*(section===5?3.5:section===4?2.1:1.4),section===4?.13:.09,"glass");
-  if(section===1&&beat%4===2)prismVoice(midiToHz(root+43),at,RIFT_STEP_SECONDS*2,.045,"glass");
-  if(section===3&&beat%2===0)synthMusic(2300,at,.025,.024,"triangle");
-  if(beat===0)for(const n of [0,3,7,10])
-    prismVoice(midiToHz(root+24+n),at,RIFT_STEP_SECONDS*11,.022,"pad");
+let lastFinalScoreSection=-1;
+function scheduleRiftTheme(at,step,section=riftPreview.musicSection){
+ const phrase=finalScoreStep(section,step);
+ for(const n of phrase.notes)prismVoice(midiToHz(n.midi),at,n.duration,n.gain,n.voice);
+ if(phrase.kick)synthMusic(46,at,.13,.12,"sine");
+ if(phrase.snare)synthMusic(174,at,.085,.045,"triangle");
+ if(phrase.hat)synthMusic(2100,at,.028,.012,"triangle");
 }
 function scheduleMusic(){
   if((!gameStarted&&!cinematic.active)||paused||
@@ -4807,8 +4844,9 @@ function scheduleMusic(){
   const now=audioContext.currentTime;
   const bossTheme=activeStage===2&&guardian.active&&!guardian.defeated;
   const cityBossTheme=activeStage===3&&cityBoss.active&&!cityBoss.defeated;
-  const stepDuration=cinematic.active?CINEMA_STEP_SECONDS:
-    riftPreview.active?RIFT_STEP_SECONDS:
+  const finaleSection=cinematic.key==="ending"?8:cinematic.key==="awakening"?7:cinematic.key==="sovereignChase"?4:cinematic.key==="arenaIntro"?6:cinematic.key==="intro4"?0:null;
+  const stepDuration=cinematic.active?(finaleSection!==null?60/FINAL_SCORE[finaleSection].bpm/4:CINEMA_STEP_SECONDS):
+    riftPreview.active?60/FINAL_SCORE[riftPreview.musicSection].bpm/4:
     cityBossTheme?CITY_BOSS_STEP_SECONDS:
     activeStage===3?CITY_STEP_SECONDS:
     bossTheme?GUARDIAN_STEP_SECONDS/guardianPhase(guardian.hp).tempo:
@@ -4818,6 +4856,7 @@ function scheduleMusic(){
   let scheduled=0;
   while(nextMusicNote<now+.18&&scheduled++<3){
     if(cinematic.active){
+      if(finaleSection!==null){scheduleRiftTheme(nextMusicNote,cinematicMusicStep++,finaleSection);nextMusicNote+=stepDuration;continue;}
       const mood=cinematicMood();
       if(mood!==cinematicMusicMood){
         cinematicMusicMood=mood;
@@ -4828,8 +4867,10 @@ function scheduleMusic(){
       continue;
     }
     if(riftPreview.active){
+      const section=riftPreview.musicSection;
+      if(lastFinalScoreSection!==section){lastFinalScoreSection=section;musicStep=0;syncTrackLabel();}
       scheduleRiftTheme(nextMusicNote,musicStep);
-      musicStep=(musicStep+1)%128;
+      musicStep=(musicStep+1)%512;
       nextMusicNote+=stepDuration;continue;
     }
     const chapter=Math.max(0,chapters.findLastIndex(ch=>player.x>=ch.x));
@@ -4845,7 +4886,7 @@ function scheduleMusic(){
 
 function syncTrackLabel(){
   if(!trackNowPlaying)return;
-  trackNowPlaying.textContent=riftPreview.active?"♫ A Origem do Vazio · 151 BPM":activeStage===3
+  trackNowPlaying.textContent=riftPreview.active?"♫ "+FINAL_SCORE[riftPreview.musicSection].name+" · "+FINAL_SCORE[riftPreview.musicSection].bpm+" BPM":activeStage===3
     ?cityBoss.active&&!cityBoss.defeated
       ?"♫ CHEFE: Coroa do Vazio · 158 BPM"
       :"♫ Cidade Entre Estrelas · 136 BPM"
@@ -5008,6 +5049,7 @@ document.querySelector("#galleryOpening").addEventListener("click",()=>replayCin
 document.querySelector("#galleryStageOne").addEventListener("click",()=>replayCinematic("intro1"));
 document.querySelector("#galleryStageTwo").addEventListener("click",()=>replayCinematic("intro2"));
 document.querySelector("#galleryStageThree").addEventListener("click",()=>replayCinematic("intro3"));
+for(const [id,key] of [["StageFour","intro4"],["Awakening","awakening"],["Ending","ending"]])document.querySelector("#gallery"+id).addEventListener("click",()=>replayCinematic(key));
 document.querySelector("#cinematicNextButton").addEventListener("click",nextCinematicFrame);
 document.querySelector("#cinematicExitButton").addEventListener("click",()=>cancelCinematic(true));
 for(const [index,name] of ["One","Two","Three","Four"].entries()){
@@ -5028,8 +5070,6 @@ document.querySelector("#stageOneButton").addEventListener("click", ()=>startGam
  document.querySelector("#stageTwoButton").addEventListener("click",()=>{if(campaign.stage1Completed||testUnlocked())startGame(2)});
 document.querySelector("#stageThreeButton").addEventListener("click",()=>{if(campaign.stage2Completed||testUnlocked())startGame(3)});
 document.querySelector("#stageFourButton").addEventListener("click",startRiftPreview);
-document.querySelector("#riftTraversalRestart").addEventListener("click",startRiftPreview);
-document.querySelector("#riftTraversalMap").addEventListener("click",showStageMenu);
 document.querySelector("#backToMainButton").addEventListener("click", showMainMenu);
 document.querySelector("#achievementsButton").addEventListener("click",showAchievementsMenu);
 document.querySelector("#resultsAchievementsButton").addEventListener("click",showAchievementsMenu);
@@ -5037,6 +5077,7 @@ document.querySelector("#achievementsBackButton").addEventListener("click",showM
 document.querySelector("#nextStageButton").addEventListener("click",()=>{
   if(gameCleared&&activeStage===1&&(campaign.stage1Completed||testUnlocked()))startGame(2);
   else if(gameCleared&&activeStage===2&&(campaign.stage2Completed||testUnlocked()))startGame(3);
+  else if(gameCleared&&activeStage===3&&(campaign.stage3Completed||testUnlocked()))startGame(4);
 });
 document.querySelector("#retryButton").addEventListener("click", ()=>startGame(activeStage));
 document.querySelector("#resultsStagesButton").addEventListener("click", showStageMenu);
@@ -5087,6 +5128,6 @@ draw();
 
 if(import.meta.env.DEV&&new URLSearchParams(location.search).has("rift-qa")){
   window.__riftQA={freeze(){riftQAFrozen=true;},info:()=>riftPreview.info(),
-    step(inputs){riftPreview.update(1/120,new Set(inputs));draw();},
+    step(inputs,render=true){riftPreview.update(1/120,new Set(inputs));if(render){if(cinematic.active)drawCinematic();else draw();}},
     release(){riftQAFrozen=false;}};
 }
