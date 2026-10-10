@@ -2,6 +2,8 @@ import {SECRET_DEFS} from "./data/secretRoutes.js";
 import {secretUpgradeStats,secretUpgradeReward} from "./game/secretUpgrades.js";
 import {mobileTutorialSign} from "./game/mobileTutorial.js";
 import {speedometer} from "./game/speedometer.js";
+import {sanitizeGhost,ghostFrameAt,recordGhostFrame,makeGhost} from "./game/ghostReplay.js";
+import {guardianPhase} from "./bosses/guardianPhases.js";
 import {ACHIEVEMENTS} from "./data/achievements.js";
 import {createStageOneWorld} from "./levels/forest.js";
 import {createStageTwoWorld} from "./levels/canyon.js";
@@ -60,6 +62,7 @@ const musicToggle = document.querySelector("#musicToggle");
 const trackNowPlaying = document.querySelector("#trackNowPlaying");
 const debugToggle = document.querySelector("#debugToggle");
 const fullTestToggle=document.querySelector("#fullTestToggle");
+const ghostToggle=document.querySelector("#ghostToggle");
 
 
 function syncMobilePresentation(){
@@ -136,6 +139,8 @@ let gameTime = 0;
 // Four-second automatic boost across an illustrated extension of the road.
 // Pickups, physics, checkpoints and race timer start only AFTER Flux reaches
 // the ORIGINAL spawn: no free progress or stored boost is granted.
+const stageExit={active:false,elapsed:0,duration:1.6,
+ startX:0,startY:0,targetX:0,targetY:0,time:0,crystals:0,cores:0};
 const stageArrival={active:false,elapsed:0,duration:STAGE_ARRIVAL_SECONDS,
   startX:-270,finishX:90,startingCameraX:-430};
 let cameraX = 0;
@@ -188,6 +193,7 @@ const audioLevels=loadAudioLevels();
 const airDash={active:false,available:true,time:0,dx:1,dy:0,trail:0};
 const DASH_SECONDS=.255,DASH_SPEED=1140;
 const cityDashCore={x:3730,y:396};
+const dashAltar={active:false,elapsed:0,duration:2.6};
 let dashUnlockFlash=0;
 function dashUnlocked(){
   return campaign.aerialDash||fullTestMode||((debugMode||debugUsedThisRun)&&activeStage===3);
@@ -226,24 +232,64 @@ function updateAirDash(dt){
   dashUnlockFlash=Math.max(0,dashUnlockFlash-dt);
 }
 function collectCityDashCore(){
-  if(activeStage!==3||campaign.aerialDash||fullTestMode||player.x<cityDashCore.x-32||
-    player.x>cityDashCore.x+32||Math.abs(player.y-cityDashCore.y)>60)return;
+  if(activeStage!==3||campaign.aerialDash||fullTestMode||dashAltar.active||
+     player.x<cityDashCore.x-32||player.x>cityDashCore.x+32||
+     Math.abs(player.y-cityDashCore.y)>60)return;
+  // Pause gameplay on the shrine, rather than unlocking on a casual pickup.
+  dashAltar.active=true;dashAltar.elapsed=0;
+  player.vx=0;player.vy=0;player.boosting=false;
+  airDash.available=false;
+  playSfx("boss-enter");
+  emitParticles(cityDashCore.x,cityDashCore.y-35,"#b6ffef",32,150);
+}
+function updateDashAltar(dt){
+  if(!dashAltar.active)return;
+  dashAltar.elapsed=Math.min(dashAltar.duration,dashAltar.elapsed+dt);
+  dashUnlockFlash=Math.max(dashUnlockFlash,.65);
+  if(dashAltar.elapsed<dashAltar.duration)return;
+  dashAltar.active=false;airDash.available=true;
   if(!debugUsedThisRun){campaign.aerialDash=true;saveCampaign();grantAchievement("dash");}
-  airDash.available=true;dashUnlockFlash=2;
-  notification.title="NÚCLEO DE ÍMPETO RECUPERADO";
-  notification.subtitle="PULE E APERTE PULO NOVAMENTE · DASH NA DIREÇÃO DO FLUX";
-  notification.timer=3.4;
-  emitParticles(cityDashCore.x,cityDashCore.y,"#ffe89c",42,250);
+  notification.title="DASH AÉREO DESBLOQUEADO";
+  notification.subtitle="TOQUE PULAR DUAS VEZES NO AR";
+  notification.timer=3.8;dashUnlockFlash=2;
+  emitParticles(cityDashCore.x,cityDashCore.y-35,"#ffe89c",45,210);
   playSfx("dash-unlock");
 }
 function drawCityDashCore(){
-  if(activeStage!==3||campaign.aerialDash||fullTestMode)return;
+  if(activeStage!==3)return;
+  const collected=campaign.aerialDash||fullTestMode;
   const t=visualTime;
   ctx.save();ctx.translate(cityDashCore.x,cityDashCore.y);
-  ctx.shadowColor="#ffe09c";ctx.shadowBlur=25;
-  ctx.rotate(t*.8);ctx.fillStyle="#fff2b5";ctx.strokeStyle="#8ffff3";
-  ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(0,-24);ctx.lineTo(21,0);
-  ctx.lineTo(0,24);ctx.lineTo(-21,0);ctx.closePath();ctx.fill();ctx.stroke();
+  // Shrine pedestal and a vaulted energy altar replace the free-floating core.
+  ctx.fillStyle="#182b48";roundRect(-57,7,114,20,8);ctx.fill();
+  ctx.fillStyle="#34526a";roundRect(-43,-4,86,18,6);ctx.fill();
+  ctx.fillStyle="#8fffe1";ctx.fillRect(-35,-1,70,3);
+  ctx.strokeStyle="#76d5ef";ctx.lineWidth=4;
+  ctx.beginPath();ctx.moveTo(-44,7);ctx.lineTo(-44,-48);
+  ctx.quadraticCurveTo(0,-89,44,-48);ctx.lineTo(44,7);ctx.stroke();
+  ctx.strokeStyle="#c79dff";ctx.lineWidth=2;ctx.globalAlpha=.38;
+  ctx.beginPath();ctx.arc(0,-47,33,Math.PI,0);ctx.stroke();
+  if(!collected){
+    const rise=dashAltar.active?Math.sin(Math.min(1,dashAltar.elapsed/dashAltar.duration)*Math.PI)*42:0;
+    ctx.globalAlpha=1;ctx.translate(0,-48-rise);
+    ctx.shadowColor="#ffe09c";ctx.shadowBlur=25+rise*.48;
+    ctx.rotate(t*.8);ctx.fillStyle="#fff2b5";ctx.strokeStyle="#8ffff3";
+    ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(0,-23);ctx.lineTo(20,0);
+    ctx.lineTo(0,23);ctx.lineTo(-20,0);ctx.closePath();ctx.fill();ctx.stroke();
+  }else{
+    ctx.globalAlpha=.6;ctx.fillStyle="#a8ffe9";
+    ctx.beginPath();ctx.arc(0,-48,8+Math.sin(t*2)*2,0,Math.PI*2);ctx.fill();
+  }
+  ctx.restore();
+}
+function drawDashAltarOverlay(){
+  if(!dashAltar.active)return;
+  const p=dashAltar.elapsed/dashAltar.duration;
+  ctx.save();ctx.translate(cityDashCore.x,cityDashCore.y-48);
+  ctx.strokeStyle="#a9fff0";ctx.globalAlpha=(1-p)*.75;ctx.lineWidth=5;
+  for(let i=0;i<3;i++){
+    ctx.beginPath();ctx.arc(0,0,26+(p+i*.19)*145,0,Math.PI*2);ctx.stroke();
+  }
   ctx.restore();
 }
 function drawAirDashFX(){
@@ -252,6 +298,57 @@ function drawAirDashFX(){
   ctx.strokeStyle="#b5fff0";ctx.lineWidth=16;
   ctx.beginPath();ctx.moveTo(player.x-airDash.dx*80,player.y-airDash.dy*80);
   ctx.lineTo(player.x,player.y);ctx.stroke();ctx.restore();
+}
+
+// World-space replay of the best eligible completed run per stage.
+const GHOST_ARCHIVE_KEY="velocity-rift-ghost-records-v1";
+const GHOST_VISIBLE_KEY="velocity-rift-ghost-enabled-v1";
+const ghostArchive={stage1:null,stage2:null,stage3:null};
+try{
+ const history=JSON.parse(localStorage.getItem(GHOST_ARCHIVE_KEY)||"{}");
+ for(const stage of [1,2,3])ghostArchive["stage"+stage]=
+   sanitizeGhost(history["stage"+stage]);
+}catch(_){}
+let ghostVisible=true;
+try{ghostVisible=localStorage.getItem(GHOST_VISIBLE_KEY)!=="off"}catch(_){}
+let ghostRun=[];
+function saveBestGhost(time,improved){
+ if(debugUsedThisRun)return;
+ const key="stage"+activeStage;
+ if(!improved&&ghostArchive[key])return;
+ const candidate=makeGhost(ghostRun,time);
+ if(!candidate)return;
+ if(ghostArchive[key]&&time>=ghostArchive[key].duration)return;
+ ghostArchive[key]=candidate;
+ try{localStorage.setItem(GHOST_ARCHIVE_KEY,JSON.stringify(ghostArchive));}catch(_){}
+}
+function drawRecordGhost(){
+ if(!ghostVisible||!gameStarted||stageArrival.active)return;
+ const ghost=ghostArchive["stage"+activeStage];
+ if(!ghost)return;
+ const point=ghostFrameAt(ghost,gameTime);
+ if(!point)return;
+ ctx.save();
+ ctx.globalAlpha=.35;
+ ctx.filter="hue-rotate(110deg) saturate(1.3)";
+ ctx.shadowColor="#67cafa";ctx.shadowBlur=18;
+ const ghostActor={...player,...point,vx:420,vy:0,onGround:true,
+   boosting:true,invulnerable:0,sliding:false,animationPhase:visualTime*14};
+ drawFluxBody(ghostActor,fluxFx,visualTime);
+ ctx.restore();
+}
+function toggleGhostVisible(){
+ ghostVisible=!ghostVisible;
+ if(ghostToggle){
+   ghostToggle.textContent="FANTASMA: "+(ghostVisible?"ON":"OFF");
+   ghostToggle.setAttribute("aria-pressed",String(ghostVisible));
+ }
+ try{localStorage.setItem(GHOST_VISIBLE_KEY,ghostVisible?"on":"off")}catch(_){}
+}
+if(ghostToggle){
+ ghostToggle.textContent="FANTASMA: "+(ghostVisible?"ON":"OFF");
+ ghostToggle.setAttribute("aria-pressed",String(ghostVisible));
+ ghostToggle.addEventListener("click",toggleGhostVisible);
 }
 
 const player = {
@@ -892,6 +989,30 @@ function drawCinematic(){
       cinemaFlux(270,409,.85,t);break;
     case "forestRun":
       cinemaForest(t,true);cinemaFlux(370+Math.sin(t*2)*8,411,1.3,t,true);break;
+    case "forestSighting":
+      cinemaForest(t);cinemaPortal(795,276,t,.62);
+      cinemaSovereign(770,405,t,.48);
+      cinemaAlicia(660,402,.84,t);
+      cinemaFlux(170,412,.92,t);break;
+    case "forestChase":
+      cinemaForest(t,true);cinemaPortal(825,277,t,.67);
+      cinemaSovereign(690+ratio*115,407,t,.5);
+      cinemaAlicia(565+ratio*210,403,.88,t,20*ratio);
+      cinemaFlux(210+ratio*400,409,1.08,t,true);break;
+    case "forestEscape":
+      cinemaForest(t,true);cinemaPortal(775,266,t,.7+ratio*.6);
+      cinemaSovereign(755,406,t,.5);
+      cinemaAlicia(625+ratio*128,402,1-ratio*.55,t);
+      cinemaFlux(240+ratio*340,409,1.03,t,true);break;
+    case "forestDive":
+      cinemaForest(t,true);cinemaPortal(710,258,t,1.15);
+      cinemaFlux(310+ratio*385,414-ratio*145,1.12-ratio*.52,t,true);break;
+    case "canyonClue":
+      cinemaCanyon(t);cinemaPortal(685,280,t,.48);
+      cinemaAlicia(680,400,.90,t);cinemaFlux(230,415,1.06,t);break;
+    case "canyonDive":
+      cinemaCanyon(t);cinemaPortal(740,280,t,.85+ratio*.33);
+      cinemaFlux(260+ratio*460,412-ratio*95,1.1-ratio*.45,t,true);break;
     case "canyon":
       cinemaCanyon(t);cinemaFlux(250,409,1.06,t);break;
     case "canyonBoss":
@@ -929,17 +1050,19 @@ const CINEMATICS={
     {speaker:"PRIMEIRO IMPULSO",title:"Atravessar o impossível",text:"O portal lança Flux no coração de uma floresta desconhecida, iluminada por energia viva.",duration:3.8,art:"forest"},
     {speaker:"O CAMINHO COMEÇA",title:"A velocidade é a resposta",text:"Flux dispara entre copas luminosas. Cada salto o aproxima de Alicia.",duration:3.6,art:"forestRun",sound:"cin-chase"}
   ]},
-  intro2:{chapter:"CAPÍTULO 02 · CÂNION PRISMA",frames:[
-    {speaker:"ECOS DO PRISMA",title:"O cânion desperta",text:"Cristais gigantes erguem-se sobre abismos sem fim. Algo está guardando o próximo portal.",duration:3.9,art:"canyon"},
-    {speaker:"UMA NOVA AMEAÇA",title:"O Guardião observa",text:"Entre raios violeta, o Guardião do Prisma desperta. A jornada precisa continuar.",duration:4,art:"canyonBoss",sound:"cin-ominous"}
+  intro2:{chapter:"CAPÍTULO 02 · A PERSEGUIÇÃO",frames:[
+    {speaker:"NO FINAL DA FLORESTA",title:"Um sinal de Alicia",text:"Entre as árvores luminosas, Flux reconhece a silhueta de Alicia ao lado do Soberano.",duration:4.2,art:"forestSighting",sound:"cin-ominous"},
+    {speaker:"A PERSEGUIÇÃO",title:"Não pode escapar",text:"O Soberano percebe Flux e foge levando Alicia. Flux dispara pela Floresta Neon.",duration:4.0,art:"forestChase",sound:"cin-chase"},
+    {speaker:"A FENDA SE ABRE",title:"Além da floresta",text:"O Soberano abre uma fenda violeta. Os dois desaparecem na luz, mas Flux não desiste.",duration:4.1,art:"forestEscape",sound:"cin-rupture"},
+    {speaker:"UM SALTO ENTRE MUNDOS",title:"Flux atravessa",text:"Flux salta pela abertura um instante antes de ela se fechar. O chão desaparece sob seus pés.",duration:3.6,art:"forestDive",sound:"cin-chase"},
+    {speaker:"CÂNION PRISMA",title:"Um novo horizonte",text:"Do outro lado, o Cânion Prisma surge diante de Flux. Alicia está além das fendas.",duration:4.1,art:"canyon",sound:"cin-flower"},
+    {speaker:"ALGO DESPERTA",title:"O Guardião observa",text:"Os cristais vibram. Um guardião antigo protege a passagem que conduz à próxima região.",duration:3.9,art:"canyonBoss",sound:"cin-ominous"}
   ]},
-  intro3:{chapter:"CAPÍTULO 03 · CIDADE DAS FENDAS",frames:[
-    {speaker:"DO OUTRO LADO DO CÂNION",title:"Uma cidade entre dimensões",
-      text:"Flux observa torres suspensas e ruas tomadas por patrulhas. Além da metrópole, uma fenda ainda maior espera por ele.",
-      duration:4.5,art:"city",sound:"cin-flower"},
-    {speaker:"SINAIS DO ÚLTIMO PORTAL",title:"Corra pelos telhados",
-      text:"Flux atravessa os primeiros prédios em alta velocidade. A cidade é o caminho para a dimensão onde Alicia está.",
-      duration:4,art:"cityRun",sound:"cin-chase"}
+  intro3:{chapter:"CAPÍTULO 03 · RASTROS DE ALICIA",frames:[
+    {speaker:"DEPOIS DO GUARDIÃO",title:"Uma pista no prisma",text:"A derrota do Guardião revela um eco de Alicia refletido entre os cristais.",duration:3.9,art:"canyonClue",sound:"cin-flower"},
+    {speaker:"UMA NOVA FENDA",title:"Pelo portal",text:"Uma passagem se abre entre as montanhas. Flux corre na direção da voz que reconhece.",duration:3.7,art:"canyonDive",sound:"cin-chase"},
+    {speaker:"CIDADE DAS FENDAS",title:"Um mundo suspenso",text:"Flux surge entre torres iluminadas e ruas patrulhadas. O rastro de Alicia continua.",duration:4.4,art:"city",sound:"cin-rupture"},
+    {speaker:"NA DIREÇÃO DO SOBERANO",title:"Entre arranha-céus",text:"A cidade leva à última grande fenda. Flux precisa dominar um novo poder para atravessá-la.",duration:3.9,art:"cityRun",sound:"cin-chase"}
   ]}
 };
 const cinematic={active:false,key:null,frameIndex:0,elapsed:0,
@@ -1278,15 +1401,15 @@ function refreshMapView(){
     document.querySelector("#mapStage"+suffix+"Best").textContent=
       formatTime(record.bestTime);
     document.querySelector("#mapStage"+suffix+"Cores").textContent=
-      campaign.extras.cores["stage"+stage].length+"/3";
+      (fullTestMode?3:campaign.extras.cores["stage"+stage].length)+"/3";
     document.querySelector("#mapStage"+suffix+"Secrets").textContent=
-      campaign.extras.secrets["stage"+stage].length+"/3";
+      (fullTestMode?3:campaign.extras.secrets["stage"+stage].length)+"/3";
   }
-  const forestStatus=campaign.stage1Completed?"CONCLUÍDA":
+  const forestStatus=fullTestMode?"TESTE 100%":campaign.stage1Completed?"CONCLUÍDA":
     campaign.started&&campaign.lastStage===1?"EM ANDAMENTO":"DISPONÍVEL";
-  const canyonStatus=campaign.stage2Completed?"CONCLUÍDA":
+  const canyonStatus=fullTestMode?"TESTE 100%":campaign.stage2Completed?"CONCLUÍDA":
     unlocked?"DISPONÍVEL":"BLOQUEADA";
-  const cityStatus=campaign.stage3Completed?"CONCLUÍDA":
+  const cityStatus=fullTestMode?"TESTE 100%":campaign.stage3Completed?"CONCLUÍDA":
     cityUnlocked?"DISPONÍVEL":"BLOQUEADA";
   for(const [suffix,status,completed,locked] of [
     ["One",forestStatus,campaign.stage1Completed,false],
@@ -1443,6 +1566,7 @@ function showResults(time, crystals, cores = 0) {
   const result = debugUsedThisRun
     ? {grade:gradeForTime(time,activeStage),improvedTime:false}
     : recordStageClear(time,crystals,cores);
+  if(!debugUsedThisRun)saveBestGhost(time,result.archiveRecord);
   document.querySelector("#resultGrade").textContent = result.grade;
   document.querySelector("#resultHeading").textContent = ["","Primeiro Impulso","Cânion Prisma","Cidade das Fendas"][activeStage];
   document.querySelector("#resultTime").textContent = formatTime(time);
@@ -1496,9 +1620,9 @@ function showPauseMenu(){
     ["","Primeiro Impulso","Cânion Prisma","Cidade das Fendas"][activeStage];
   document.querySelector("#pauseStatTime").textContent=formatTime(gameTime);
   document.querySelector("#pauseStatCrystals").textContent=String(player.rings);
-  document.querySelector("#pauseStatCores").textContent=player.cores+"/3";
+  document.querySelector("#pauseStatCores").textContent=(fullTestMode?3:player.cores)+"/3";
   document.querySelector("#pauseStatSecrets").textContent=
-    secretTrials.filter(trial=>trial.completed).length+"/3";
+    (fullTestMode?3:secretTrials.filter(trial=>trial.completed).length)+"/3";
   document.querySelector("#pauseStatProgress").textContent=
     Math.round(100*clamp(player.x/goal.x,0,1))+"%";
   document.querySelector("#pauseBoostUpgrades").textContent=
@@ -1686,6 +1810,9 @@ function drawStageArrivalOverlay(){
   ctx.restore();
 }
 function resetGame() {
+  ghostRun=[];
+  dashAltar.active=false;dashAltar.elapsed=0;
+  stageExit.active=false;stageExit.elapsed=0;
   stageArrival.active=false;stageArrival.elapsed=0;
   resetAirDash();
   player.x = spawn.x;
@@ -1802,10 +1929,52 @@ function ensureLoop() {
   requestAnimationFrame(loop);
 }
 
+function beginStageExit(){
+  if(stageExit.active)return;
+  gameCleared=true;
+  const targetX=activeStage===2?player.x+32:goal.x+goal.w*.5;
+  const targetY=activeStage===2?player.y:goal.y+goal.h*.48;
+  Object.assign(stageExit,{active:true,elapsed:0,startX:player.x,startY:player.y,
+    targetX,targetY,time:gameTime,crystals:player.rings,cores:player.cores});
+  player.vx=0;player.vy=0;player.boosting=false;
+  playSfx("portal-enter");
+  emitParticles(targetX,targetY,"#a6ffeb",35,190);
+}
+function updateStageExit(dt){
+  if(!stageExit.active)return;
+  stageExit.elapsed=Math.min(stageExit.duration,stageExit.elapsed+dt);
+  const p=stageExit.elapsed/stageExit.duration;
+  const eased=1-Math.pow(1-p,2.2);
+  player.x=lerp(stageExit.startX,stageExit.targetX,eased);
+  player.y=lerp(stageExit.startY,stageExit.targetY,eased);
+  player.animationPhase+=dt*13;
+  visualTime+=dt;
+  if(stageExit.elapsed>=stageExit.duration){
+    stageExit.active=false;
+    showResults(stageExit.time,stageExit.crystals,stageExit.cores);
+  }
+}
+function drawStageExitFX(){
+  if(!stageExit.active)return;
+  const p=stageExit.elapsed/stageExit.duration;
+  ctx.save();
+  ctx.translate(stageExit.targetX,stageExit.targetY);
+  ctx.globalAlpha=.25+.54*Math.sin(Math.PI*p);
+  ctx.strokeStyle=activeStage===2?"#c9a8ff":"#89ffee";
+  ctx.lineWidth=6;
+  for(let i=0;i<3;i++){
+    ctx.beginPath();ctx.ellipse(0,0,19+i*13+Math.sin(visualTime*4+i)*4,
+      37+i*11,visualTime*.12,0,Math.PI*2);ctx.stroke();
+  }
+  ctx.fillStyle="#a6ffee";ctx.globalAlpha=p*.52;
+  ctx.beginPath();ctx.arc(0,0,9+37*p,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+}
 function loop(now) {
   const dt = Math.min(0.05, Math.max(0, (now - lastTime) / 1000));
   lastTime = now;
   if(cinematic.active)updateCinematic(dt);
+  if(stageExit.active)updateStageExit(dt);
 
   if (gameStarted && !gameCleared && !paused) {
     accumulator += dt;
@@ -2111,7 +2280,10 @@ function guardianCorePosition(){
 function guardianHint(){
   if(guardian.state==="intro")return "ATIVAÇÃO DO GUARDIÃO · PREPARE-SE!";
   if(guardian.state==="collapse")return "NÚCLEO DESTRUÍDO · PORTAL REATIVANDO";
-  if(guardian.state==="telegraph")return guardian.lockAim?"MIRA TRAVADA! SAIA DA LINHA":"LASER MIRANDO O FLUX";
+  if(guardian.state==="telegraph")return guardian.lockAim?
+    "MIRA TRAVADA! SAIA DA LINHA":
+    guardian.hp===1?"RUPTURA · LASER MAIS RÁPIDO":
+    guardian.hp===2?"FRATURA · GUARDA REFORÇADA":"LASER MIRANDO O FLUX";
   if(guardian.state==="attack")return "LASER! DESVIE DA LINHA DE DISPARO";
   if(guardian.state==="exposed")
     return "NÚCLEO "+guardianCorePosition().name+" · BOOST OU GOLPE DESCENDENTE";
@@ -2225,6 +2397,7 @@ function updateGuardian(dt){
     }
   }
   guardian.timer+=dt;
+  const phase=guardianPhase(guardian.hp);
   if(guardian.state==="intro"){
     // Cinematic introduction, with clear view and no damaging beams.
     if(guardian.timer>=guardian.introDuration){
@@ -2250,16 +2423,16 @@ function updateGuardian(dt){
     if(!guardian.lockAim){
       guardian.aimX=clamp(player.x,guardian.arenaLeft+30,guardian.arenaRight-30);
       guardian.aimY=clamp(player.y,75,470);
-      if(guardian.timer>=.80)guardian.lockAim=true;
+      if(guardian.timer>=phase.lock)guardian.lockAim=true;
     }
-    if(guardian.timer>=1.32){
+    if(guardian.timer>=phase.telegraph){
       guardian.state="attack";guardian.timer=0;
       playSfx("boss-alert");
     }
   }else if(guardian.state==="attack"){
     const line=guardianLaserLine();
     if(distanceToLaser(player.x,player.y,line)<PLAYER_RADIUS+8)damagePlayer(false);
-    if(guardian.timer>=.66){guardian.state="exposed";guardian.timer=0;}
+    if(guardian.timer>=phase.laser){guardian.state="exposed";guardian.timer=0;}
   }else if(guardian.state==="exposed"){
     const core=guardianCorePosition();
     const close=distance(player.x,player.y,core.x,core.y)<PLAYER_RADIUS+27;
@@ -2268,8 +2441,8 @@ function updateGuardian(dt){
       const stomp=player.vy>110&&player.prevY+PLAYER_RADIUS<=core.y-10;
       if(dash||stomp){hurtGuardian();return;}
     }
-    if(guardian.timer>=3.9){guardian.state="telegraph";guardian.timer=0;guardian.lockAim=false;}
-  }else if(guardian.state==="recovery"&&guardian.timer>=1.12){
+    if(guardian.timer>=phase.exposed){guardian.state="telegraph";guardian.timer=0;guardian.lockAim=false;}
+  }else if(guardian.state==="recovery"&&guardian.timer>=phase.recovery){
     guardian.state="telegraph";guardian.timer=0;guardian.lockAim=false;
   }
   // Armoured body is dangerous outside the vulnerability/recovery windows.
@@ -2522,7 +2695,7 @@ function drawGuardian(){
   if(guardian.active&&!guardian.defeated&&["telegraph","attack"].includes(guardian.state)){
     const laser=guardianLaserLine(),firing=guardian.state==="attack";
     ctx.strokeStyle=firing?"rgba(255,66,148,.9)":guardian.lockAim?"rgba(255,200,105,.7)":"rgba(255,210,118,.3)";
-    ctx.lineWidth=firing?13:guardian.lockAim?4:2;
+    ctx.lineWidth=firing?guardianPhase(guardian.hp).width:guardian.lockAim?4:2;
     ctx.beginPath();ctx.moveTo(laser.x1,laser.y1);ctx.lineTo(laser.x2,laser.y2);ctx.stroke();
     if(!firing){
       ctx.fillStyle="#ffe5b4";ctx.font="bold 12px system-ui";
@@ -2595,11 +2768,13 @@ function drawGuardian(){
 
 function update(dt) {
   if(stageArrival.active){updateStageArrival(dt);return;}
+  if(dashAltar.active){updateDashAltar(dt);return;}
   if(activeStage===3&&cityBoss.active&&cityBoss.state==="intro"){
     // Scene is visible in the world and cannot consume race time.
     updateCityBoss(dt);updateCityBossFX(dt);return;
   }
   gameTime += dt;
+  if(!debugUsedThisRun)recordGhostFrame(ghostRun,gameTime,player);
   visualTime += dt;
   sparkleCooldown = Math.max(0, sparkleCooldown - dt);
   pickupSoundCooldown = Math.max(0, pickupSoundCooldown - dt);
@@ -2781,10 +2956,7 @@ function update(dt) {
       cityBoss.defeated&&circleRect(player.x,player.y,PLAYER_RADIUS,goal):
       circleRect(player.x,player.y,PLAYER_RADIUS,goal);
   if(exitReached && !gameCleared){
-    gameCleared=true;
-    emitParticles(player.x,player.y,activeStage===2?"#a6ffeb":"#fbc66d",45,240);
-    if(activeStage===2)playSfx("portal-enter");
-    showResults(gameTime,player.rings,player.cores);
+    beginStageExit();
   }
 
   updateCamera(dt);
@@ -3428,6 +3600,10 @@ function updateCheckpoints() {
     if (index > checkpointIndex && checkpointReached(point,player)) {
       checkpointIndex = index;
       point.active = true;
+      if(point.boss){
+        announce("CHECKPOINT DO CHEFE","Se perder, você retorna antes da batalha.");
+        emitParticles(point.x,point.y-47,"#fff1a0",34,170);
+      }
       emitParticles(point.x, point.y - 45, "#75ffcc", 20, 130);
       playSfx("checkpoint");
     }
@@ -3484,6 +3660,7 @@ function draw() {
   drawSigns();
   drawObjects();
   drawCityDashCore();
+  drawDashAltarOverlay();
   drawSentryShots();
   drawCityBoss();
   drawArchitectGroundRifts();
@@ -3496,8 +3673,10 @@ function draw() {
   drawFluxWaves();
   drawParticles();
   drawFluxGhosts();
+  drawRecordGhost();
   drawAirDashFX();
   drawPlayer();
+  drawStageExitFX();
 
   ctx.restore();
   if(stageArrival.active)drawStageArrivalOverlay();
@@ -3851,7 +4030,17 @@ function drawObjects() {
   checkpoints.forEach((point, index) => {
     if (point.x < cameraX - 80 || point.x > cameraX + VIEW_W + 80) return;
     ctx.fillStyle = index <= checkpointIndex ? '#38dcd0' : '#f6ac43';
-    ctx.fillRect(point.x, point.y - 64, 5, 64);
+    ctx.fillRect(point.x, point.y - (point.boss?92:64), point.boss?7:5, point.boss?92:64);
+    if(point.boss){
+      ctx.save();
+      ctx.strokeStyle=index<=checkpointIndex?"#9fffe4":"#ffe5aa";
+      ctx.lineWidth=2.7;ctx.shadowColor="#9fffe4";ctx.shadowBlur=12;
+      ctx.beginPath();ctx.arc(point.x+8,point.y-104,14+
+        Math.sin(visualTime*3)*2,0,Math.PI*2);ctx.stroke();
+      ctx.fillStyle="#e4fff7";ctx.font="bold 10px system-ui";
+      ctx.fillText("CHECKPOINT",point.x-32,point.y-128);
+      ctx.restore();
+    }
     ctx.beginPath();
     ctx.moveTo(point.x + 5, point.y - 64);
     ctx.lineTo(point.x + 35, point.y - 52);
@@ -4180,7 +4369,7 @@ function drawFluxBody(actor,fx,clock){
     ctx.beginPath();
     ctx.ellipse(-2, 5 + bounce, 13, 14, -0.16, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = "#52ebe1";
+    ctx.fillStyle = actor===player&&(fullTestMode||boostUpgrades.collected>0)?"#aaffdf":"#52ebe1";
     ctx.beginPath();
     ctx.arc(3, 6 + bounce, 6, 0, Math.PI * 2);
     ctx.fill();
@@ -4203,7 +4392,7 @@ function drawFluxBody(actor,fx,clock){
     ctx.beginPath();
     ctx.ellipse(7, -6 + bounce, 10, 6, -0.12, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = "#73fff0";
+    ctx.fillStyle = actor===player&&dashUnlocked()?"#ffde95":"#73fff0";
     if(clock%4.8>4.67)ctx.fillRect(7,-8+bounce,7,1.5);
     else{ctx.beginPath();ctx.ellipse(9,-8+bounce,4,2,0,0,Math.PI*2);ctx.fill();}
     ctx.fillStyle = "#f0c06c";
@@ -4222,7 +4411,7 @@ function drawPlayer() {
   const fast = clamp(Math.abs(player.vx) / SLIDE_DOWNHILL_CAP, 0, 1);
   for (const dot of player.trail) {
     ctx.globalAlpha = clamp(dot.life / 0.24, 0, 0.65);
-    ctx.fillStyle = "#59f4e6";
+    ctx.fillStyle = boostCapacity()>100?"#a9ffcc":"#59f4e6";
     ctx.beginPath();
     ctx.arc(dot.x, dot.y, 16 * dot.life / 0.24, 0, Math.PI * 2);
     ctx.fill();
@@ -4291,6 +4480,15 @@ function drawMinimalHud(mobile){
   ctx.fillStyle="#f9ecdb";ctx.font="bold 20px system-ui";
   ctx.textAlign="right";
   ctx.fillText(gameTime.toFixed(1)+" s",VIEW_W-31,42);
+  const bestGhost=ghostVisible?ghostArchive["stage"+activeStage]:null;
+  if(bestGhost&&!stageArrival.active){
+    const phantom=ghostFrameAt(bestGhost,gameTime);
+    if(phantom){
+      ctx.font="bold 10px system-ui";
+      ctx.fillStyle=player.x>=phantom.x?"#8dffe0":"#ffd99a";
+      ctx.fillText(player.x>=phantom.x?"● À FRENTE":"● ATRÁS",VIEW_W-31,68);
+    }
+  }
   ctx.textAlign="left";
 
   // A thin boost gauge stays between the counters, without a bulky card.
@@ -4641,7 +4839,7 @@ function scheduleGuardianTheme(at,step){
   const root=[38,39,43,36][bar];
   const tense=guardian.hp<=2;
   const finalHit=guardian.hp===1;
-  const unit=GUARDIAN_STEP_SECONDS;
+  const unit=GUARDIAN_STEP_SECONDS/guardianPhase(guardian.hp).tempo;
   if([0,3,6,8,11,14].includes(beat)){
     synthMusic(59,at,.09,beat===0?.15:.11,"sine");
     if(finalHit)synthMusic(84,at,.055,.045,"triangle");
@@ -4688,8 +4886,8 @@ const CINEMA_HOPE_NOTES=[0,null,2,4,7,null,9,null, 12,null,9,7, 4,null,2,null,
 function cinematicMood(){
   if(!cinematic.active)return "warm";
   const art=CINEMATICS[cinematic.key].frames[cinematic.frameIndex].art;
-  if(["rift","sovereign","taken","canyonBoss"].includes(art))return "danger";
-  if(["pursuit","arrival","forestRun","canyon","city","cityRun"].includes(art))return "hope";
+  if(["rift","sovereign","taken","canyonBoss","forestSighting","forestEscape"].includes(art))return "danger";
+  if(["pursuit","arrival","forestRun","forestChase","forestDive","canyonClue","canyonDive","canyon","city","cityRun"].includes(art))return "hope";
   return "warm";
 }
 function scheduleCinematicMusic(at,step){
@@ -4788,7 +4986,7 @@ function scheduleMusic(){
   const stepDuration=cinematic.active?CINEMA_STEP_SECONDS:
     cityBossTheme?CITY_BOSS_STEP_SECONDS:
     activeStage===3?CITY_STEP_SECONDS:
-    bossTheme?GUARDIAN_STEP_SECONDS:
+    bossTheme?GUARDIAN_STEP_SECONDS/guardianPhase(guardian.hp).tempo:
     activeStage===2?PRISM_STEP_SECONDS:MUSIC_STEP_SECONDS;
   if(!Number.isFinite(now)||!Number.isFinite(nextMusicNote))return;
   if(nextMusicNote<now-.15||nextMusicNote>now+1)nextMusicNote=now+.05;

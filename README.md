@@ -1,4 +1,4 @@
-# Velocity Rift — Cidade das Fendas (versão 3.7.5 em teste)
+# Velocity Rift — Cidade das Fendas (versão 3.7.6 em teste)
 
 Um prototipo web 2D inspirado em jogos de plataforma de alta velocidade. Ele usa
 HTML, CSS e Canvas, sem assets oficiais. O Vite é uma dependência de desenvolvimento.
@@ -735,4 +735,21 @@ Esta versão contém **4 melhorias**:
 **Ainda pendentes:** transições cinematográficas, altar do dash, passagem por portais, escalonamento do Guardião, ecos de Alicia, apresentação dos chefes, checkpoints especiais, música dinâmica, aparência evolutiva, arquivo narrativo, desafios extras e fantasma de recorde. Não considerar a Etapa 4 concluída até implementar e validar os demais itens.
 
 **QA manual:** inspecionar ambas as telas minimalistas; testar TESTE 100% isolado com dano fatal e save intacto após reiniciar; comparar DEBUG e TESTE 100% simultâneos; inspecionar o velocímetro em todas as bandas incluindo impulso em descidas.
+
+
+## 3.7.6 — Etapa 4: narrativa, alta velocidade e chefes
+
+Segundo lote da [issue #7](https://github.com/jhonyoreis/velocity-rift/issues/7).
+
+- **#1 e #5:** introduções narrativas ampliadas para as fases 2 e 3, usando o cenário anterior e o Soberano levando Alicia até a fenda; a sequência mostra Flux perseguindo e atravessando o portal.
+- **#2:** NÚCLEO DE ÍMPETO agora aparece sobre um altar especial com arco energético, cristais e uma aquisição animada de 2,6 s, sem afetar o cronômetro durante a aquisição.
+- **#3:** Flux atravessa o portal/porta em uma breve animação ao finalizar as três fases, antes dos resultados; tempo e cristais são fotografados ao tocar a saída.
+- **#4:** Guardião do Prisma adota três padrões sucessivamente mais exigentes após cada acerto, com telegráficos mais rápidos, laser mais demorado e menor janela de vulnerabilidade.
+- **#7:** as apresentações/derrotas cinematográficas já existentes dos dois chefes continuam ativas, agora integradas às novas transições.
+- **#8:** os checkpoints antes dos chefes são identificados por sinais luminosos especiais; mantém-se o respawn por checkpoint.
+- **#9:** aceleração progressiva da trilha de combate do Guardião; música do Arquiteto já intensifica com a vida restante.
+- **#10:** núcleo do Flux muda de coloração com upgrades de boost e seu visor reflete o dash desbloqueado.
+- **#15:** fantasma do melhor tempo elegível por fase, com trajetória amostrada a cada 0,12 s, persistência separada e botão de exibir/ocultar no Pause. O fantasma é visual, não interage com física, inimigos ou itens; corridas com DEBUG/TESTE 100% não substituem a gravação.
+
+**Ainda pendentes para o próximo lote:** #6 ecos de Alicia, #11 arquivo narrativo, #12 desafios extras. A implementação de cada proposta permanece acompanhada pela issue #7 e exige avaliação manual no Android e PC.
 

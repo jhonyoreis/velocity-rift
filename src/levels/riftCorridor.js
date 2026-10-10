@@ -61,7 +61,7 @@ export function createRiftCorridor({track,PLAYER_RADIUS}){
     enemies:[],
     checkpoints:[
       {x:17770,y:422-PLAYER_RADIUS,active:false},
-      {x:21820,y:410-PLAYER_RADIUS,active:false}
+      {x:21820,y:410-PLAYER_RADIUS,active:false,boss:true}
     ],
     signs:[
       {x:17730,title:"CORREDOR DAS FENDAS",hint:"SEM INIMIGOS · DOMINE O DASH"},

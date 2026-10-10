@@ -2863,3 +2863,15 @@ html.mobile-game .game-panel .vr-confirm-minimal .vr-icon-action{
 }
 .game-panel .vr-pause-clean .vr-pause-debug .debug-toggle+ .debug-toggle{margin-left:8px;}
 @media (prefers-reduced-motion:reduce){.game-panel .vr-icon-action{transition:none;}}
+
+/* 3.7.6 replay preference: located beneath touch/keyboard instructions. */
+.game-panel .vr-pause-clean .vr-ghost-toggle{
+  display:inline-flex;justify-content:center;align-items:center;
+  margin:9px 0 0;padding:7px 13px;border-radius:8px;
+  border:1px solid rgba(102,223,219,.38);
+  background:rgba(20,64,77,.43);color:#d1fff3;
+  font-size:.78rem;font-weight:800;cursor:pointer;
+}
+.game-panel .vr-pause-clean .vr-ghost-toggle:focus-visible{
+  outline:3px solid #fff0a4;outline-offset:3px;
+}

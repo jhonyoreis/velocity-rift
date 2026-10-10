@@ -173,7 +173,7 @@ export function createStageTwoWorld({track,rect,enemy,orb,yOnTrack,PLAYER_RADIUS
     [32800,"GUARDIAO DO PRISMA","SALTE / DESLIZE / USE BOOST"]
   ].map(([x,title,hint])=>({x,title,hint})));
   world.checkpoints.push(...[19400,23850,28510,32570].map(x=>({
-    x,y:groundY2(x)-PLAYER_RADIUS,active:false
+    x,y:groundY2(x)-PLAYER_RADIUS,active:false,boss:x===32570
   })));
   const robots=[
     [18160,"walker",85],[19900,"drone",88],[20780,"sentry",0],

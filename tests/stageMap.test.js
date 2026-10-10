@@ -31,8 +31,8 @@ test("each stage shows only current-campaign time, cores and secrets",()=>{
    assert.ok(!map.includes('id="mapStage'+name+'Grade"'));
  }
  assert.ok(main.includes('const record=campaign.records["stage"+stage]'));
- assert.ok(main.includes('campaign.extras.cores["stage"+stage].length+"/3"'));
- assert.ok(main.includes('campaign.extras.secrets["stage"+stage].length+"/3"'));
+ assert.ok(main.includes('fullTestMode?3:campaign.extras.cores["stage"+stage].length'));
+ assert.ok(main.includes('fullTestMode?3:campaign.extras.secrets["stage"+stage].length'));
  assert.ok(!main.includes('document.querySelector("#mapStage"+suffix+"Grade")'));
 });
 test("new campaign resets its own records but retains historical archive",()=>{
