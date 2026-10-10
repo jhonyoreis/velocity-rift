@@ -4,6 +4,8 @@ import {mobileTutorialSign} from "./game/mobileTutorial.js";
 import {speedometer} from "./game/speedometer.js";
 import {sanitizeGhost,ghostFrameAt,recordGhostFrame,makeGhost} from "./game/ghostReplay.js";
 import {guardianPhase} from "./bosses/guardianPhases.js";
+import {ALICIA_ECHOES,sanitizeEchoArchive} from "./data/aliciaEchoes.js";
+import {BONUS_CHALLENGES,earnedBonusChallenges,sanitizeBonusChallenges} from "./game/bonusChallenges.js";
 import {ACHIEVEMENTS} from "./data/achievements.js";
 import {createStageOneWorld} from "./levels/forest.js";
 import {createStageTwoWorld} from "./levels/canyon.js";
@@ -124,6 +126,79 @@ function boostCapacity(){return fullTestMode?150:boostUpgrades.capacity;}
 function boostPower(){return fullTestMode?1.12:boostUpgrades.powerMultiplier;}
 function testUnlocked(){return debugMode||fullTestMode;}
 const secretTrials=[];
+// Independent, permanent collections; never reset by New Game.
+const ECHO_ARCHIVE_KEY="velocity-rift-alicia-echoes-v1";
+const BONUS_CHALLENGE_KEY="velocity-rift-bonus-challenges-v1";
+let echoesFound=new Set(),challengeBadges=new Set();
+try{echoesFound=new Set(sanitizeEchoArchive(JSON.parse(localStorage.getItem(ECHO_ARCHIVE_KEY)||"[]")))}catch(_){}
+try{challengeBadges=new Set(sanitizeBonusChallenges(JSON.parse(localStorage.getItem(BONUS_CHALLENGE_KEY)||"[]")))}catch(_){}
+function collectStoryEchoes(){
+ if(debugUsedThisRun||fullTestMode)return;
+ for(const echo of ALICIA_ECHOES){
+  if(echo.stage!==activeStage||echoesFound.has(echo.id))continue;
+  const y=(groundY(echo.x)??420)-76;
+  if(distance(player.x,player.y,echo.x,y)>72)continue;
+  echoesFound.add(echo.id);
+  try{localStorage.setItem(ECHO_ARCHIVE_KEY,JSON.stringify([...echoesFound]))}catch(_){}
+  showCollectibleToast("✧ ECO DE ALICIA "+echoesFound.size+"/9",2.4);
+  emitParticles(echo.x,y,"#dab1ff",15,85);
+  playSfx("cin-flower");
+ }
+}
+function drawStoryEchoes(){
+ for(const echo of ALICIA_ECHOES){
+  if(echo.stage!==activeStage||echoesFound.has(echo.id)||fullTestMode||
+    echo.x<cameraX-70||echo.x>cameraX+VIEW_W+70)continue;
+  const y=(groundY(echo.x)??420)-76;
+  ctx.save();ctx.translate(echo.x,y);
+  ctx.globalAlpha=.55+.23*Math.sin(visualTime*2.3);
+  ctx.shadowColor="#dbb5ff";ctx.shadowBlur=16;
+  ctx.strokeStyle="#d6b8ff";ctx.lineWidth=2;
+  ctx.beginPath();ctx.ellipse(0,0,19,31,0,0,Math.PI*2);ctx.stroke();
+  ctx.fillStyle="rgba(203,163,255,.23)";
+  ctx.beginPath();ctx.ellipse(0,-2,14,23,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#ffe5ff";ctx.font="bold 15px system-ui";ctx.textAlign="center";
+  ctx.fillText("A",0,6);
+  ctx.restore();
+ }
+}
+function recordBonusChallengeClear(stage,run){
+ if(debugUsedThisRun)return;
+ let changed=false;
+ for(const id of earnedBonusChallenges(stage,run)){
+  if(challengeBadges.has(id))continue;
+  challengeBadges.add(id);changed=true;
+ }
+ if(changed){
+  try{localStorage.setItem(BONUS_CHALLENGE_KEY,JSON.stringify([...challengeBadges]))}catch(_){}
+ }
+}
+function refreshStoryArchive(){
+ const list=document.querySelector("#storyArchiveList"),count=document.querySelector("#storyArchiveCount");
+ const found=fullTestMode?9:echoesFound.size;
+ if(count)count.textContent=found+" de 9 ecos";
+ if(list)list.innerHTML=ALICIA_ECHOES.map(e=>{
+  const unlocked=fullTestMode||echoesFound.has(e.id);
+  return '<article class="vr-echo-entry'+(unlocked?' vr-echo-found':'')+'">'+
+   '<strong>'+(unlocked?'✧ ':'◇ ')+(unlocked?e.title:'ECO DESCONHECIDO')+'</strong>'+
+   '<small>FASE '+e.stage+(unlocked?' · '+e.speaker:' · NÃO DESCOBERTO')+'</small>'+
+   (unlocked?'<p>'+e.text+'</p>':'')+'</article>';
+ }).join("");
+}
+function refreshBonusChallengesView(){
+ const count=document.querySelector("#bonusChallengeCount"),list=document.querySelector("#bonusChallengeList");
+ const earned=fullTestMode?BONUS_CHALLENGES.length:challengeBadges.size;
+ if(count)count.textContent=earned+" de "+BONUS_CHALLENGES.length+" desafios";
+ if(list)list.innerHTML=BONUS_CHALLENGES.map(c=>{
+  const unlocked=fullTestMode||challengeBadges.has(c.id);
+  return '<article class="vr-bonus-entry'+(unlocked?' vr-bonus-unlocked':'')+'">'+
+   '<strong>'+(unlocked?'✦ ':'◇ ')+c.title+' · FASE '+c.stage+'</strong>'+
+   '<small>'+c.description+'</small>'+
+   '<small>'+(unlocked?'COSMÉTICO OBTIDO: ':'RECOMPENSA: ')+c.reward+'</small>'+
+   '</article>';
+ }).join("");
+}
+
 const notification={title:"",subtitle:"",timer:0};
 const collectibleToast={title:"",timer:0};
 function showCollectibleToast(title,seconds=2){
@@ -1072,6 +1147,7 @@ let cinematicMusicMood="warm";
 function showGalleryMenu(){
   showScreen(galleryMenu);
   refreshCinematicGallery();
+  refreshStoryArchive();
 }
 function refreshCinematicGallery(){
   const entries=[["opening","Opening"],["intro1","StageOne"],["intro2","StageTwo"],["intro3","StageThree"]];
@@ -1461,6 +1537,7 @@ function refreshProgressView() {
   refreshMapView();
   refreshCinematicGallery();
   refreshAchievementsView();
+  refreshBonusChallengesView();
   refreshAudioSettings();
 }
 
@@ -1556,6 +1633,7 @@ function showStageMenu(){
 }
 function showAchievementsMenu(){
   showScreen(achievementsMenu);
+  refreshBonusChallengesView();
   // The first actionable button is at the bottom of this long catalogue.
   // Keep initial focus and scroll at the title instead of jumping to its footer.
   achievementsMenu.scrollTop=0;
@@ -1566,7 +1644,10 @@ function showResults(time, crystals, cores = 0) {
   const result = debugUsedThisRun
     ? {grade:gradeForTime(time,activeStage),improvedTime:false}
     : recordStageClear(time,crystals,cores);
-  if(!debugUsedThisRun)saveBestGhost(time,result.archiveRecord);
+  if(!debugUsedThisRun){
+    saveBestGhost(time,result.archiveRecord);
+    recordBonusChallengeClear(activeStage,{damage:runDamageCount,cores,grade:result.grade});
+  }
   document.querySelector("#resultGrade").textContent = result.grade;
   document.querySelector("#resultHeading").textContent = ["","Primeiro Impulso","Cânion Prisma","Cidade das Fendas"][activeStage];
   document.querySelector("#resultTime").textContent = formatTime(time);
@@ -2916,6 +2997,7 @@ function update(dt) {
   if(!gameStarted)return;
   updateCityBossFX(dt);
   collectItems();
+  collectStoryEchoes();
   collectCityDashCore();
   handleHazards();
   if(!gameStarted)return;
@@ -3659,6 +3741,7 @@ function draw() {
   drawPulseGates();
   drawSigns();
   drawObjects();
+  drawStoryEchoes();
   drawCityDashCore();
   drawDashAltarOverlay();
   drawSentryShots();
@@ -4338,7 +4421,7 @@ function drawFluxBody(actor,fx,clock){
       1-fx.landing*.15+fx.takeoff*.11);
 
     // Scarf reacts to motion and gives Flux a recognizable profile.
-    ctx.fillStyle = "#ffba5e";
+    ctx.fillStyle = actor===player&&(fullTestMode||challengeBadges.size>=3)?"#f8d787":"#ffba5e";
     ctx.beginPath();
     ctx.moveTo(-11, -7 + bounce);
     ctx.lineTo(-25 - fast * 15, -13 + Math.sin(clock * 12) * 3);

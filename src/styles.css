@@ -2875,3 +2875,46 @@ html.mobile-game .game-panel .vr-confirm-minimal .vr-icon-action{
 .game-panel .vr-pause-clean .vr-ghost-toggle:focus-visible{
   outline:3px solid #fff0a4;outline-offset:3px;
 }
+
+/* 3.7.7 story archive and optional cosmetic challenge collection. */
+.game-panel .overlay .vr-gallery{overflow-y:auto;max-height:95%;}
+.game-panel .vr-story-details{
+  width:100%;max-width:690px;margin:8px auto 12px;
+  padding:9px 12px;border:1px solid rgba(157,188,243,.26);
+  border-radius:12px;background:rgba(23,38,62,.68);
+}
+.game-panel .vr-story-details summary{
+  cursor:pointer;color:#d7d7ff;font-weight:840;letter-spacing:.05em;
+  font-size:clamp(.72rem,1.7vh,.9rem);padding:4px 6px;
+}
+.game-panel .vr-story-list,.game-panel .vr-bonus-list{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:9px;margin-top:11px;
+}
+.game-panel .vr-echo-entry,.game-panel .vr-bonus-entry{
+  min-width:0;padding:9px 11px;border-radius:9px;
+  border:1px solid rgba(130,178,215,.17);
+  background:rgba(12,31,48,.58);
+  display:flex;flex-direction:column;gap:5px;
+}
+.game-panel .vr-echo-entry strong,.game-panel .vr-bonus-entry strong{
+  color:#c0cadb;font-size:clamp(.67rem,1.75vh,.86rem);
+  overflow-wrap:anywhere;
+}
+.game-panel .vr-echo-entry small,.game-panel .vr-bonus-entry small{
+  color:#8caabf;font-size:.67rem;
+}
+.game-panel .vr-echo-entry p{
+  color:#e8dbff;font-size:clamp(.66rem,1.75vh,.82rem);
+  line-height:1.4;margin:2px 0;
+}
+.game-panel .vr-echo-found,.game-panel .vr-bonus-unlocked{
+  border-color:rgba(126,240,210,.35);background:rgba(26,68,72,.39);
+}
+.game-panel .vr-echo-found strong,.game-panel .vr-bonus-unlocked strong{color:#abffe7;}
+html.mobile-game .game-panel .vr-story-details{max-width:90%;padding:5px 9px;}
+html.mobile-game .game-panel .vr-story-list,
+html.mobile-game .game-panel .vr-bonus-list{gap:5px;}
+@media(max-width:600px){
+  .game-panel .vr-story-list,.game-panel .vr-bonus-list{grid-template-columns:minmax(0,1fr);}
+}

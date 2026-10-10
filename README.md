@@ -1,4 +1,4 @@
-# Velocity Rift — Cidade das Fendas (versão 3.7.6 em teste)
+# Velocity Rift — Cidade das Fendas (versão 3.7.7 em teste)
 
 Um prototipo web 2D inspirado em jogos de plataforma de alta velocidade. Ele usa
 HTML, CSS e Canvas, sem assets oficiais. O Vite é uma dependência de desenvolvimento.
@@ -752,4 +752,17 @@ Segundo lote da [issue #7](https://github.com/jhonyoreis/velocity-rift/issues/7)
 - **#15:** fantasma do melhor tempo elegível por fase, com trajetória amostrada a cada 0,12 s, persistência separada e botão de exibir/ocultar no Pause. O fantasma é visual, não interage com física, inimigos ou itens; corridas com DEBUG/TESTE 100% não substituem a gravação.
 
 **Ainda pendentes para o próximo lote:** #6 ecos de Alicia, #11 arquivo narrativo, #12 desafios extras. A implementação de cada proposta permanece acompanhada pela issue #7 e exige avaliação manual no Android e PC.
+
+
+## 3.7.7 — Etapa 4: ecos narrativos e desafios extras
+
+Terceiro lote da [issue #7](https://github.com/jhonyoreis/velocity-rift/issues/7), complementando 3.7.5 e 3.7.6:
+
+- **#6 Ecos de Alicia:** nove pequenos hologramas opcionais (três por fase) surgem no cenário. Aproximar Flux revela um eco no arquivo sem parar a corrida; progresso salvo separadamente e permanente entre campanhas.
+- **#11 Arquivo de história:** Galeria inclui a seção dobrável `ARQUIVO DE HISTÓRIA`, revelando apenas mensagens holográficas efetivamente encontradas. O modo de teste 100% permite consultar todos sem gravar alterações na coleção real.
+- **#12 Desafios extras:** duas metas opcionais em cada fase — terminar sem receber dano e reunir os três núcleos numa tentativa. Os seis emblemas ficam em Conquistas, persistem em save separado e oferecem apenas um cosmético no cachecol do Flux; não alteram a potência. DEBUG ou TESTE 100% jamais gravam desafios/recordes novos.
+
+**Etapa 4 — estado:** as 17 propostas da issue #7 possuem uma primeira implementação distribuída por 3.7.5/3.7.6/3.7.7. A aprovação final ainda exige QA manual no PC e Android e eventuais correções antes de encerrar formalmente a Etapa 4. Não declarar conclusão sem esses testes.
+
+**QA manual:** percorrer fases e coletar hologramas; verificar arquivo ao fechar/abrir o jogo e após Novo Jogo; concluir fase sem dano e com os três núcleos; inspecionar recompensas e aparência; ativar DEBUG e TESTE 100% e confirmar que os saves legítimos não se alteram.
 

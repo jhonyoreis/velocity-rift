@@ -54,7 +54,7 @@ test("story dialog does not show an extra title or speaker and remains compact",
 });
 
 test("visible Android build label distinguishes the newly installed APK",()=>{
- assert.ok(html.includes('class="vr-build-id">APK R8'));
+ assert.ok(html.includes('class="vr-build-id">APK R9'));
  assert.ok(css.includes("html.mobile-game .v4-home .vr-build-id"));
 });
 

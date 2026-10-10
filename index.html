@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Velocity Rift 3.7.6 — Cidade das Fendas</title>
+    <title>Velocity Rift 3.7.7 — Cidade das Fendas</title>
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <link rel="stylesheet" href="./src/styles.css" />
   </head>
   <body>
     <main class="shell">
-      <section class="game-panel" aria-label="Velocity Rift 3.7.6">
+      <section class="game-panel" aria-label="Velocity Rift 3.7.7">
         <canvas id="game" width="960" height="540"></canvas>
         <div id="overlay" class="overlay" role="region" aria-label="Menu do Velocity Rift">
           <section id="mainMenu" class="menu-screen v3-main v4-home" aria-labelledby="menuHeading">
@@ -43,7 +43,7 @@
             <div class="v4-home-art" aria-hidden="true">
               <img src="./menu-hero.svg" alt="" width="850" height="760" decoding="async" />
             </div>
-            <small class="v4-home-version">v3.7.6 · <span class="vr-build-id">APK R8</span></small>
+            <small class="v4-home-version">v3.7.7 · <span class="vr-build-id">APK R9</span></small>
 
             <!-- Keep existing progress anchors for saves and other menus,
                  without showing a statistics dashboard on the home screen. -->
@@ -79,6 +79,10 @@
                 <small id="galleryStageThreeState">Ainda não assistida</small>
               </button>
             </div>
+            <details class="vr-story-details" id="storyArchiveDetails">
+              <summary>ARQUIVO DE HISTÓRIA · <span id="storyArchiveCount">0 de 9 ecos</span></summary>
+              <div id="storyArchiveList" class="vr-story-list" aria-live="polite"></div>
+            </details>
             <button id="galleryBackButton" class="secondary-action" type="button">← Voltar ao menu</button>
           </section>
           <section id="cinematicMenu" class="menu-screen vr-cinematic-ui" aria-label="Cutscene" hidden>
@@ -342,6 +346,14 @@
               </div>
               <p class="vr-collection-section-note">Uma tentativa por rota em cada fase.</p>
               <div id="secretRouteList" class="secret-route-list" aria-label="Coleção de rotas secretas"></div>
+            </section>
+            <section class="vr-collection-section" aria-labelledby="bonusChallengesHeading">
+              <div class="vr-collection-section-heading">
+                <h3 id="bonusChallengesHeading">Desafios extras</h3>
+                <span id="bonusChallengeCount" class="vr-collection-section-detail">0 de 6 desafios</span>
+              </div>
+              <p class="vr-collection-section-note">Objetivos opcionais com recompensas cosméticas, sem aumentar o poder de Flux.</p>
+              <div id="bonusChallengeList" class="vr-bonus-list" aria-label="Lista de desafios extras"></div>
             </section>
             <footer class="vr-collection-footer">
               <button id="achievementsBackButton" class="vr-collection-back" type="button">← VOLTAR AO MENU</button>
