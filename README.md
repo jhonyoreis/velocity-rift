@@ -1,4 +1,4 @@
-# Velocity Rift — Cidade das Fendas (versão 3.7.7 em teste)
+# Velocity Rift — Cidade das Fendas (versão 3.7.8 em teste)
 
 Um prototipo web 2D inspirado em jogos de plataforma de alta velocidade. Ele usa
 HTML, CSS e Canvas, sem assets oficiais. O Vite é uma dependência de desenvolvimento.
@@ -766,3 +766,9 @@ Terceiro lote da [issue #7](https://github.com/jhonyoreis/velocity-rift/issues/7
 
 **QA manual:** percorrer fases e coletar hologramas; verificar arquivo ao fechar/abrir o jogo e após Novo Jogo; concluir fase sem dano e com os três núcleos; inspecionar recompensas e aparência; ativar DEBUG e TESTE 100% e confirmar que os saves legítimos não se alteram.
 
+
+## 3.7.8 — Estabilidade do altar de desbloqueio
+
+- Corrigida a tentativa repetida de iniciar a animação do altar em partidas de teste, especialmente depois de usar DEBUG. Em cada tentativa a animação de desbloqueio ocorre no máximo uma vez; no DEBUG ativo, o altar não trava o movimento.
+- Esta correção não muda os poderes adquiridos nem o comportamento dos saves. O modo TESTE 100% continua independente de DEBUG.
+- Versão nativa Android e identificador visual atualizados para `3.7.8 · APK R10`.

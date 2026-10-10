@@ -268,7 +268,7 @@ const audioLevels=loadAudioLevels();
 const airDash={active:false,available:true,time:0,dx:1,dy:0,trail:0};
 const DASH_SECONDS=.255,DASH_SPEED=1140;
 const cityDashCore={x:3730,y:396};
-const dashAltar={active:false,elapsed:0,duration:2.6};
+const dashAltar={active:false,elapsed:0,duration:2.6,usedThisRun:false};
 let dashUnlockFlash=0;
 function dashUnlocked(){
   return campaign.aerialDash||fullTestMode||((debugMode||debugUsedThisRun)&&activeStage===3);
@@ -307,7 +307,8 @@ function updateAirDash(dt){
   dashUnlockFlash=Math.max(0,dashUnlockFlash-dt);
 }
 function collectCityDashCore(){
-  if(activeStage!==3||campaign.aerialDash||fullTestMode||dashAltar.active||
+  if(activeStage!==3||campaign.aerialDash||fullTestMode||debugMode||
+     dashAltar.active||dashAltar.usedThisRun||
      player.x<cityDashCore.x-32||player.x>cityDashCore.x+32||
      Math.abs(player.y-cityDashCore.y)>60)return;
   // Pause gameplay on the shrine, rather than unlocking on a casual pickup.
@@ -322,7 +323,7 @@ function updateDashAltar(dt){
   dashAltar.elapsed=Math.min(dashAltar.duration,dashAltar.elapsed+dt);
   dashUnlockFlash=Math.max(dashUnlockFlash,.65);
   if(dashAltar.elapsed<dashAltar.duration)return;
-  dashAltar.active=false;airDash.available=true;
+  dashAltar.active=false;dashAltar.usedThisRun=true;airDash.available=true;
   if(!debugUsedThisRun){campaign.aerialDash=true;saveCampaign();grantAchievement("dash");}
   notification.title="DASH AÉREO DESBLOQUEADO";
   notification.subtitle="TOQUE PULAR DUAS VEZES NO AR";
@@ -1892,7 +1893,7 @@ function drawStageArrivalOverlay(){
 }
 function resetGame() {
   ghostRun=[];
-  dashAltar.active=false;dashAltar.elapsed=0;
+  dashAltar.active=false;dashAltar.elapsed=0;dashAltar.usedThisRun=false;
   stageExit.active=false;stageExit.elapsed=0;
   stageArrival.active=false;stageArrival.elapsed=0;
   resetAirDash();

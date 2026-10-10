@@ -14,9 +14,11 @@ test("canyon and city intro cinematics actually show Alicia and portal pursuit",
  assert.ok(slice.includes("Alicia"));
 });
 test("city dash power sits on an altar and acquisition stops the game for animation",()=>{
- assert.ok(main.includes("const dashAltar={active:false,elapsed:0,duration:2.6}"));
+ assert.ok(main.includes("const dashAltar={active:false,elapsed:0,duration:2.6,usedThisRun:false}"));
  assert.ok(main.includes("function drawDashAltarOverlay()"));
  assert.ok(main.includes("function updateDashAltar(dt)"));
+ assert.ok(main.includes("dashAltar.usedThisRun=true"));
+ assert.ok(main.includes("dashAltar.active||dashAltar.usedThisRun"));
  assert.ok(main.includes("if(dashAltar.active){updateDashAltar(dt);return;}"));
  assert.ok(main.includes('if(!debugUsedThisRun){campaign.aerialDash=true;saveCampaign();grantAchievement("dash");}'));
 });
