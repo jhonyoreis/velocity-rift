@@ -156,7 +156,20 @@ try{
  await screen(phone,"android-landscape-rift-preview");
  assert.equal(await phone.locator("#pauseButton").isVisible(),true);
  await phone.locator("#pauseButton").click();
- assert.equal(await phone.locator("#pauseMenu").isVisible(),true);
+ try{
+  await phone.locator("#pauseMenu").waitFor({state:"visible",timeout:2500});
+ }catch(error){
+  const state=await phone.evaluate(()=>({
+   pauseHidden:document.querySelector("#pauseMenu").hidden,
+   buttonHidden:document.querySelector("#pauseButton").hidden,
+   panel:document.querySelector(".game-panel").className,
+   overlay:document.querySelector("#overlay").className,
+   display:getComputedStyle(document.querySelector("#pauseMenu")).display
+  }));
+  console.error("RIFT PAUSE DIAGNOSTICS",JSON.stringify(state),"BROWSER ERRORS",JSON.stringify(errors));
+  await screen(phone,"android-landscape-rift-pause-debug");
+  throw error;
+ }
  assert.match(await phone.locator("#pauseStageLabel").innerText(),/Fenda Original/);
  await mobile.close();
  assert.deepEqual(errors,[],"uncaught browser errors");

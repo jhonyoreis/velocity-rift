@@ -1,4 +1,4 @@
-# Velocity Rift — Cidade das Fendas (versão 3.8.0 em teste)
+# Velocity Rift — Cidade das Fendas (versão 3.8.1 em teste)
 
 Um prototipo web 2D inspirado em jogos de plataforma de alta velocidade. Ele usa
 HTML, CSS e Canvas, sem assets oficiais. O Vite é uma dependência de desenvolvimento.
@@ -816,3 +816,10 @@ QA manual complementar: completar corrida de mais de cinco minutos e verificar o
 - Versão Android: `3.8.0 · APK R14`. Testes automatizados unitários, build Vite, QA visual desktop e Android paisagem, e workflow de APK debug são executados a cada push na `main`.
 
 **Teste manual sugerido:** visitar o altar com 0/9 e com 9/9 núcleos, entrar e atravessar os portais, caminhar com gravidade invertida, deslizar nas rampas, usar boost/dash nas barreiras e inimigos, pausar/reiniciar/sair, verificar que as fases 1–3 e os saves não foram alterados.
+
+
+## 3.8.1 — Entrada dimensional e verificação de pausa
+
+- A fenda de retorno na entrada da prévia agora é desenhada explicitamente e permite retornar ao mapa sem reunir os nove núcleos.
+- O teste visual Android aguarda a abertura real do menu de pausa da prévia e registra detalhes da interface e uma captura de diagnóstico quando não ocorrer. Isso ajuda a distinguir falhas de tempo/visibilidade de erros de integração no runtime.
+- Atualização do pacote Android e da etiqueta de instalação para `3.8.1 · APK R15`; saves e progresso antigos mantidos.

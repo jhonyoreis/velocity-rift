@@ -256,6 +256,14 @@ export function createOriginalRiftPreview({onExit=()=>{}}={}){
     ctx.fillText("ALTAR "+s.cores+"/9",490,179);
     ctx.font="13px system-ui";ctx.fillText("VOLTE PELO PORTAL À ESQUERDA",300,505);
   }
+  // A visible return rift at the entrance lets players leave without
+  // fulfilling the nine-core requirement. Walking into it opens the map.
+  if(cx<240){
+   ctx.save();ctx.translate(83,415);
+   ctx.strokeStyle="#9edcff";ctx.lineWidth=7;ctx.shadowColor="#c4b6ff";ctx.shadowBlur=21;
+   ctx.beginPath();ctx.ellipse(0,0,26,52,0,0,Math.PI*2);ctx.stroke();
+   ctx.restore();
+  }
   for(const p of portals){
    if(Math.abs(p.x-cx)>W+130)continue;
    ctx.save();ctx.translate(p.x,p.y);
