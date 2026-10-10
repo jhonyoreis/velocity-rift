@@ -69,8 +69,8 @@ test("Android native APK version matches the package version",()=>{
  const pkg=JSON.parse(readFileSync(new URL("../package.json",import.meta.url),"utf8"));
  const before='android { defaultConfig { versionCode 1 versionName "1.0" } }';
  const updated=setAndroidVersion(before,pkg.version);
- assert.ok(updated.includes("versionCode 3007008"));
- assert.ok(updated.includes('versionName "3.7.8"'));
+ assert.ok(updated.includes("versionCode 3007009"));
+ assert.ok(updated.includes('versionName "3.7.9"'));
  assert.equal(setAndroidVersion(updated,pkg.version),updated);
  assert.throws(()=>setAndroidVersion("no version fields",pkg.version),/version fields/);
 });

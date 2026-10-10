@@ -18,6 +18,7 @@ test("game records only eligible stage clears and draws ghost non-colliding",()=
  const source=readFileSync(new URL("../src/main.js",import.meta.url),"utf8");
  assert.ok(source.includes("GHOST_ARCHIVE_KEY"));
  assert.ok(source.includes("recordGhostFrame(ghostRun,gameTime,player)"));
+ assert.ok(source.includes("recordGhostFrame(ghostRun,gameTime,player,true)"));
  assert.ok(source.includes("function drawRecordGhost()"));
  assert.ok(source.includes("function saveBestGhost("));
  assert.ok(source.includes("saveBestGhost(time,result.archiveRecord)"));
@@ -25,4 +26,26 @@ test("game records only eligible stage clears and draws ghost non-colliding",()=
  assert.ok(source.includes('id="ghostToggle"')===false);
  const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
  assert.ok(html.includes('id="ghostToggle"'));
+});
+
+test("long runs are adaptively resampled without truncating the finish",()=>{
+ const frames=[];
+ for(let index=0;index<9000;index++)
+   recordGhostFrame(frames,index*.13,{x:index*2,y:300,facing:1});
+ assert.ok(frames.length<=GHOST_MAX_FRAMES,"storage limit stays bounded");
+ assert.equal(frames[0][0],0,"start is preserved");
+ assert.ok(frames.at(-1)[0]>1000,"recording reaches the end of a 19-minute run");
+ assert.ok(frames[1][0]>.12,"long-run samples get progressively sparser");
+ const final=makeGhost(frames,1170);
+ assert.ok(final,"long recording stays compatible with save sanitizer");
+ const end=ghostFrameAt(final,1169.87);
+ assert.ok(end.x>17500,"replay includes last part of the level");
+});
+test("forced finish saves portal position and never duplicates a timestamp",()=>{
+ const frames=[[0,0,100,1],[.12,40,100,1]];
+ assert.equal(recordGhostFrame(frames,.12,{x:55,y:95,facing:-1},true),true);
+ assert.equal(frames.length,2);
+ assert.deepEqual(frames.at(-1),[.12,55,95,-1]);
+ assert.equal(recordGhostFrame(frames,.2,{x:77,y:95,facing:1},true),true);
+ assert.equal(frames.length,3);
 });

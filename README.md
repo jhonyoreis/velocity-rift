@@ -1,4 +1,4 @@
-# Velocity Rift — Cidade das Fendas (versão 3.7.8 em teste)
+# Velocity Rift — Cidade das Fendas (versão 3.7.9 em teste)
 
 Um prototipo web 2D inspirado em jogos de plataforma de alta velocidade. Ele usa
 HTML, CSS e Canvas, sem assets oficiais. O Vite é uma dependência de desenvolvimento.
@@ -772,3 +772,14 @@ Terceiro lote da [issue #7](https://github.com/jhonyoreis/velocity-rift/issues/7
 - Corrigida a tentativa repetida de iniciar a animação do altar em partidas de teste, especialmente depois de usar DEBUG. Em cada tentativa a animação de desbloqueio ocorre no máximo uma vez; no DEBUG ativo, o altar não trava o movimento.
 - Esta correção não muda os poderes adquiridos nem o comportamento dos saves. O modo TESTE 100% continua independente de DEBUG.
 - Versão nativa Android e identificador visual atualizados para `3.7.8 · APK R10`.
+
+
+## 3.7.9 — Modularização, fantasmas longos e QA visual
+
+- Arte vetorial de cinematográficas movida de `src/main.js` para `src/rendering/cinematicArt.js`, mantendo os mesmos comandos e a renderização original de Flux.
+- Fantasmas de recordes mantêm uma gravação limitada a 2400 pontos, porém reamostram dados progressivamente quando a corrida ultrapassa o limite anterior de ~4m48s; o fim real do trajeto é incluído ao atravessar o portal. Compatível com trajetórias já salvas.
+- Novos testes automatizados de Chromium desktop e Android paisagem verificam telas reais, Canvas, navegação e controles, produzindo capturas em `test-artifacts/visual/` disponíveis como artefato do CI; não substituem QA no aparelho.
+- Para executar localmente: `npm install`, `npx playwright install chromium`, `npm run build` e `npm run test:visual`.
+- Executar `npm test`, `npm run build` e `npm run test:visual` no CI, e gerar o APK de teste via workflow Android em cada push na `main`. Marca Android: `3.7.9 · APK R11`.
+
+QA manual complementar: completar corrida de mais de cinco minutos e verificar o fantasma na tentativa seguinte; percorrer as cinematográficas e checar o APK R11 no aparelho.

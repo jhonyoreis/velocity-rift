@@ -15,3 +15,13 @@ jobs:
       - run: npm install --no-audit --no-fund
       - run: npm test
       - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:visual
+      - name: Visual QA screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: velocity-rift-visual-qa
+          path: test-artifacts/visual/
+          if-no-files-found: ignore
+          retention-days: 14

@@ -29,14 +29,32 @@ export function ghostFrameAt(ghost,t){
  return {x:left[1]+alpha*(right[1]-left[1]),
    y:left[2]+alpha*(right[2]-left[2]),facing:alpha<.5?left[3]:right[3]};
 }
+// Frames remain bounded in size, but recording does not stop on long attempts.
+// When capacity is reached, keep every second sample and double the effective
+// sampling interval. Time stamps are absolute, so interpolation stays correct.
 export function makeGhost(frames,duration){
- return sanitizeGhost({duration,frames:frames.slice(0,GHOST_MAX_FRAMES)});
+ return sanitizeGhost({duration,frames});
 }
-export function recordGhostFrame(frames,time,actor){
- if(frames.length>=GHOST_MAX_FRAMES)return false;
- if(frames.length&&time-frames.at(-1)[0]<GHOST_SAMPLE_SECONDS)return false;
- if(!Number.isFinite(time)||!Number.isFinite(actor?.x)||!Number.isFinite(actor?.y))return false;
- frames.push([Number(time.toFixed(3)),Math.round(actor.x),
-   Math.round(actor.y),actor.facing>=0?1:-1]);
+export function recordGhostFrame(frames,time,actor,force=false){
+ if(!Array.isArray(frames)||!Number.isFinite(time)||time<0||
+   !Number.isFinite(actor?.x)||!Number.isFinite(actor?.y))return false;
+ const point=[Number(time.toFixed(3)),Math.round(actor.x),
+   Math.round(actor.y),actor.facing>=0?1:-1];
+ const previous=frames.at(-1);
+ if(previous&&point[0]<previous[0])return false;
+ // The final portal position must be exact, even when time did not advance.
+ if(previous&&point[0]===previous[0]){
+   if(force){frames[frames.length-1]=point;return true;}
+   return false;
+ }
+ const interval=frames.length>=2
+   ?Math.max(GHOST_SAMPLE_SECONDS,frames[1][0]-frames[0][0])
+   :GHOST_SAMPLE_SECONDS;
+ if(previous&&!force&&time-previous[0]<interval-1e-8)return false;
+ if(frames.length>=GHOST_MAX_FRAMES){
+   const reduced=frames.filter((_,index)=>index%2===0);
+   frames.splice(0,frames.length,...reduced);
+ }
+ frames.push(point);
  return true;
 }
