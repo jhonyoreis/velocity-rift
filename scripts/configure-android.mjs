@@ -28,10 +28,30 @@ export function addImmersiveMainActivity(javaSource){
   return javaSource.slice(0,close)+methods+"\n"+javaSource.slice(close);
 }
 
+
+/** Align Android Settings and install/update metadata with package.json. */
+export function setAndroidVersion(gradle,version){
+  const match=/^(\d+)\.(\d+)\.(\d+)$/.exec(version);
+  if(!match)throw new Error("Android requires a numeric MAJOR.MINOR.PATCH version");
+  const [major,minor,patch]=match.slice(1).map(Number);
+  if(minor>999||patch>999)throw new RangeError("Version minor/patch exceeds 999");
+  const code=major*1000000+minor*1000+patch;
+  if(code>2100000000)throw new RangeError("Android versionCode overflow");
+  if(!/\bversionCode\s+\d+/.test(gradle)||
+     !/\bversionName\s+["'][^"']+["']/.test(gradle))
+    throw new Error("Android Gradle version fields missing");
+  return gradle.replace(/\bversionCode\s+\d+/,
+    "versionCode "+code).replace(/\bversionName\s+["'][^"']+["']/,
+    'versionName "'+version+'"');
+}
+
 if(process.argv[1]&&pathToFileURL(process.argv[1]).href===import.meta.url){
   const path="android/app/src/main/AndroidManifest.xml";
   writeFileSync(path,setAndroidLandscape(readFileSync(path,"utf8")));
   const activityPath="android/app/src/main/java/com/velocityrift/game/MainActivity.java";
   writeFileSync(activityPath,addImmersiveMainActivity(readFileSync(activityPath,"utf8")));
-  process.stdout.write("Android landscape and immersive fullscreen enabled.\n");
+  const androidGradle="android/app/build.gradle";
+  const version=JSON.parse(readFileSync("package.json","utf8")).version;
+  writeFileSync(androidGradle,setAndroidVersion(readFileSync(androidGradle,"utf8"),version));
+  process.stdout.write("Android "+version+" landscape, immersive fullscreen and version metadata enabled.\n");
 }

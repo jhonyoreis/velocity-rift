@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
-import {setAndroidLandscape,addImmersiveMainActivity} from "../scripts/configure-android.mjs";
+import {setAndroidLandscape,addImmersiveMainActivity,setAndroidVersion} from "../scripts/configure-android.mjs";
 
 test("native orientation patch targets only the Capacitor activity",()=>{
   const source='<manifest xmlns:android="http://schemas.android.com/apk/res/android">'+
@@ -59,4 +59,14 @@ test("native Android activity hides status and navigation bars",()=>{
     assert.ok(changed.includes(feature),feature);
   assert.equal(addImmersiveMainActivity(changed),changed);
   assert.throws(()=>addImmersiveMainActivity("class Other {}"),/BridgeActivity/);
+});
+
+test("Android native APK version matches the package version",()=>{
+ const pkg=JSON.parse(readFileSync(new URL("../package.json",import.meta.url),"utf8"));
+ const before='android { defaultConfig { versionCode 1 versionName "1.0" } }';
+ const updated=setAndroidVersion(before,pkg.version);
+ assert.ok(updated.includes("versionCode 3007003"));
+ assert.ok(updated.includes('versionName "3.7.3"'));
+ assert.equal(setAndroidVersion(updated,pkg.version),updated);
+ assert.throws(()=>setAndroidVersion("no version fields",pkg.version),/version fields/);
 });

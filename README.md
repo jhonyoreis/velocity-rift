@@ -1,4 +1,4 @@
-# Velocity Rift — Cidade das Fendas (versão 3.7.2 em teste)
+# Velocity Rift — Cidade das Fendas (versão 3.7.3 em teste)
 
 Um prototipo web 2D inspirado em jogos de plataforma de alta velocidade. Ele usa
 HTML, CSS e Canvas, sem assets oficiais. O Vite é uma dependência de desenvolvimento.
@@ -610,7 +610,7 @@ originais, com o compressor de dinâmica já existente e sliders de áudio
 funcionando em todos os volumes, inclusive 0%.
 
 **Identificação do APK:** na tela inicial mobile aparece
-`v3.7.2 · APK R4`. Se a indicação `APK R4` não aparecer, você está
+`v3.7.2 · APK R4` (versão anterior). Se a indicação `APK R4` não aparecer, você está
 testando a compilação anterior. Os APKs debug usam chaves de assinatura
 de CI que podem mudar; nesse caso, a instalação sobreposta falha e é
 preciso desinstalar o APK antigo, o que pode eliminar os saves locais.
@@ -620,3 +620,13 @@ Pause/gamepad como irmãos do overlay, e as alterações no áudio e no
 diálogo. Teste visual adicional em viewport 1536×709 confirmou que os
 controles aparecem na borda inferior depois de remover o aninhamento.
 
+
+## Política de versionamento — a partir da versão 3.7.3
+
+A pedido do usuário, **toda alteração publicada no jogo deve atualizar a versão**. A versão é mantida consistente em `package.json`, título HTML, tela inicial (incluindo o identificador do APK) e metadados nativos Android gerados no build. A verificação automatizada `tests/versionConsistency.test.js` reprova divergências entre as fontes. Por padrão, pequenas correções e melhorias elevam o último número (patch, como `3.7.3 → 3.7.4`); mudanças de escopo maior podem elevar minor/major, conforme combinado. Um conjunto de alterações publicado em um único commit/release usa um único número. Registre cada mudança no README e não modifique silenciosamente saves nem semântica de progresso.
+
+### 3.7.3 — Validação Android R4 e controle de versão
+
+- Os controles, modo imersivo, áudio e diálogos da revisão Android R4 foram aprovados em teste manual.
+- Nenhuma alteração nas mecânicas; apenas registro de versão visível, rastreio Android e garantia automática de consistência para atualizações futuras.
+- **APK R5** identifica o build de versionamento, já com a base da R4 validada. Histórico da R4 preservado acima.
