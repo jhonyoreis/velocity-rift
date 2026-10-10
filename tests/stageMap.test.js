@@ -73,11 +73,15 @@ test("map selector is an SVG atlas with four separately positioned clickable nod
  assert.ok(map.includes('aria-label="Mapa interativo das quatro regiões"'));
 });
 
-test("paths brighten as campaign advances; last chapter stays unavailable",()=>{
+test("paths brighten as campaign advances; final preview uses stage-3 completion and altar keys",()=>{
  assert.ok(main.includes('[["mapPathToCanyon",unlocked],["mapPathToCity",cityUnlocked]]'));
  assert.ok(main.includes('path.classList.toggle("rift-map-path-open",open)'));
  assert.ok(main.includes('path.classList.toggle("rift-map-path-locked",!open)'));
- assert.ok(main.includes('document.querySelector("#stageFourButton").disabled=true'));
+ assert.ok(main.includes('const previewAvailable=campaign.stage3Completed||testUnlocked()'));
+ assert.ok(main.includes('previewButton.disabled=!previewAvailable'));
+ assert.ok(main.includes('countRiftKeys(campaign,fullTestMode)'));
+ assert.ok(map.includes('id="mapStageFourCores"'));
+ assert.ok(map.includes('id="stageFourButton"'));
  assert.ok(map.includes('id="stageFourButton"'));
  assert.ok(css.includes('.rift-map-clean .rift-map-cartography .rift-map-path.rift-map-path-open'));
 });

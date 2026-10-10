@@ -1,4 +1,4 @@
-# Velocity Rift — Cidade das Fendas (versão 3.7.11 em teste)
+# Velocity Rift — Cidade das Fendas (versão 3.8.0 em teste)
 
 Um prototipo web 2D inspirado em jogos de plataforma de alta velocidade. Ele usa
 HTML, CSS e Canvas, sem assets oficiais. O Vite é uma dependência de desenvolvimento.
@@ -801,3 +801,18 @@ QA manual complementar: completar corrida de mais de cinco minutos e verificar o
 - Versão de instalação: `3.7.11 · APK R13`.
 
 **QA manual Android:** testar abertura e transições das três fases, especialmente falas longas em tela 16:9 e telas mais largas; conferir ➜ e ☰ com toque, antes de continuar a partida e quando a cutscene é aberta pela Galeria.
+
+
+## 3.8.0 — Fenda Original: primeiro trecho experimental (sem chefes)
+
+**Escopo desta entrega:** a quarta fase aparece no mapa após completar a Cidade das Fendas (ou com TESTE 100% / DEBUG), mas ainda **não pode ser concluída** na campanha. O conteúdo é uma seção experimental de aproximadamente 10 mil unidades do futuro mapa mais longo do jogo, sem batalha nem resgate final: essas etapas permanecem reservadas para a versão 4.0.0. A finalização deste trecho apresenta somente um aviso de continuação; nenhuma conclusão, recorde, rota secreta ou recompensa da quarta fase é concedida.
+
+- **Altar com nove núcleos:** consulta os três núcleos distintos de cada uma das três fases salvos na campanha atual; informa quantos faltam e bloqueia a porta até 9/9. Um portal à esquerda da entrada retorna ao mapa. TESTE 100% / DEBUG permitem entrar para QA sem modificar o save real.
+- **Mundo fragmentado:** plataformas suspensas e corredores alternativos, paleta própria, parallax geométrico, teto caminhável invertido, dimensão Eco com plataformas exclusivas e checkpoints locais.
+- **Portais conectados:** passagens direcionadas transportam Flux entre áreas preservando o impulso; uma delas inverte a gravidade e outra a restaura. A física e o Dash são próprios do módulo experimental, sem alterar as fases anteriores; controles de toque existentes funcionam com os mesmos comandos.
+- **Momentum de descida:** trajetos inclinados permitem alcançar mais de 900 unidades/s deslizando, enquanto Boost e Dash quebram barreiras e neutralizam três variantes de inimigos (fragmento, sentinela, espectro).
+- **Narrativa e música:** aparição não interativa do Soberano, visível por alguns segundos; faixa sintetizada inédita, **A Origem do Vazio**, 151 BPM, com variações de energia ao avançar e na aparição.
+- **Segurança:** sem alteração de chaves antigas de save, recordes ou progressão histórica; os desafios e o chefe final ficam fora deste primeiro protótipo. Checkpoints da prévia são temporários.
+- Versão Android: `3.8.0 · APK R14`. Testes automatizados unitários, build Vite, QA visual desktop e Android paisagem, e workflow de APK debug são executados a cada push na `main`.
+
+**Teste manual sugerido:** visitar o altar com 0/9 e com 9/9 núcleos, entrar e atravessar os portais, caminhar com gravidade invertida, deslizar nas rampas, usar boost/dash nas barreiras e inimigos, pausar/reiniciar/sair, verificar que as fases 1–3 e os saves não foram alterados.

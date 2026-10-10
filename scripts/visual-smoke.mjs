@@ -133,6 +133,31 @@ try{
  await phone.locator("#pauseButton").click();
  await phone.locator("#pauseMenu").waitFor();
  await screen(phone,"android-landscape-pause");
+ await phone.locator("#menuButton").click();
+ // The 4th stage is only a preview. Give the isolated browser a completed
+ // third stage without touching any real user's campaign or record.
+ await phone.evaluate(()=>{
+   const saved={started:true,stage1Completed:true,stage2Completed:true,
+    stage3Completed:true,lastStage:3,aerialDash:true,
+    extras:{cores:{stage1:[0,1,2],stage2:[0,1,2],stage3:[0,1,2]},
+     secrets:{stage1:[],stage2:[],stage3:[]}},scenesSeen:[]};
+   localStorage.setItem("velocity-rift-campaign-v3",JSON.stringify(saved));
+ });
+ await phone.reload({waitUntil:"networkidle"});
+ await phone.locator("#selectStagesButton").click();
+ await phone.locator("#mapNodeStageFour").click();
+ assert.equal(await phone.locator("#stageFourButton").isEnabled(),true);
+ assert.equal(await phone.locator("#mapStageFourCores").innerText(),"9/9");
+ await screen(phone,"android-landscape-rift-map");
+ await phone.locator("#stageFourButton").click();
+ await phone.locator(".game-panel.gameplay-active").waitFor({timeout:10000});
+ await sleep(300);
+ await verifyCanvas(phone);
+ await screen(phone,"android-landscape-rift-preview");
+ assert.equal(await phone.locator("#pauseButton").isVisible(),true);
+ await phone.locator("#pauseButton").click();
+ assert.equal(await phone.locator("#pauseMenu").isVisible(),true);
+ assert.match(await phone.locator("#pauseStageLabel").innerText(),/Fenda Original/);
  await mobile.close();
  assert.deepEqual(errors,[],"uncaught browser errors");
  console.log("Visual smoke OK: desktop + Android landscape screenshots at "+folder);

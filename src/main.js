@@ -11,6 +11,7 @@ import {ACHIEVEMENTS} from "./data/achievements.js";
 import {createStageOneWorld} from "./levels/forest.js";
 import {createStageTwoWorld} from "./levels/canyon.js";
 import {createStageThreeWorld} from "./levels/city.js";
+import {createOriginalRiftPreview,countRiftKeys} from "./game/originalRiftPreview.js";
 import {installSecretRoutes} from "./levels/secretChallenges.js";
 import {gradeForTime as gradeForTimeByStage} from "./game/scoring.js";
 import {computeCampaignCompletion} from "./game/completion.js";
@@ -121,6 +122,8 @@ let bestTime = 0;
 try { bestTime = Number(localStorage.getItem("velocity-rift-best-time")) || 0; } catch (_) { /* private storage */ }
 const progress=loadProgress();
 const campaign=loadCampaign();
+// 3.8 preview runs independently of the established 1-3 campaign runtime.
+const riftPreview=createOriginalRiftPreview({onExit:()=>showStageMenu()});
 // Permanently owned via historical route records (independent of New Game).
 let boostUpgrades=secretUpgradeStats(progress.secrets);
 function boostCapacity(){return fullTestMode?150:boostUpgrades.capacity;}
@@ -1133,7 +1136,17 @@ function refreshMapView(){
   document.querySelector("#stageTwoButton").textContent=unlocked?"JOGAR FASE 02 →":"FASE BLOQUEADA";
   document.querySelector("#stageThreeButton").disabled=!cityUnlocked;
   document.querySelector("#stageThreeButton").textContent=cityUnlocked?"JOGAR FASE 03 →":"FASE BLOQUEADA";
-  document.querySelector("#stageFourButton").disabled=true;
+  const previewAvailable=campaign.stage3Completed||testUnlocked();
+  const riftCores=countRiftKeys(campaign,fullTestMode);
+  const previewButton=document.querySelector("#stageFourButton");
+  previewButton.disabled=!previewAvailable;
+  previewButton.textContent=previewAvailable?"EXPLORAR PRÉVIA 3.8 →":"CONCLUA A CIDADE PARA ENTRAR";
+  document.querySelector("#mapStageFourBadge").textContent=previewAvailable?"PRÉVIA 3.8":"BLOQUEADA";
+  document.querySelector("#mapNodeStageFourStatus").textContent=previewAvailable?"ACESSO AO ALTAR":"BLOQUEADA";
+  document.querySelector("#mapStageFourCores").textContent=riftCores+"/9";
+  document.querySelector("#stageFourProgress").textContent=riftCores===9?
+    "Nove núcleos recuperados · Portão liberado":
+    "Altar exige 9 núcleos · Faltam "+(9-riftCores);
   document.querySelector("#stageTwoLock").hidden=unlocked;
   for(const stage of [1,2,3]){
     const suffix=["","One","Two","Three"][stage];
@@ -1288,9 +1301,13 @@ function restartAfterDeath(){
   syncMusic();
   ensureLoop();
 }
-function showMainMenu() {showScreen(mainMenu);}
+function showMainMenu() {
+  if(riftPreview.active){riftPreview.stop();gameStarted=false;paused=false;keys.clear();}
+  showScreen(mainMenu);
+}
 function showSettingsMenu(){showScreen(settingsMenu);refreshAudioSettings();}
 function showStageMenu(){
+  if(riftPreview.active){riftPreview.stop();gameStarted=false;paused=false;keys.clear();}
   selectedMapStage=campaign.stage2Completed?3:campaign.stage1Completed?2:1;
   showScreen(stageMenu);
   selectMapStage(selectedMapStage);
@@ -1361,14 +1378,16 @@ function showPauseMenu(){
   if(!gameStarted||gameCleared||paused)return;
   paused=true;accumulator=0;keys.clear();jumpHeld=false;
   syncMusic();
-  document.querySelector("#pauseStageLabel").textContent=
+  document.querySelector("#pauseStageLabel").textContent=riftPreview.active?
+    "Fenda Original · Prévia 3.8":
     ["","Primeiro Impulso","Cânion Prisma","Cidade das Fendas"][activeStage];
-  document.querySelector("#pauseStatTime").textContent=formatTime(gameTime);
-  document.querySelector("#pauseStatCrystals").textContent=String(player.rings);
-  document.querySelector("#pauseStatCores").textContent=(fullTestMode?3:player.cores)+"/3";
-  document.querySelector("#pauseStatSecrets").textContent=
+  document.querySelector("#pauseStatTime").textContent=formatTime(riftPreview.active?riftPreview.info().time:gameTime);
+  document.querySelector("#pauseStatCrystals").textContent=String(riftPreview.active?riftPreview.info().crystals:player.rings);
+  document.querySelector("#pauseStatCores").textContent=riftPreview.active?riftPreview.info().cores+"/9":(fullTestMode?3:player.cores)+"/3";
+  document.querySelector("#pauseStatSecrets").textContent=riftPreview.active?"PRÉVIA":
     (fullTestMode?3:secretTrials.filter(trial=>trial.completed).length)+"/3";
-  document.querySelector("#pauseStatProgress").textContent=
+  document.querySelector("#pauseStatProgress").textContent=riftPreview.active?
+    Math.round(100*clamp(riftPreview.info().x/9500,0,1))+"%":
     Math.round(100*clamp(player.x/goal.x,0,1))+"%";
   document.querySelector("#pauseBoostUpgrades").textContent=
     "BOOST "+boostCapacity()+" · FORÇA +"+
@@ -1638,6 +1657,7 @@ function resetGame() {
 }
 
 function startGame(stage=activeStage,skipCinematic=false,withArrival=false) {
+  if(riftPreview.active)riftPreview.stop();
   if(![1,2,3].includes(stage))return;
   if(stage===2&&!campaign.stage1Completed&&!testUnlocked())return;
   if(stage===3&&!campaign.stage2Completed&&!testUnlocked())return;
@@ -1665,6 +1685,19 @@ function startGame(stage=activeStage,skipCinematic=false,withArrival=false) {
   syncPauseButton();
   syncMusic();
   ensureLoop();
+}
+
+function startRiftPreview(){
+  if(!campaign.stage3Completed&&!testUnlocked())return;
+  unlockAudio();
+  riftPreview.start(countRiftKeys(campaign,fullTestMode),testUnlocked());
+  activeStage=4;
+  gameStarted=true;gameCleared=false;paused=false;accumulator=0;
+  keys.clear();jumpHeld=false;
+  screens.forEach(screen=>{screen.hidden=true;});
+  overlay.classList.add("is-hidden");
+  document.querySelector(".game-panel").classList.remove("menu-active","pause-active","cinematic-active");
+  syncPauseButton();syncTrackLabel();syncMusic();ensureLoop();
 }
 
 function ensureLoop() {
@@ -2514,6 +2547,7 @@ function drawGuardian(){
 }
 
 function update(dt) {
+  if(riftPreview.active){riftPreview.update(dt,keys);return;}
   if(stageArrival.active){updateStageArrival(dt);return;}
   if(dashAltar.active){updateDashAltar(dt);return;}
   if(activeStage===3&&cityBoss.active&&cityBoss.state==="intro"){
@@ -3389,6 +3423,7 @@ function updateTrail(dt) {
 
 function draw() {
   ctx.clearRect(0, 0, VIEW_W, VIEW_H);
+  if(riftPreview.active){riftPreview.draw(ctx,VIEW_W,VIEW_H);return;}
 
   const shake = shakeTime > 0 ? Math.sin(performance.now() * 0.05) * shakeTime * 13 : 0;
   ctx.save();
@@ -4673,6 +4708,7 @@ function scheduleCinematicMusic(at,step){
 // Two original scores: "Cidade Entre Estrelas" (136 BPM) and
 // "Coroa do Vazio" (158 BPM). Synthesized in real time, no external assets.
 const CITY_STEP_SECONDS=60/136/4,CITY_BOSS_STEP_SECONDS=60/158/4;
+const RIFT_STEP_SECONDS=60/151/4;
 const CITY_ROOTS=[45,40,47,42,45,52,49,44];
 const CITY_BASS=[0,null,7,12,null,7,3,null,0,12,null,7,10,null,3,7];
 const CITY_LEAD=[12,null,16,19,null,23,19,null,16,14,null,12,7,null,9,11,
@@ -4725,6 +4761,23 @@ function scheduleCityBossTheme(at,step){
     synthMusic(465+beat*27,at,.1,.029,"sawtooth");
 }
 
+// Original Rift: a distinct 151 BPM motif with a darker echo and Soberano swell.
+const RIFT_MOTIF=[0,null,7,10,12,null,10,7,3,null,5,7,1,null,0,null,
+  0,3,7,12,null,15,12,10,7,null,3,1,0,null,-2,null];
+function scheduleRiftTheme(at,step){
+  const beat=step%16,section=riftPreview.musicSection;
+  const root=[37,39,34,42][Math.floor(step/16)%4];
+  if([0,3,6,8,11,14].includes(beat))
+    synthMusic(section===2?48:56,at,.10,section===2?.18:.12,"sine");
+  if(beat===4||beat===12)synthMusic(178,at,.09,.06,"square");
+  if(beat%2||section>=1)synthMusic(1900,at,.035,.016,"triangle");
+  prismVoice(midiToHz(root+[0,0,7,3][beat%4]),at,RIFT_STEP_SECONDS*1.9,.07,"bass");
+  const note=RIFT_MOTIF[step%RIFT_MOTIF.length];
+  if(note!==null)prismVoice(midiToHz(root+28+note+(section===2?12:0)),
+    at,RIFT_STEP_SECONDS*(section===2?2.1:1.4),section===2?.13:.09,"glass");
+  if(beat===0)for(const n of [0,3,7,10])
+    prismVoice(midiToHz(root+24+n),at,RIFT_STEP_SECONDS*11,.022,"pad");
+}
 function scheduleMusic(){
   if((!gameStarted&&!cinematic.active)||paused||
     (gameCleared&&!cinematic.active)||effectiveAudioGain("music")===0||
@@ -4733,6 +4786,7 @@ function scheduleMusic(){
   const bossTheme=activeStage===2&&guardian.active&&!guardian.defeated;
   const cityBossTheme=activeStage===3&&cityBoss.active&&!cityBoss.defeated;
   const stepDuration=cinematic.active?CINEMA_STEP_SECONDS:
+    riftPreview.active?RIFT_STEP_SECONDS:
     cityBossTheme?CITY_BOSS_STEP_SECONDS:
     activeStage===3?CITY_STEP_SECONDS:
     bossTheme?GUARDIAN_STEP_SECONDS/guardianPhase(guardian.hp).tempo:
@@ -4751,6 +4805,11 @@ function scheduleMusic(){
       nextMusicNote+=stepDuration;
       continue;
     }
+    if(riftPreview.active){
+      scheduleRiftTheme(nextMusicNote,musicStep);
+      musicStep=(musicStep+1)%128;
+      nextMusicNote+=stepDuration;continue;
+    }
     const chapter=Math.max(0,chapters.findLastIndex(ch=>player.x>=ch.x));
     if(cityBossTheme)scheduleCityBossTheme(nextMusicNote,musicStep);
     else if(activeStage===3)scheduleCityTheme(nextMusicNote,musicStep,chapter);
@@ -4764,7 +4823,7 @@ function scheduleMusic(){
 
 function syncTrackLabel(){
   if(!trackNowPlaying)return;
-  trackNowPlaying.textContent=activeStage===3
+  trackNowPlaying.textContent=riftPreview.active?"♫ A Origem do Vazio · 151 BPM":activeStage===3
     ?cityBoss.active&&!cityBoss.defeated
       ?"♫ CHEFE: Coroa do Vazio · 158 BPM"
       :"♫ Cidade Entre Estrelas · 136 BPM"
@@ -4877,6 +4936,13 @@ window.addEventListener("keydown",(event)=>{
       &&event.target?.tagName!=="INPUT")event.preventDefault();
     return;
   }
+  if(riftPreview.active){
+    if(key==="r"&&!event.repeat)startRiftPreview();
+    else keys.add(key);
+    if([" ","arrowup","arrowdown","arrowleft","arrowright"].includes(key))
+      event.preventDefault();
+    return;
+  }
   if([" ","w","arrowup","k"].includes(key)&&!event.repeat&&
     !jumpHeld&&!player.onGround&&dashUnlocked()){
     if(startAirDash()){event.preventDefault();jumpHeld=true;return;}
@@ -4939,6 +5005,7 @@ for(const [index,name] of ["One","Two","Three","Four"].entries()){
 document.querySelector("#stageOneButton").addEventListener("click", ()=>startGame(1));
  document.querySelector("#stageTwoButton").addEventListener("click",()=>{if(campaign.stage1Completed||testUnlocked())startGame(2)});
 document.querySelector("#stageThreeButton").addEventListener("click",()=>{if(campaign.stage2Completed||testUnlocked())startGame(3)});
+document.querySelector("#stageFourButton").addEventListener("click",startRiftPreview);
 document.querySelector("#backToMainButton").addEventListener("click", showMainMenu);
 document.querySelector("#achievementsButton").addEventListener("click",showAchievementsMenu);
 document.querySelector("#resultsAchievementsButton").addEventListener("click",showAchievementsMenu);
@@ -4953,7 +5020,7 @@ document.querySelector("#resultsMainButton").addEventListener("click", showMainM
 menuButton.addEventListener("click",showMainMenu);
 pauseButton.addEventListener("click",togglePause);
 document.querySelector("#resumeButton").addEventListener("click",resumeGame);
-document.querySelector("#restartPauseButton").addEventListener("click",()=>startGame(activeStage));
+document.querySelector("#restartPauseButton").addEventListener("click",()=>riftPreview.active?startRiftPreview():startGame(activeStage));
 document.querySelector("#deathRestartButton").addEventListener("click",restartAfterDeath);
 document.querySelector("#deathMainButton").addEventListener("click",showMainMenu);
 // All menu button feedback uses the existing SFX bus and stored effect volume.

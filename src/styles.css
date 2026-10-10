@@ -2974,3 +2974,10 @@ html.mobile-game .game-panel.cinematic-active .vr-film-actions button{
   line-height:1;
 }
 html.mobile-game .game-panel.cinematic-active .vr-film-hint{display:none!important;}
+
+/* 3.8: the final atlas region is now an accessible experimental preview. */
+.rift-detail-final .rift-detail-coming{margin:8px 0 5px;font-size:clamp(.78rem,2vh,.99rem);
+ color:#d7c4ff;letter-spacing:.04em;}
+.rift-detail-final #stageFourProgress{color:#b7d7de;line-height:1.4;}
+.rift-map-node-final:not(.is-locked){border-color:#bf83ff;box-shadow:0 0 16px #9846dd40;}
+.rift-map-node-final.is-locked{opacity:.68;}
