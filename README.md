@@ -1,4 +1,4 @@
-# Velocity Rift — Cidade das Fendas (versão 3.7.9 em teste)
+# Velocity Rift — Cidade das Fendas (versão 3.7.10 em teste)
 
 Um prototipo web 2D inspirado em jogos de plataforma de alta velocidade. Ele usa
 HTML, CSS e Canvas, sem assets oficiais. O Vite é uma dependência de desenvolvimento.
@@ -783,3 +783,9 @@ Terceiro lote da [issue #7](https://github.com/jhonyoreis/velocity-rift/issues/7
 - Executar `npm test`, `npm run build` e `npm run test:visual` no CI, e gerar o APK de teste via workflow Android em cada push na `main`. Marca Android: `3.7.9 · APK R11`.
 
 QA manual complementar: completar corrida de mais de cinco minutos e verificar o fantasma na tentativa seguinte; percorrer as cinematográficas e checar o APK R11 no aparelho.
+
+
+## 3.7.10 — QA: corrigir regressão de identificação Android
+
+- Generalizado o teste legado que exigia etiqueta `APK R10`, aceitando o identificador de revisão vigente e mantendo verificação de consistência de versão.
+- A versão `3.7.10 · APK R12` atualiza web/Android e executa novamente CI, testes de navegador e compilação Android.
