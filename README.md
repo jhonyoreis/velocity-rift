@@ -533,3 +533,32 @@ O APK utiliza modo imersivo, mantendo o Canvas 16:9 sem distorção e aproveitan
 As cinematográficas mostram dicas por toque, não atalhos de teclado. O HUD e os botões de movimento/boost/pulo recebem um layout mobile específico, com áreas de segurança para recortes da tela.
 
 QA no celular: verificar menus, status e navegação sem sobreposição, proporções de tela, cenas, combinação dos controles de toque, chefes, checkpoint, save e áudio. A geração do APK continua em GitHub Actions (workflow Android APK). O pacote debug pode ser assinado com chave diferente a cada compilação e exigir reinstalação, que pode apagar saves locais.
+
+### Etapa 4 — Revisão mobile unificada: HUD, menus e cinematográficas
+
+Melhorias reunidas a partir das capturas de testes Android:
+
+- HUD limpo **durante o jogo**: cristais, tempo e boost; vida dos chefes e
+  avisos críticos surgem somente quando relevantes. Sem nome da fase,
+  porcentagem nem velocidade fixos na tela.
+- Núcleos e rotas secretas exibem contagens **temporárias após a coleta**,
+  desaparecendo sozinhas; sempre disponíveis no resumo do Pause.
+- Pause refeito com tempo, cristais, núcleos, segredos e progresso; botões
+  Continuar, Reiniciar e Menu; Áudio, Controles e Debug são seções
+  **recolhíveis**. Debug deixou de existir como botão flutuante no jogo.
+- Sem HUD desenhado por trás de menus, resultados ou Pause.
+- Resultados usam cinco cartões compactos na mesma linha no Android e
+  botões organizados em linhas; tela rolável sem cortar ações.
+- Configurações menores, com volumes e botão Voltar acessíveis.
+- Cinematográficas com diálogos estreitos e curtos para deixar os
+  personagens visíveis; textos longos podem ser rolados.
+- Evita abrir o menu de seleção de texto do Android por pressionamento
+  prolongado sobre títulos, botões e legendas.
+
+**QA Android necessário:** verificar tela inicial com toque longo; terminar
+fase e testar todos os botões de resultado; abrir Configurações e voltar;
+pausar e verificar os cinco contadores; abrir e fechar Áudio/Controles/Debug;
+coletar núcleo, descobrir segredo e ver a contagem desaparecer; iniciar
+cenas com legendas longas e comparar espaço de arte; conferir que chefes
+continuam tendo barra de vida e que o Boost permanece legível.
+

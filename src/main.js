@@ -97,6 +97,11 @@ const progress=loadProgress();
 const campaign=loadCampaign();
 const secretTrials=[];
 const notification={title:"",subtitle:"",timer:0};
+const collectibleToast={title:"",timer:0};
+function showCollectibleToast(title,seconds=2){
+  collectibleToast.title=title;
+  collectibleToast.timer=seconds;
+}
 let runDamageCount=0,bossDamagedThisRun=false;
 if (!bestTime && progress.stage1.bestTime) bestTime = progress.stage1.bestTime;
 let loopRunning = false;
@@ -1368,7 +1373,7 @@ function restartAfterDeath(){
   overlay.classList.add("is-hidden");
   const panel=document.querySelector(".game-panel");
   panel.classList.remove("menu-active","pause-active");
-  if(debugToggle)debugToggle.hidden=false;
+  if(debugToggle)debugToggle.hidden=true;
   syncPauseButton();
   syncMusic();
   ensureLoop();
@@ -1440,8 +1445,17 @@ function showPauseMenu(){
   paused=true;accumulator=0;keys.clear();jumpHeld=false;
   syncMusic();
   document.querySelector("#pauseStageLabel").textContent=
-    (["","Primeiro Impulso","Cânion Prisma","Cidade das Fendas"][activeStage])+
-    " · "+formatTime(gameTime)+" de jornada";
+    ["","Primeiro Impulso","Cânion Prisma","Cidade das Fendas"][activeStage];
+  document.querySelector("#pauseStatTime").textContent=formatTime(gameTime);
+  document.querySelector("#pauseStatCrystals").textContent=String(player.rings);
+  document.querySelector("#pauseStatCores").textContent=player.cores+"/3";
+  document.querySelector("#pauseStatSecrets").textContent=
+    secretTrials.filter(trial=>trial.completed).length+"/3";
+  document.querySelector("#pauseStatProgress").textContent=
+    Math.round(100*clamp(player.x/goal.x,0,1))+"%";
+  for(const id of ["pauseAudioDetails","pauseControlsDetails","pauseDebugDetails"])
+    document.querySelector("#"+id).open=false;
+  if(debugToggle)debugToggle.hidden=false;
   screens.forEach(screen=>{screen.hidden=screen!==pauseMenu;});
   overlay.classList.remove("is-hidden");
   const panel=document.querySelector(".game-panel");
@@ -1456,6 +1470,7 @@ function resumeGame(){
   pauseMenu.hidden=true;
   overlay.classList.add("is-hidden");
   document.querySelector(".game-panel").classList.remove("pause-active");
+  if(debugToggle)debugToggle.hidden=true;
   syncPauseButton();syncMusic();
   pauseButton.focus?.();
 }
@@ -1694,6 +1709,7 @@ function resetGame() {
   runDamageCount=0;
   bossDamagedThisRun=false;
   notification.timer=0;
+  collectibleToast.timer=0;
 }
 
 function startGame(stage=activeStage,skipCinematic=false,withArrival=false) {
@@ -1712,7 +1728,7 @@ function startGame(stage=activeStage,skipCinematic=false,withArrival=false) {
     saveCampaign();
   }
   debugUsedThisRun = debugMode;
-  if(debugToggle)debugToggle.hidden=false;
+  if(debugToggle)debugToggle.hidden=true;
   activateStage(stage);
   resetGame();
   if(withArrival&&!debugMode)beginStageArrival();
@@ -2682,6 +2698,7 @@ function update(dt) {
   updateGuardian(dt);
   updateSecretTrials(dt);
   notification.timer=Math.max(0,notification.timer-dt);
+  collectibleToast.timer=Math.max(0,collectibleToast.timer-dt);
   updateRiftPortal(dt);
   updateGuardianVisuals(dt);
   updateFluxFx(dt);
@@ -3092,6 +3109,8 @@ function updateSecretTrials(dt){
       playSfx("secret-win");
       announce("ROTA DESCOBERTA: "+trial.name,
         "Fragmento recuperado · +8 cristais · +20 boost");
+      showCollectibleToast("◇ ROTAS  "+
+        secretTrials.filter(route=>route.completed).length+"/3",2.5);
       if(!debugUsedThisRun){
         recordCampaignSecret(activeStage,trial.id);
         const key="stage"+activeStage;
@@ -3275,6 +3294,7 @@ function collectItems() {
     if (core.active && distance(player.x, player.y, core.x, core.y) < PLAYER_RADIUS + core.r) {
       core.active = false;
       player.cores += 1;
+      showCollectibleToast("✦ NÚCLEOS  "+player.cores+"/3",2.2);
       recordCampaignCore(activeStage,memoryCores.indexOf(core));
       emitParticles(core.x,core.y,"#ffcb79",22,150);
       playSfx("checkpoint");
@@ -3418,7 +3438,7 @@ function draw() {
 
   ctx.restore();
   if(stageArrival.active)drawStageArrivalOverlay();
-  else drawHud();
+  else if(gameStarted&&!paused&&!gameCleared)drawHud();
 }
 
 function drawSky() {
@@ -4180,187 +4200,75 @@ function drawParticles() {
 
 
 function drawMobileHud(){
-  const speed=Math.round(Math.abs(player.vx));
-  const progress=clamp(player.x/goal.x,0,1);
+  drawMinimalHud(true);
+}
+function drawHud(){
+  drawMinimalHud(document.documentElement.classList.contains("mobile-game"));
+}
+function drawMinimalHud(mobile){
+  // The in-game HUD is intentionally sparse; all other stats live in Pause.
   ctx.save();
   ctx.textAlign="left";
-  ctx.fillStyle="rgba(5,16,30,.82)";
-  roundRect(15,12,248,81,13);ctx.fill();
-  roundRect(277,12,384,81,13);ctx.fill();
-  roundRect(675,12,270,81,13);ctx.fill();
-  ctx.fillStyle="#ebfff8";ctx.font="bold 21px system-ui";
-  ctx.fillText("◆ "+player.rings+" CRISTAIS",29,40);
-  ctx.fillStyle="#aadcd6";ctx.font="bold 15px system-ui";
-  ctx.fillText("VELOCIDADE "+speed,29,65);
-  ctx.fillStyle="#bafbea";ctx.font="bold 17px system-ui";
-  ctx.fillText(["","FLORESTA NEON","CÂNION PRISMA","CIDADE DAS FENDAS"][activeStage],295,37);
-  ctx.fillStyle="#2b525b";roundRect(295,48,345,14,7);ctx.fill();
-  ctx.fillStyle="#75ebd7";roundRect(295,48,Math.max(.5,345*progress),14,7);ctx.fill();
-  ctx.fillStyle="#d9ffed";ctx.font="bold 15px system-ui";
-  ctx.fillText("NÚCLEOS "+player.cores+"/3",295,82);
-  ctx.fillText(Math.round(progress*100)+"%",583,82);
-  ctx.fillStyle="#f9e0bb";ctx.font="bold 22px system-ui";
-  ctx.fillText(gameTime.toFixed(1)+" s",692,40);
-  ctx.fillStyle="#d4e6ed";ctx.font="bold 14px system-ui";
-  ctx.fillText("BOOST",692,66);
-  ctx.fillStyle="#285568";roundRect(750,56,176,12,6);ctx.fill();
-  ctx.fillStyle=player.boost>22?"#79efdb":"#ff9c71";
-  roundRect(750,56,Math.max(.5,176*player.boost/100),12,6);ctx.fill();
+  ctx.fillStyle="rgba(5,19,32,.73)";
+  roundRect(14,12,187,47,11);ctx.fill();
+  ctx.fillStyle="#effffa";ctx.font="bold 20px system-ui";
+  ctx.fillText("◆ "+player.rings,27,42);
 
-  if(activeStage===2&&guardian.active&&!guardian.defeated){
-    ctx.fillStyle="rgba(19,12,49,.86)";roundRect(285,103,389,49,9);ctx.fill();
-    ctx.fillStyle="#ebd4ff";ctx.font="bold 16px system-ui";
-    ctx.fillText("GUARDIÃO DO PRISMA",299,124);
-    ctx.fillStyle="#3f3058";ctx.fillRect(299,131,360,11);
-    ctx.fillStyle="#b99afa";ctx.fillRect(299,131,360*guardian.hp/guardian.maxHp,11);
+  const timeWidth=140;
+  ctx.fillStyle="rgba(5,19,32,.73)";
+  roundRect(VIEW_W-timeWidth-17,12,timeWidth,47,11);ctx.fill();
+  ctx.fillStyle="#f9ecdb";ctx.font="bold 20px system-ui";
+  ctx.textAlign="right";
+  ctx.fillText(gameTime.toFixed(1)+" s",VIEW_W-31,42);
+  ctx.textAlign="left";
+
+  // A thin boost gauge stays between the counters, without a bulky card.
+  ctx.fillStyle="rgba(8,30,46,.72)";
+  roundRect(291,26,370,18,9);ctx.fill();
+  ctx.fillStyle=player.boost>22?"#78f5d9":"#ffa66e";
+  roundRect(295,30,Math.max(0,362*clamp(player.boost/100,0,1)),10,5);ctx.fill();
+  ctx.fillStyle="#d4ffef";ctx.font="bold 11px system-ui";
+  ctx.fillText("BOOST",298,20);
+
+  const boss=activeStage===2&&guardian.active&&!guardian.defeated
+    ?{name:"GUARDIÃO DO PRISMA",hp:guardian.hp,max:guardian.maxHp}
+    :activeStage===3&&cityBoss.active&&!cityBoss.defeated
+      ?{name:"ARQUITETO DO VAZIO",hp:cityBoss.hp,max:cityBoss.maxHp}:null;
+  if(boss){
+    ctx.fillStyle="rgba(14,15,38,.87)";
+    roundRect(305,79,350,47,10);ctx.fill();
+    ctx.fillStyle="#f3d9ff";ctx.font="bold 13px system-ui";
+    ctx.fillText(boss.name,321,97);
+    ctx.fillStyle="#413154";roundRect(321,106,318,9,4);ctx.fill();
+    ctx.fillStyle="#cea6f5";roundRect(321,106,318*boss.hp/boss.max,9,4);ctx.fill();
   }
-  if(activeStage===3&&cityBoss.active&&!cityBoss.defeated){
-    ctx.fillStyle="rgba(19,12,49,.86)";roundRect(285,103,389,49,9);ctx.fill();
-    ctx.fillStyle="#f5d8ff";ctx.font="bold 16px system-ui";
-    ctx.fillText("ARQUITETO DO VAZIO",299,124);
-    ctx.fillStyle="#472d56";ctx.fillRect(299,131,360,11);
-    ctx.fillStyle="#ffaada";ctx.fillRect(299,131,360*cityBoss.hp/4,11);
+
+  // Collection counters appear only for a couple of seconds after pickup.
+  if(collectibleToast.timer>0){
+    ctx.globalAlpha=Math.min(1,collectibleToast.timer/.3);
+    ctx.textAlign="center";
+    ctx.fillStyle="rgba(8,35,46,.89)";
+    roundRect(327,boss?143:88,306,42,11);ctx.fill();
+    ctx.fillStyle="#abffe6";ctx.font="bold 16px system-ui";
+    ctx.fillText(collectibleToast.title,VIEW_W/2,boss?170:115);
+    ctx.globalAlpha=1;
   }
-  if(activeStage===3&&dashUnlocked()){
-    ctx.fillStyle="#f8dda9";ctx.font="bold 14px system-ui";
-    ctx.fillText("DASH "+(airDash.available?"PRONTO":"RECARREGANDO"),295,
-      cityBoss.active&&!cityBoss.defeated?170:111);
-  }
+
+  // Major achievement/tutorial notices retain their own short-lived toast.
   if(notification.timer>0){
-    ctx.globalAlpha=Math.min(1,notification.timer/.4);
-    ctx.fillStyle="rgba(12,24,43,.91)";roundRect(190,371,580,71,10);ctx.fill();
-    ctx.strokeStyle="#8cf8e4";ctx.lineWidth=2;ctx.stroke();
-    ctx.textAlign="center";ctx.fillStyle="#d5fff0";
-    ctx.font="bold 18px system-ui";ctx.fillText(notification.title,VIEW_W/2,399);
+    ctx.globalAlpha=Math.min(1,notification.timer/.35);
+    ctx.textAlign="center";
+    const noticeY=boss?202:collectibleToast.timer>0?148:100;
+    ctx.fillStyle="rgba(11,25,43,.88)";
+    roundRect(161,noticeY,638,notification.subtitle?60:40,10);ctx.fill();
+    ctx.fillStyle="#cbfff2";ctx.font="bold 15px system-ui";
+    ctx.fillText(notification.title,VIEW_W/2,noticeY+24,600);
     if(notification.subtitle){
-      ctx.fillStyle="#ffdfaa";ctx.font="15px system-ui";
-      ctx.fillText(notification.subtitle,VIEW_W/2,424);
+      ctx.fillStyle="#e5d9ae";ctx.font="12px system-ui";
+      ctx.fillText(notification.subtitle,VIEW_W/2,noticeY+44,600);
     }
   }
-  if(debugMode){
-    ctx.textAlign="left";ctx.fillStyle="#ffdea6";ctx.font="bold 16px system-ui";
-    ctx.fillText("DEBUG ATIVO",19,116);
-  }
   ctx.restore();
-}
-function drawHud() {
-  if(document.documentElement.classList.contains("mobile-game")){
-    drawMobileHud();
-    return;
-  }
-  const speed = Math.round(Math.abs(player.vx));
-  ctx.fillStyle = "rgba(5, 9, 11, 0.72)";
-  roundRect(16, 14, 290, 86, 8);
-  ctx.fill();
-
-  ctx.fillStyle = "#eef7f8";
-  ctx.font = "bold 17px Inter, sans-serif";
-  ctx.fillText(`Cristais ${player.rings}`, 32, 40);
-  ctx.fillText(`Vel. ${speed}`, 32, 68);
-
-  ctx.fillStyle = "#173139";
-  roundRect(136, 55, 146, 14, 7);
-  ctx.fill();
-  ctx.fillStyle = player.boost > 22 ? "#48e0ef" : "#ff805c";
-  roundRect(136, 55, 146 * (player.boost / 100), 14, 7);
-  ctx.fill();
-  ctx.fillStyle = "#abd8dc";
-  ctx.font = "12px Inter, sans-serif";
-  ctx.fillText(player.downhillSliding ? "Slide + impulso" : player.sliding ? "Deslizando" : "Boost", 136, 47);
-
-  ctx.fillStyle = "rgba(5, 9, 11, 0.62)";
-  roundRect(VIEW_W - 178, 14, 158, 56, 8);
-  ctx.fill();
-  ctx.fillStyle = "#eef7f8";
-  ctx.font = "bold 16px Inter, sans-serif";
-  ctx.fillText(`${gameTime.toFixed(2)}s`, VIEW_W - 158, 38);
-  ctx.font = "12px Inter, sans-serif";
-  ctx.fillStyle = "#abd8dc";
-  ctx.fillText(`Recorde ${bestTime ? bestTime.toFixed(2) + 's' : '--'}`, VIEW_W - 158, 58);
-  const progress = clamp(player.x / goal.x, 0, 1);
-  ctx.fillStyle = 'rgba(5, 9, 20, .64)';
-  roundRect(325, 18, 420, 21, 7);
-  ctx.fill();
-  ctx.fillStyle = '#f6ac43';
-  roundRect(332, 24, Math.max(0.01, 406 * progress), 8, 4);
-  ctx.fill();
-  ctx.fillStyle = '#fff';
-  ctx.font = 'bold 11px system-ui';
-  const section = chapters.slice().reverse().find(part => player.x >= part.x);
-  ctx.fillText(section ? section.title : (activeStage===3?"CIDADE DAS FENDAS":activeStage===2?"CÂNION PRISMA":"PRIMEIRO IMPULSO"),335,54);
-  ctx.fillText(Math.round(progress * 100) + '%', 704, 54);
-  ctx.fillStyle="#f9cb83";ctx.font="bold 13px system-ui";ctx.fillText("Núcleos "+player.cores+"/3",335,80);
-  if(activeStage>=2){ctx.fillStyle="#ffa2be";ctx.fillText("Quedas "+player.falls,610,80);}
-  ctx.fillStyle="#baffed";ctx.font="bold 12px system-ui";
-  ctx.fillText("Rotas secretas "+secretTrials.filter(t=>t.completed).length+"/3",335,99);
-  const timedRoute=secretTrials.find(t=>t.active);
-  if(timedRoute){
-    ctx.fillStyle="#ffdd9a";
-    ctx.fillText("DESAFIO "+Math.max(0,timedRoute.limit-timedRoute.elapsed).toFixed(1)+"s",530,99);
-  }
-  if(notification.timer>0){
-    ctx.save();ctx.globalAlpha=Math.min(1,notification.timer/.4);
-    ctx.fillStyle="rgba(13,24,46,.92)";
-    roundRect(240,notification.subtitle?443:452,480,notification.subtitle?67:45,10);ctx.fill();
-    ctx.strokeStyle="#8bffed";ctx.lineWidth=2;ctx.stroke();
-    ctx.textAlign="center";
-    ctx.fillStyle="#c5fff5";ctx.font="bold 17px system-ui";
-    ctx.fillText(notification.title,VIEW_W/2,notification.subtitle?468:481);
-    ctx.fillStyle="#ffe0a5";ctx.font="12px system-ui";
-    if(notification.subtitle)ctx.fillText(notification.subtitle,VIEW_W/2,490);
-    ctx.textAlign="left";ctx.restore();
-  }
-  if(debugMode){
-    ctx.fillStyle="#ffd79d";ctx.font="bold 12px system-ui";
-    ctx.fillText("DEBUG: BOOST ∞ · VOO · INVENCÍVEL",20,119);
-    ctx.fillText("F3: alternar · B: ir ao chefe",20,135);
-  }
-  if(activeStage===3&&cityBoss.active&&!cityBoss.defeated){
-    ctx.fillStyle="rgba(14,8,39,.87)";roundRect(310,108,355,72,9);ctx.fill();
-    ctx.fillStyle="#f4d6ff";ctx.font="bold 15px system-ui";
-    ctx.fillText("ARQUITETO DO VAZIO",326,130);
-    ctx.fillStyle="#37254c";ctx.fillRect(326,138,320,12);
-    ctx.fillStyle="#f7b7df";ctx.fillRect(326,138,320*cityBoss.hp/4,12);
-    ctx.font="12px system-ui";ctx.fillStyle="#fff2b5";
-    ctx.fillText(cityBoss.state==="exposed"?"NÚCLEO ABERTO · USE O DASH":
-      (cityBoss.hp<=2?"CUIDADO COM AS FENDAS DO CHÃO":"DESVIE DOS PROJÉTEIS"),326,168);
-  }
-  if(activeStage===3&&dashUnlocked()){
-    ctx.fillStyle="#fff0b4";ctx.font="bold 12px system-ui";
-    ctx.fillText("DASH AÉREO: "+(airDash.available?"PRONTO":"RECARREGUE NO CHÃO"),
-      335,cityBoss.active&&!cityBoss.defeated?193:121);
-  }
-  if(activeStage===2&&guardian.active&&!guardian.defeated){
-    ctx.fillStyle="rgba(15,8,35,.86)";roundRect(310,102,355,68,9);ctx.fill();
-    ctx.fillStyle="#e7ceff";ctx.font="bold 15px system-ui";
-    ctx.fillText("GUARDIÃO DO PRISMA",325,123);
-    ctx.fillStyle="#35234e";ctx.fillRect(325,131,322,12);
-    ctx.fillStyle="#bc93ff";ctx.fillRect(325,131,322*guardian.hp/guardian.maxHp,12);
-    ctx.font="12px system-ui";ctx.fillStyle="#ffe3ac";
-    ctx.fillText(guardianHint(),325,161);
-  }
-  if(activeStage===3&&cityBoss.defeated&&player.x>=cityBoss.arenaLeft){
-    ctx.fillStyle="#afffea";ctx.font="bold 14px system-ui";
-    ctx.fillText("O ARQUITETO CAIU · PORTAL FINAL LIBERADO",329,111);
-  }
-  if(activeStage===2&&guardian.defeated&&player.x>=guardian.arenaLeft){
-    ctx.fillStyle="#adffd8";ctx.font="bold 15px system-ui";
-    ctx.fillText(riftPortal.open?"PORTAL DA FENDA ABERTO · ENTRE NA FENDA":
-      "PORTAL DA FENDA SE MATERIALIZANDO...",329,115);
-  }
-  drawGuardianCinematic();
-  drawCityBossCinematic();
-  if (paused) {
-    ctx.fillStyle = 'rgba(5, 9, 20, .75)';
-    ctx.fillRect(0, 0, VIEW_W, VIEW_H);
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 42px Inter, sans-serif';
-    ctx.fillText('PAUSADO', VIEW_W / 2, VIEW_H / 2);
-    ctx.font = '20px Inter, sans-serif';
-    ctx.fillText('Pressione P para continuar', VIEW_W / 2, VIEW_H / 2 + 40);
-    ctx.textAlign = 'left';
-  }
 }
 
 function roundRect(x, y, w, h, radius) {

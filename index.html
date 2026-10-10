@@ -11,7 +11,6 @@
     <main class="shell">
       <section class="game-panel" aria-label="Velocity Rift 3.7.2">
         <canvas id="game" width="960" height="540"></canvas>
-        <button id="debugToggle" class="debug-toggle" type="button" aria-pressed="false" aria-label="Alternar modo de teste com boost infinito, voo e invencibilidade" title="F3" hidden>DEBUG: OFF</button>
         <div id="overlay" class="overlay" role="region" aria-label="Menu do Velocity Rift">
           <section id="mainMenu" class="menu-screen v3-main v4-home" aria-labelledby="menuHeading">
             <div class="v4-home-copy">
@@ -386,51 +385,66 @@
           <button id="deathMainButton" class="secondary-action" type="button">⌂ MENU PRINCIPAL</button>
         </div>
       </section>
-      <section id="pauseMenu" class="menu-screen v31-pause" aria-labelledby="pauseHeading" hidden>
-            <div class="v31-pause-eyebrow">VELOCITY RIFT 3.7.2 // INTERVALO</div>
-            <h2 id="pauseHeading">JOGO PAUSADO</h2>
-            <p id="pauseStageLabel" class="v31-pause-stage">Flux está a um passo de encontrar Alicia.</p>
-            <div class="v31-pause-body">
-              <div class="v31-pause-actions">
-                <button id="resumeButton" type="button" class="v31-pause-primary">▶ CONTINUAR</button>
-                <button id="restartPauseButton" type="button" class="v31-pause-action">↺ REINICIAR FASE</button>
-                <button id="menuButton" type="button" class="v31-pause-action">⌂ MENU PRINCIPAL</button>
-              </div>
-              <div class="v31-pause-audio">
-                <div class="v31-pause-subtitle">♫ ÁUDIO</div>
-                <div class="v31-compact-volume">
-                  <label for="pause-volume-master">Geral <output id="pause-value-master" for="pause-volume-master">100%</output></label>
-                  <input id="pause-volume-master" type="range" min="0" max="100" step="1" value="100">
-                </div>
-                <div class="v31-compact-volume">
-                  <label for="pause-volume-music">Música <output id="pause-value-music" for="pause-volume-music">100%</output></label>
-                  <input id="pause-volume-music" type="range" min="0" max="100" step="1" value="100">
-                </div>
-                <div class="v31-compact-volume">
-                  <label for="pause-volume-effects">Efeitos <output id="pause-value-effects" for="pause-volume-effects">100%</output></label>
-                  <input id="pause-volume-effects" type="range" min="0" max="100" step="1" value="100">
-                </div>
-                <div class="v31-mute-row">
-                  <button id="musicToggle" class="v31-mute-button" type="button" aria-pressed="true">♫ Música ligada</button>
-                  <button id="soundToggle" class="v31-mute-button" type="button" aria-pressed="true">🔊 Som ligado</button>
-                </div>
-              </div>
-            </div>
-            <div class="v31-pause-controls">
-              <div class="v31-pause-subtitle">⌨ CONTROLES</div>
-              <p class="vr-mobile-help vr-pause-touch-help">Na tela: ◀ ▶ para mover, Pular, Boost e Deslizar.</p>
-              <div class="v31-control-grid">
-                <span><strong>Mover</strong>A/D ou ← →</span>
-                <span><strong>Pular / Dash</strong>Espaço, W ou ↑ (duas vezes no ar; dash horizontal)</span>
-                <span><strong>Boost</strong>Shift ou J</span>
-                <span><strong>Deslizar</strong>S ou ↓</span>
-                <span><strong>Pausar</strong>P ou Esc</span>
-                <span><strong>Áudio</strong>M / N</span>
-              </div>
-            </div>
-            <small id="trackNowPlaying" class="v31-track-now-playing" aria-live="polite">♫ Neon Canopy · 108 BPM</small>
-          </section>
+      <section id="pauseMenu" class="menu-screen v31-pause vr-pause-clean" aria-labelledby="pauseHeading" hidden>
+        <header class="vr-pause-head">
+          <div>
+            <span class="vr-pause-eyebrow">INTERVALO</span>
+            <h2 id="pauseHeading">Pausado</h2>
+            <p id="pauseStageLabel" class="v31-pause-stage">Primeiro Impulso</p>
+          </div>
+        </header>
+        <div class="vr-pause-stat-grid" aria-label="Resumo da fase">
+          <div><small>Tempo</small><strong id="pauseStatTime">0.0s</strong></div>
+          <div><small>Cristais</small><strong id="pauseStatCrystals">0</strong></div>
+          <div><small>Núcleos</small><strong id="pauseStatCores">0/3</strong></div>
+          <div><small>Segredos</small><strong id="pauseStatSecrets">0/3</strong></div>
+          <div><small>Progresso</small><strong id="pauseStatProgress">0%</strong></div>
         </div>
+        <div class="vr-pause-actions">
+          <button id="resumeButton" type="button" class="v31-pause-primary">▶ CONTINUAR</button>
+          <button id="restartPauseButton" type="button" class="v31-pause-action">↺ REINICIAR FASE</button>
+          <button id="menuButton" type="button" class="v31-pause-action">⌂ MENU PRINCIPAL</button>
+        </div>
+        <div class="vr-pause-extras">
+          <details class="vr-pause-detail" id="pauseAudioDetails">
+            <summary>♫ Áudio <span aria-hidden="true">⌄</span></summary>
+            <div class="v31-pause-audio">
+              <div class="v31-compact-volume">
+                <label for="pause-volume-master">Geral <output id="pause-value-master" for="pause-volume-master">100%</output></label>
+                <input id="pause-volume-master" type="range" min="0" max="100" step="1" value="100">
+              </div>
+              <div class="v31-compact-volume">
+                <label for="pause-volume-music">Música <output id="pause-value-music" for="pause-volume-music">100%</output></label>
+                <input id="pause-volume-music" type="range" min="0" max="100" step="1" value="100">
+              </div>
+              <div class="v31-compact-volume">
+                <label for="pause-volume-effects">Efeitos <output id="pause-value-effects" for="pause-volume-effects">100%</output></label>
+                <input id="pause-volume-effects" type="range" min="0" max="100" step="1" value="100">
+              </div>
+              <div class="v31-mute-row">
+                <button id="musicToggle" class="v31-mute-button" type="button" aria-pressed="true">♫ Música ligada</button>
+                <button id="soundToggle" class="v31-mute-button" type="button" aria-pressed="true">🔊 Som ligado</button>
+              </div>
+            </div>
+          </details>
+          <details class="vr-pause-detail" id="pauseControlsDetails">
+            <summary>✦ Controles <span aria-hidden="true">⌄</span></summary>
+            <div class="vr-pause-help">
+              <p class="vr-mobile-help">◀ ▶ Mover · Pular · Boost · Slide</p>
+              <p class="vr-desktop-help">A/D ou setas: mover · Espaço: pular · Shift: boost · S: deslizar · Esc: pausa</p>
+            </div>
+          </details>
+          <details class="vr-pause-detail" id="pauseDebugDetails">
+            <summary>⚙ Opções de teste <span aria-hidden="true">⌄</span></summary>
+            <div class="vr-pause-debug">
+              <button id="debugToggle" class="debug-toggle" type="button"
+                aria-pressed="false" aria-label="Alternar modo de teste; pontuações desta tentativa não serão registradas" hidden>DEBUG: OFF</button>
+              <small>Modo de teste: boost infinito, voo e invencibilidade. Não registra recordes.</small>
+            </div>
+          </details>
+        </div>
+        <small id="trackNowPlaying" class="v31-track-now-playing" aria-live="polite">♫ Neon Canopy · 108 BPM</small>
+      </section>
         <button id="pauseButton" class="v31-in-game-pause" type="button" aria-label="Pausar o jogo" hidden>Ⅱ PAUSA</button>
         <div class="touch-controls" aria-label="Controles de toque">
           <button type="button" data-key="arrowleft" aria-label="Esquerda">◀</button>
