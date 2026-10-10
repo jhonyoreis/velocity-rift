@@ -2780,3 +2780,33 @@ html.mobile-game .game-panel.cinematic-active .vr-film-dialogue p{
 html.mobile-game .v4-home .vr-build-id{
   display:inline;color:#b0eedb;letter-spacing:.045em;
 }
+
+
+/* v3.7.4: permanent secret upgrades and restrained touch feedback. */
+.vr-pause-clean .vr-pause-upgrade-line{
+  margin:0!important;padding:7px 10px;text-align:center;
+  border:1px solid rgba(112,225,204,.22);
+  border-radius:8px;background:rgba(24,66,74,.30);
+  font-size:.72rem;font-weight:760;letter-spacing:.03em;
+  color:#a9f2df;
+}
+.vr-collection .secret-route-entry .secret-upgrade-reward{
+  display:block;font-weight:750;color:#b1eede;font-size:.68rem;
+}
+.vr-collection .secret-route-entry.discovered .secret-upgrade-reward{color:#93efca;}
+html.mobile-game .vr-pause-clean .vr-pause-upgrade-line{
+  font-size:clamp(.58rem,2vh,.72rem);padding:5px 8px;
+}
+html.mobile-game .touch-controls button,
+html.mobile-game .rift-map-cartography .rift-map-node,
+html.mobile-game .v4-home .v4-home-button{
+  transition:transform .11s ease,background-color .11s ease,border-color .11s ease;
+}
+html.mobile-game .touch-controls button:active,
+html.mobile-game .rift-map-cartography .rift-map-node:active,
+html.mobile-game .v4-home .v4-home-button:active{transform:scale(.965);}
+@media(prefers-reduced-motion:reduce){
+  html.mobile-game .touch-controls button,
+  html.mobile-game .rift-map-cartography .rift-map-node,
+  html.mobile-game .v4-home .v4-home-button{transition:none;}
+}

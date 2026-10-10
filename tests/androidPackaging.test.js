@@ -34,7 +34,11 @@ test("GitHub Actions produces a downloadable debug APK",()=>{
  assert.ok(flow.includes("assembleDebug"));
  assert.ok(flow.includes("actions/upload-artifact@v4"));
  assert.ok(flow.includes("android/app/build/outputs/apk/debug/app-debug.apk"));
- assert.ok(!flow.includes("secrets."));
+ assert.ok(flow.includes("ANDROID_KEYSTORE_BASE64"));
+ assert.ok(flow.includes("steps.signing.outputs.enabled == 'true'"));
+ assert.ok(flow.includes("assembleRelease"));
+ assert.ok(flow.includes("apksigner"));
+ assert.ok(flow.includes("velocity-rift-android-update"));
 });
 
 test("landscape game continues to expose touch controls",()=>{
@@ -65,8 +69,8 @@ test("Android native APK version matches the package version",()=>{
  const pkg=JSON.parse(readFileSync(new URL("../package.json",import.meta.url),"utf8"));
  const before='android { defaultConfig { versionCode 1 versionName "1.0" } }';
  const updated=setAndroidVersion(before,pkg.version);
- assert.ok(updated.includes("versionCode 3007003"));
- assert.ok(updated.includes('versionName "3.7.3"'));
+ assert.ok(updated.includes("versionCode 3007004"));
+ assert.ok(updated.includes('versionName "3.7.4"'));
  assert.equal(setAndroidVersion(updated,pkg.version),updated);
  assert.throws(()=>setAndroidVersion("no version fields",pkg.version),/version fields/);
 });

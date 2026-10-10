@@ -1,4 +1,6 @@
 import {SECRET_DEFS} from "./data/secretRoutes.js";
+import {secretUpgradeStats,secretUpgradeReward} from "./game/secretUpgrades.js";
+import {mobileTutorialSign} from "./game/mobileTutorial.js";
 import {ACHIEVEMENTS} from "./data/achievements.js";
 import {createStageOneWorld} from "./levels/forest.js";
 import {createStageTwoWorld} from "./levels/canyon.js";
@@ -110,6 +112,9 @@ let bestTime = 0;
 try { bestTime = Number(localStorage.getItem("velocity-rift-best-time")) || 0; } catch (_) { /* private storage */ }
 const progress=loadProgress();
 const campaign=loadCampaign();
+// Permanently owned via historical route records (independent of New Game).
+let boostUpgrades=secretUpgradeStats(progress.secrets);
+function boostCapacity(){return boostUpgrades.capacity;}
 const secretTrials=[];
 const notification={title:"",subtitle:"",timer:0};
 const collectibleToast={title:"",timer:0};
@@ -1490,6 +1495,9 @@ function showPauseMenu(){
     secretTrials.filter(trial=>trial.completed).length+"/3";
   document.querySelector("#pauseStatProgress").textContent=
     Math.round(100*clamp(player.x/goal.x,0,1))+"%";
+  document.querySelector("#pauseBoostUpgrades").textContent=
+    "BOOST "+boostCapacity()+" · FORÇA +"+
+    boostUpgrades.powerLevels*3+"% · "+boostUpgrades.collected+"/9 MELHORIAS";
   for(const id of ["pauseAudioDetails","pauseControlsDetails","pauseDebugDetails"])
     document.querySelector("#"+id).open=false;
   if(debugToggle)debugToggle.hidden=false;
@@ -2203,7 +2211,7 @@ function updateGuardian(dt){
     }else if(distance(player.x,player.y,item.x,item.y)<PLAYER_RADIUS+item.r){
       item.active=false;
       item.cooldown=4.2;
-      player.boost=Math.min(100,player.boost+70);
+      player.boost=Math.min(boostCapacity(),player.boost+70);
       emitParticles(item.x,item.y,"#67fff1",17,160);
       playSfx("orb");
     }
@@ -2610,7 +2618,7 @@ function update(dt) {
   const accel = player.onGround ? (player.sliding ? 390 : 1280) : 660;
   const friction = player.onGround ? (player.sliding ? 180 : 1050) : 110;
   const normalMax = 480;
-  const boostMax = BOOST_MAX_SPEED;
+  const boostMax = BOOST_MAX_SPEED*boostUpgrades.powerMultiplier;
   const speedBeforeInput = Math.abs(player.vx);
 
   if (left&&!airDash.active) {
@@ -2625,13 +2633,13 @@ function update(dt) {
     player.vx = approach(player.vx, 0, friction * dt);
   }
 
-  if(debugMode)player.boost=100;
+  if(debugMode)player.boost=boostCapacity();
   const boosting = boost && !airDash.active && player.boost > 0 && Math.abs(player.vx) > 50;
   player.boosting = boosting;
   if (boosting && !wasBoosting) { playSfx("boost"); triggerFluxFx("boost"); }
   if (boosting) {
-    player.vx += player.facing * BOOST_ACCELERATION * dt;
-    player.boost = debugMode?100:Math.max(0, player.boost - 34 * dt);
+    player.vx += player.facing * BOOST_ACCELERATION * boostUpgrades.powerMultiplier * dt;
+    player.boost = debugMode?boostCapacity():Math.max(0, player.boost - 34 * dt);
     player.trail.push({ x: player.x, y: player.y, life: 0.24 });
   }
 
@@ -3141,23 +3149,31 @@ function updateSecretTrials(dt){
       trial.active=false;trial.completed=true;
       trial.shots.length=0;
       player.rings+=8;
-      player.boost=Math.min(100,player.boost+20);
+      player.boost=Math.min(boostCapacity(),player.boost+20);
       emitParticles(trial.targetX,trial.targetY,"#bc9cff",26,165);
       playSfx("secret-win");
-      announce("ROTA DESCOBERTA: "+trial.name,
-        "Fragmento recuperado · +8 cristais · +20 boost");
-      showCollectibleToast("◇ ROTAS  "+
-        secretTrials.filter(route=>route.completed).length+"/3",2.5);
+      const reward=secretUpgradeReward(trial.id);
+      const key="stage"+activeStage;
+      const firstEarn=!debugUsedThisRun&&!progress.secrets[key].includes(trial.id);
       if(!debugUsedThisRun){
         recordCampaignSecret(activeStage,trial.id);
-        const key="stage"+activeStage;
-        if(!progress.secrets[key].includes(trial.id))
-          progress.secrets[key].push(trial.id);
+        if(firstEarn)progress.secrets[key].push(trial.id);
         const old=progress.secretTimes[key][trial.id];
         if(!old||trial.elapsed<old)progress.secretTimes[key][trial.id]=trial.elapsed;
+        boostUpgrades=secretUpgradeStats(progress.secrets);
         storeProgress();
         updateRouteAchievements();
       }
+      announce("ROTA DESCOBERTA: "+trial.name,
+        firstEarn?reward.title+" · UPGRADE PERMANENTE":
+          "Fragmento recuperado · +8 cristais · +20 boost");
+      if(firstEarn){
+        showCollectibleToast(reward.title,3.2);
+        emitParticles(trial.targetX,trial.targetY,
+          reward.type==="capacity"?"#70f7e5":"#f8c588",20,130);
+        player.boost=Math.min(boostCapacity(),player.boost+10);
+      }else showCollectibleToast("◇ ROTAS  "+
+        secretTrials.filter(route=>route.completed).length+"/3",2.5);
     }
   }
 }
@@ -3298,6 +3314,8 @@ function refreshAchievementsView(){
       return '<div class="secret-route-entry'+(earned?' discovered':'')+'">'+
         '<strong>'+(earned?'✦ ':'◇ ')+def.name+'</strong>'+
         '<small>'+def.hint.toLowerCase()+'</small>'+
+        '<small class="secret-upgrade-reward">'+secretUpgradeReward(def.id).title+
+        (earned?' · OBTIDO':' · RECOMPENSA')+'</small>'+
         '<small>Fase '+stage+' · '+(earned
           ?'Recorde '+(time?time.toFixed(2)+'s':'concluída')
           :'Ainda não descoberta')+'</small></div>';
@@ -3341,7 +3359,7 @@ function collectItems() {
     if (!boostOrb.active) continue;
     if (distance(player.x, player.y, boostOrb.x, boostOrb.y) < PLAYER_RADIUS + boostOrb.r) {
       boostOrb.active = false;
-      player.boost = Math.min(100, player.boost + 55);
+      player.boost = Math.min(boostCapacity(), player.boost + 55);
       emitParticles(boostOrb.x, boostOrb.y, "#61eefa", 16, 155);
       playSfx("orb");
       // Orb grants energy, not speed.
@@ -3761,14 +3779,19 @@ function drawTunnels() {
   }
 }
 function drawSigns() {
+  const mobile=document.documentElement.classList.contains("mobile-game");
   for (const sign of signs) {
     if (sign.x < cameraX - 220 || sign.x > cameraX + VIEW_W + 100) continue;
     const ground = groundY(sign.x);
-    // Keep the vertical secret ascent readable instead of covering it with
-    // old rectangular hint boards.
     if(secretTrials.some(t=>Math.abs(t.startX-sign.x)<215))continue;
     if (ground == null) continue;
-    ctx.fillStyle = "rgba(16, 28, 54, 0.94)";
+    const touchSign=mobile?mobileTutorialSign(sign,player.x):null;
+    if(mobile&&touchSign.alpha<=0)continue;
+    const title=mobile?touchSign.title:sign.title;
+    const hint=mobile?touchSign.hint:sign.hint;
+    ctx.save();
+    if(mobile)ctx.globalAlpha=touchSign.alpha;
+    ctx.fillStyle = "rgba(16, 28, 54, 0.90)";
     roundRect(sign.x, ground - 117, 210, 66, 8);
     ctx.fill();
     ctx.strokeStyle = "#38dcd0";
@@ -3776,10 +3799,11 @@ function drawSigns() {
     ctx.strokeRect(sign.x + 2, ground - 115, 206, 62);
     ctx.fillStyle = "#f6ac43";
     ctx.font = "bold 16px system-ui";
-    ctx.fillText(sign.title, sign.x + 12, ground - 88);
+    ctx.fillText(title, sign.x + 12, ground - 88,184);
     ctx.fillStyle = "#f3fbff";
     ctx.font = "11px system-ui";
-    ctx.fillText(sign.hint, sign.x + 12, ground - 67);
+    ctx.fillText(hint, sign.x + 12, ground - 67,185);
+    ctx.restore();
   }
 }
 function drawPulseGates() {
@@ -4006,7 +4030,7 @@ function updateFluxFx(dt){
     if(fluxFx.ghostTimer<=0){
       fluxFx.ghosts.push({x:player.x,y:player.y,facing:player.facing,
         slide:player.sliding,boost:Boolean(player.boosting),life:.25,maxLife:.25});
-      if(fluxFx.ghosts.length>FLUX_GHOST_LIMIT)fluxFx.ghosts.shift();
+      if(fluxFx.ghosts.length>(document.documentElement.classList.contains("mobile-game")?5:FLUX_GHOST_LIMIT))fluxFx.ghosts.shift();
       fluxFx.ghostTimer=player.boosting?.045:.075;
     }
   }else fluxFx.ghostTimer=0;
@@ -4206,11 +4230,13 @@ function updateParticles(dt) {
     p.vy += p.gravity * dt;
     p.life -= dt;
   }
-  particles = particles.filter(p => p.life > 0).slice(-180);
+  const cap=document.documentElement.classList.contains("mobile-game")?95:180;
+  particles = particles.filter(p => p.life > 0).slice(-cap);
 }
 
 function emitParticles(x, y, color, count, speed = 95) {
-  const room = Math.max(0, 180 - particles.length);
+  const cap=document.documentElement.classList.contains("mobile-game")?95:180;
+  const room = Math.max(0,cap - particles.length);
   for (let i = 0; i < Math.min(room, count); i += 1) {
     const angle = Math.random() * Math.PI * 2;
     const magnitude = speed * (0.25 + Math.random() * 0.75);
@@ -4263,7 +4289,7 @@ function drawMinimalHud(mobile){
   ctx.fillStyle="rgba(8,30,46,.72)";
   roundRect(291,26,370,18,9);ctx.fill();
   ctx.fillStyle=player.boost>22?"#78f5d9":"#ffa66e";
-  roundRect(295,30,Math.max(0,362*clamp(player.boost/100,0,1)),10,5);ctx.fill();
+  roundRect(295,30,Math.max(0,362*clamp(player.boost/boostCapacity(),0,1)),10,5);ctx.fill();
   ctx.fillStyle="#d4ffef";ctx.font="bold 11px system-ui";
   ctx.fillText("BOOST",298,20);
 
@@ -4803,7 +4829,7 @@ syncTrackLabel();
 function setDebugMode(enabled){
   debugMode=Boolean(enabled);
   if(debugMode){
-    player.boost=100;
+    player.boost=boostCapacity();
     if(gameStarted)debugUsedThisRun=true;
   }else{
     player.vy=0;player.onGround=false;player.ground=null;
@@ -4834,7 +4860,7 @@ function warpToGuardian(){
   player.y=groundY(player.x)-PLAYER_RADIUS;
   player.prevX=player.x;player.prevY=player.y;
   player.vx=0;player.vy=0;
-  player.boost=100;player.onGround=false;player.ground=null;
+  player.boost=boostCapacity();player.onGround=false;player.ground=null;
   checkpointIndex=checkpoints.length-1;
   checkpoints.forEach((point,i)=>{point.active=i<=checkpointIndex;});
   resetGuardian();

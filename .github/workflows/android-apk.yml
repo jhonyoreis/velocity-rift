@@ -47,6 +47,54 @@ jobs:
         run: |
           chmod +x ./gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace
+      - name: Check for stable Android signing secrets
+        id: signing
+        shell: bash
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          if [[ -n "$KEYSTORE_B64" && -n "$STORE_PASS" && -n "$KEY_PASS" && -n "$KEY_ALIAS" ]]; then
+            umask 077
+            printf '%s' "$KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/velocity-rift-signing.jks"
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Stable APK signing skipped: configure all four GitHub Actions secrets."
+          fi
+      - name: Build stable signed release APK
+        if: steps.signing.outputs.enabled == 'true'
+        working-directory: android
+        shell: bash
+        env:
+          STORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          ./gradlew assembleRelease --no-daemon
+          BUILD_TOOLS="$ANDROID_HOME/build-tools/35.0.0"
+          UNSIGNED="app/build/outputs/apk/release/app-release-unsigned.apk"
+          ALIGNED="$RUNNER_TEMP/velocity-rift-aligned.apk"
+          "$BUILD_TOOLS/zipalign" -f -p 4 "$UNSIGNED" "$ALIGNED"
+          "$BUILD_TOOLS/apksigner" sign \
+            --ks "$RUNNER_TEMP/velocity-rift-signing.jks" \
+            --ks-key-alias "$KEY_ALIAS" \
+            --ks-pass env:STORE_PASS \
+            --key-pass env:KEY_PASS \
+            --out "app/build/outputs/apk/release/velocity-rift-release.apk" \
+            "$ALIGNED"
+          "$BUILD_TOOLS/apksigner" verify --verbose \
+            "app/build/outputs/apk/release/velocity-rift-release.apk"
+      - name: Upload stable signed APK
+        if: steps.signing.outputs.enabled == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: velocity-rift-android-update
+          path: android/app/build/outputs/apk/release/velocity-rift-release.apk
+          if-no-files-found: error
+          retention-days: 30
       - name: Publish installable APK
         uses: actions/upload-artifact@v4
         with:

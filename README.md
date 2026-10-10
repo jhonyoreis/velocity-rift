@@ -1,4 +1,4 @@
-# Velocity Rift — Cidade das Fendas (versão 3.7.3 em teste)
+# Velocity Rift — Cidade das Fendas (versão 3.7.4 em teste)
 
 Um prototipo web 2D inspirado em jogos de plataforma de alta velocidade. Ele usa
 HTML, CSS e Canvas, sem assets oficiais. O Vite é uma dependência de desenvolvimento.
@@ -630,3 +630,95 @@ A pedido do usuário, **toda alteração publicada no jogo deve atualizar a vers
 - Os controles, modo imersivo, áudio e diálogos da revisão Android R4 foram aprovados em teste manual.
 - Nenhuma alteração nas mecânicas; apenas registro de versão visível, rastreio Android e garantia automática de consistência para atualizações futuras.
 - **APK R5** identifica o build de versionamento, já com a base da R4 validada. Histórico da R4 preservado acima.
+
+
+## Velocity Rift 3.7.4 — Upgrades secretos, Android e polimento (Etapa 4)
+
+Esta atualização reúne o escopo que estava previsto para 3.7.4, 3.7.5 e
+3.7.6, em **um único pacote 3.7.4**. O próximo patch é 3.7.5.
+
+### Recompensas permanentes das nove rotas
+
+A recompensa antiga (+8 cristais e +20 boost durante a tentativa) continua;
+agora, **na primeira conclusão sem DEBUG**, cada rota também concede uma
+melhoria permanente de perfil, restaurada ao abrir o jogo ou iniciar campanha
+nova. A fonte dos upgrades é o arquivo histórico
+`velocity-rift-progress-v1.secrets`, e não apenas a campanha atual; rotas
+anteriormente conquistadas são reconhecidas automaticamente.
+
+| Rota | Melhoria permanente |
+| --- | --- |
+| Copa Esmeralda (1) | Capacidade de boost +10 |
+| Ninho Luminoso (1) | Potência de boost +3% |
+| Horizonte Neon (1) | Capacidade de boost +10 |
+| Eco Suspenso (2) | Capacidade de boost +10 |
+| Arco Prismático (2) | Potência de boost +3% |
+| Zênite Violeta (2) | Capacidade de boost +10 |
+| Antenas Perdidas (3) | Potência de boost +3% |
+| Subsolo Fantasma (3) | Capacidade de boost +10 |
+| Coroa dos Arranha-céus (3) | Potência de boost +3% |
+
+Limites: barra inicial 100 → máxima 150; potência do impulso 100% → 112%
+(aceleração e velocidade máxima em boost). Não acumulam em repetições
+da mesma rota ou em DEBUG. O indicador de capacidade/potência aparece
+no Pause e as recompensas podem ser consultadas em Conquistas.
+
+### Tutorial e polimento para celular
+
+Placas próximas de Flux indicam os botões **◀ ▶, Pular, Boost, Slide e
+pulo duplo (dash)** em vez de teclas de PC. Surgem conforme ele se aproxima,
+desaparecem após a passagem e preservam as placas originais no desktop.
+Efeitos de toque mais suaves; em mobile, as partículas simultâneas são
+limitadas a 95 e as pós-imagens do Flux a 5, sem mudar a física ou o tempo
+dos desafios. Respeita a opção de reduzir animações.
+
+### Android APK: assinatura estável *opcional*
+
+GitHub Actions continua gerando o **APK debug** mesmo sem configurar nada,
+mas a chave efêmera de CI NÃO permite atualizar versões anteriores de modo
+confiável e pode exigir desinstalação, apagando dados locais.
+
+Para gerar um **APK de atualização assinado de forma estável**, é necessária
+uma chave privada SUA, armazenada de forma segura e permanente; **não
+envie o arquivo .jks para o repositório ou para chats**. Configure os quatro
+segredos do GitHub em Settings → Secrets and variables → Actions:
+
+- `ANDROID_KEYSTORE_BASE64` — arquivo .jks codificado em Base64;
+- `ANDROID_KEYSTORE_PASSWORD` — senha da keystore;
+- `ANDROID_KEY_ALIAS` — alias da chave;
+- `ANDROID_KEY_PASSWORD` — senha da chave.
+
+Gere a chave em uma máquina confiável usando `keytool -genkeypair`
+(disponível com o JDK), guarde o arquivo e senhas em lugar seguro e faça
+backup protegido. A secret Base64 pode ser gerada localmente com
+`base64 -w 0 velocity-rift-release.jks` em Linux ou
+`[Convert]::ToBase64String([IO.File]::ReadAllBytes("velocity-rift-release.jks"))`
+no PowerShell. O arquivo codificado nunca deve ser commitado.
+
+Com TODOS os segredos presentes, o workflow executa
+`assembleRelease → zipalign → apksigner sign → apksigner verify` e anexa
+`velocity-rift-android-update`. Sem os segredos, apenas
+`velocity-rift-android-debug` estará disponível. Não há chave privada
+armazenada no Git.
+
+**Importante:** atualizar a partir dos APKs debug anteriores, que usam
+outra assinatura, pode exigir uma última desinstalação, perdendo os saves
+locais; depois de configurar a chave permanente, instale apenas APKs
+`velocity-rift-android-update` gerados COM ESSA MESMA chave. O número
+`versionCode` do Android acompanha `package.json` para permitir
+atualizações com assinatura idêntica.
+
+### Checklist de QA
+
+- [ ] Confirmar versão `3.7.4 · APK R6` na tela inicial Android.
+- [ ] Testar placas mobile das três fases e confirmar que no PC elas
+  continuam exibindo atalhos de teclado.
+- [ ] Completar uma rota nova: ver notificação da recompensa, conferir
+  Pause e Conquistas, fechar/reabrir e testar boost aumentado.
+- [ ] Repetir rota já concluída, iniciar uma campanha nova e confirmar
+  que o upgrade de perfil não desaparece nem duplica.
+- [ ] Testar modo DEBUG: não registrar upgrades adicionais.
+- [ ] Verificar FPS, partículas e efeitos no Android e desktop.
+- [ ] Após configurar Secrets, gerar e verificar assinatura de um APK
+  estável, depois instalar uma atualização posterior sem apagar saves.
+
