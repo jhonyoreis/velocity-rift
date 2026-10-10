@@ -25,9 +25,9 @@ test("legacy records, invalid ids and duplicates never grant extra powers",()=>{
 test("boost level changes are applied in game, not only on the HUD",()=>{
  const main=readFileSync(new URL("../src/main.js",import.meta.url),"utf8");
  assert.ok(main.includes("boostUpgrades=secretUpgradeStats(progress.secrets)"));
- assert.ok(main.includes("function boostCapacity(){return boostUpgrades.capacity;}"));
- assert.ok(main.includes("BOOST_MAX_SPEED*boostUpgrades.powerMultiplier"));
- assert.ok(main.includes("BOOST_ACCELERATION * boostUpgrades.powerMultiplier"));
+ assert.ok(main.includes("function boostCapacity(){return fullTestMode?150:boostUpgrades.capacity;}"));
+ assert.ok(main.includes("BOOST_MAX_SPEED*boostPower()"));
+ assert.ok(main.includes("BOOST_ACCELERATION * boostPower()"));
  assert.ok(main.includes("player.boost/boostCapacity()"));
  assert.ok(main.includes("boostUpgrades=secretUpgradeStats(progress.secrets);"));
  assert.ok(main.includes("secretUpgradeReward(trial.id)"));

@@ -66,9 +66,9 @@ test("collection counts and progress bar use saved achievements and secret archi
    secrets:{stage1:[SECRET_DEFS[1][0].id],stage2:[],stage3:[]},
    secretTimes:{stage1:{},stage2:{},stage3:{}}
  };
- const run=new Function("document","ACHIEVEMENTS","SECRET_DEFS","progress","secretUpgradeReward",source+
+ const run=new Function("document","ACHIEVEMENTS","SECRET_DEFS","progress","secretUpgradeReward","fullTestMode",source+
    "\nreturn refreshAchievementsView;");
- run(document,ACHIEVEMENTS,SECRET_DEFS,progress,secretUpgradeReward)();
+ run(document,ACHIEVEMENTS,SECRET_DEFS,progress,secretUpgradeReward,false)();
  assert.equal(nodes.get("#achievementsCount").textContent,"2 de "+ACHIEVEMENTS.length);
  assert.equal(nodes.get("#achievementProgressTrack").attributes["aria-valuenow"],"2");
  assert.equal(nodes.get("#achievementProgressTrack").attributes["aria-valuemax"],String(ACHIEVEMENTS.length));

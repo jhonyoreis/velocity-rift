@@ -27,7 +27,7 @@ test("new game is first and continue is disabled until campaign save exists",()=
  assert.ok(main.includes('const canContinue=campaign.started===true'));
  assert.ok(main.includes('continueButton.disabled=!canContinue'));
  assert.ok(main.includes('continueButton.setAttribute("aria-disabled",String(!canContinue))'));
- assert.ok(main.includes('if(!campaign.started)return;'));
+ assert.ok(main.includes('if(!campaign.started&&!fullTestMode)return;'));
  assert.match(css,/\.v4-home-continue:disabled\s*\{/);
 });
 
