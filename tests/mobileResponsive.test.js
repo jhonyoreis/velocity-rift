@@ -40,7 +40,7 @@ test("cinematic hints and HUD switch to mobile presentation; computer remains un
  assert.ok(main.includes('classList.toggle("mobile-game"'));
  assert.ok(main.includes('classList.toggle("native-android"'));
  assert.ok(main.includes("function drawMobileHud()"));
- assert.ok(main.includes("if(document.documentElement.classList.contains(\"mobile-game\"))"));
+ assert.ok(main.includes("drawMinimalHud(document.documentElement.classList.contains(\"mobile-game\"))"));
  const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
  assert.ok(html.includes('vr-film-hint vr-desktop-help'));
  assert.ok(html.includes("Toque em Avançar"));
