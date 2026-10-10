@@ -30,16 +30,51 @@ async function verifyCanvas(page){
  });
  assert.ok(colored>500,"game Canvas must contain rendered pixels");
 }
-async function enterGame(page){
+async function verifyCinematicDock(page,mobile){
+ const dialogue=page.locator(".vr-film-dialogue");
+ const next=page.locator("#cinematicNextButton");
+ const menu=page.locator("#cinematicExitButton");
+ assert.equal(await page.locator("#cinematicSkipButton").count(),0,"cutscene has no skip button");
+ assert.equal(await dialogue.isVisible(),true,"dialogue is visible");
+ assert.equal(await next.isVisible(),true,"advance icon is visible");
+ assert.equal(await menu.isVisible(),true,"menu icon is visible");
+ assert.match(await next.getAttribute("aria-label"),/Avançar|Continuar|Começar/);
+ assert.match(await menu.getAttribute("aria-label"),/menu/i);
+ assert.equal((await next.innerText()).trim(),"➜","advance remains icon-only");
+ assert.equal((await menu.innerText()).trim(),"☰","menu remains icon-only");
+ const box=await dialogue.boundingBox(),a=await next.boundingBox(),m=await menu.boundingBox();
+ const panel=await page.locator(".game-panel").boundingBox();
+ assert.ok(box&&a&&m&&panel,"cinematic dock has measurable bounds");
+ assert.ok(a.x>=box.x+box.width-2&&m.x>=box.x+box.width-2,"buttons sit beside dialogue");
+ assert.ok(m.y>a.y,"menu button stays below the next button");
+ assert.ok(box.y>panel.y+panel.height*.45,"dialogue sits in the lower portion of artwork");
+ if(mobile){
+   for(const b of [a,m]){
+     assert.ok(b.width>=40&&b.height>=40,"touch icons must be easy to tap");
+     assert.ok(b.x>=panel.x-2&&b.x+b.width<=panel.x+panel.width+2,"buttons stay inside game panel");
+   }
+   assert.equal(await dialogue.evaluate(el=>getComputedStyle(el).overflowY),"auto",
+     "long dialogue can scroll without covering the cutscene");
+ }
+}
+async function enterGame(page,mobile=false){
  await page.locator("#newGameButton").click();
  assert.equal(await page.locator("#newGameConfirm").isVisible(),true);
  await page.locator("#confirmNewGameButton").click();
- for(let attempt=0;attempt<5;attempt++){
-   if(await page.locator("#cinematicSkipButton").isVisible()){
-     await page.locator("#cinematicSkipButton").click();
-     await sleep(150);
-   }
+ await page.locator("#cinematicNextButton").waitFor({state:"visible"});
+ await verifyCinematicDock(page,mobile);
+ await screen(page,mobile?"android-landscape-cinematic":"desktop-cinematic");
+ // The menu icon exits the story without secretly completing or skipping it.
+ await page.locator("#cinematicExitButton").click();
+ assert.equal(await page.locator("#mainMenu").isVisible(),true);
+ await page.locator("#newGameButton").click();
+ await page.locator("#confirmNewGameButton").click();
+ // Progress through all dialogue frames, including the next chapter intro.
+ for(let attempt=0;attempt<24;attempt++){
    if(await page.locator(".game-panel.gameplay-active").count())break;
+   if(await page.locator("#cinematicNextButton").isVisible())
+     await page.locator("#cinematicNextButton").click();
+   else await sleep(90);
  }
  await page.locator(".game-panel.gameplay-active").waitFor({timeout:10000});
  await sleep(350);
@@ -92,7 +127,7 @@ try{
  await phone.goto(base,{waitUntil:"networkidle"});
  assert.equal(await phone.locator("#mainMenu").isVisible(),true);
  await screen(phone,"android-landscape-home");
- await enterGame(phone);
+ await enterGame(phone,true);
  await verifyTouchControls(phone);
  await screen(phone,"android-landscape-gameplay");
  await phone.locator("#pauseButton").click();

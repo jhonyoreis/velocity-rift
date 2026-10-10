@@ -1,4 +1,4 @@
-# Velocity Rift — Cidade das Fendas (versão 3.7.10 em teste)
+# Velocity Rift — Cidade das Fendas (versão 3.7.11 em teste)
 
 Um prototipo web 2D inspirado em jogos de plataforma de alta velocidade. Ele usa
 HTML, CSS e Canvas, sem assets oficiais. O Vite é uma dependência de desenvolvimento.
@@ -789,3 +789,15 @@ QA manual complementar: completar corrida de mais de cinco minutos e verificar o
 
 - Generalizado o teste legado que exigia etiqueta `APK R10`, aceitando o identificador de revisão vigente e mantendo verificação de consistência de versão.
 - A versão `3.7.10 · APK R12` atualiza web/Android e executa novamente CI, testes de navegador e compilação Android.
+
+
+## 3.7.11 — Balão de cutscene no rodapé e controles por ícones
+
+- Diálogos das cinematográficas passam a ocupar uma faixa junto à borda inferior do jogo, com duas ações compactas **ao lado direito** do balão: **➜** avança para a próxima fala e **☰** volta ao menu principal.
+- O botão **Pular cena** foi removido. Progredir naturalmente pela última fala continua levando ao próximo trecho ou à partida; a tecla Esc retorna ao menu durante a cinematográfica.
+- No Android horizontal, o texto permanece legível com rolagem interna apenas quando longo e respeita as áreas seguras da tela. A arte e os personagens ficam livres acima do painel.
+- Controles continuam acessíveis com `aria-label`, tooltip, foco por teclado e tamanho mínimo de toque. Galeria, áudio, saves e física não mudaram.
+- Testes de navegador passam a percorrer falas com o botão ➜ (sem pular) e verificam posicionamento do balão e dos dois ícones, tanto em desktop quanto em Android horizontal.
+- Versão de instalação: `3.7.11 · APK R13`.
+
+**QA manual Android:** testar abertura e transições das três fases, especialmente falas longas em tela 16:9 e telas mais largas; conferir ➜ e ☰ com toque, antes de continuar a partida e quando a cutscene é aberta pela Galeria.

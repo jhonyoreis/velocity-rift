@@ -2918,3 +2918,59 @@ html.mobile-game .game-panel .vr-bonus-list{gap:5px;}
 @media(max-width:600px){
   .game-panel .vr-story-list,.game-panel .vr-bonus-list{grid-template-columns:minmax(0,1fr);}
 }
+
+
+/* 3.7.11 — Cinematic bottom dock: dialogue and only two icon controls.
+   The art remains visible above; long subtitles scroll inside the panel. */
+.game-panel.cinematic-active .vr-film-bottom{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:end;align-self:center;
+  gap:clamp(7px,1.4vw,13px);
+  width:min(100%,900px);max-width:900px;max-height:none;
+  margin:0 auto;
+}
+.game-panel.cinematic-active .vr-film-dialogue{
+  min-width:0;min-height:0;max-height:min(30vh,155px);
+  overflow-y:auto;overscroll-behavior:contain;
+  scrollbar-width:thin;pointer-events:auto;
+  padding:clamp(9px,2vh,14px) clamp(11px,2vw,19px);
+}
+.game-panel.cinematic-active .vr-film-actions{
+  display:flex;flex-direction:column;justify-content:flex-end;
+  align-items:center;flex-wrap:nowrap;gap:7px;margin:0;
+  width:auto;pointer-events:auto;
+}
+.game-panel.cinematic-active .vr-film-actions button{
+  display:grid;place-items:center;flex:none;
+  width:clamp(40px,5vw,49px);height:clamp(40px,5vw,49px);
+  min-width:40px;min-height:40px;padding:0;
+  font:800 clamp(1.2rem,2.4vw,1.7rem)/1 system-ui,sans-serif;
+  letter-spacing:0;border-radius:11px;
+}
+.game-panel.cinematic-active .vr-film-actions button span{pointer-events:none;}
+.game-panel.cinematic-active .vr-film-hint{
+  grid-column:1 / -1;margin:0;line-height:1.2;
+}
+html.mobile-game .game-panel.cinematic-active .vr-film-bottom{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;
+  align-items:end;align-self:stretch;gap:8px;
+  width:100%;max-width:none;max-height:none;margin:0;
+}
+html.mobile-game .game-panel.cinematic-active .vr-film-dialogue{
+  min-width:0;width:100%;max-height:min(30vh,125px);
+  padding:clamp(7px,2vh,10px) clamp(10px,2vw,14px);
+  background:rgba(6,17,37,.83);
+  border-radius:10px;
+}
+html.mobile-game .game-panel.cinematic-active .vr-film-actions{
+  display:flex;flex-direction:column;align-items:stretch;
+  width:clamp(42px,11vh,49px);gap:6px;margin:0;
+}
+html.mobile-game .game-panel.cinematic-active .vr-film-actions button{
+  width:100%;height:clamp(42px,11vh,49px);
+  min-width:42px;min-height:42px;max-height:49px;
+  padding:0;font-size:clamp(1.2rem,4vh,1.6rem);
+  line-height:1;
+}
+html.mobile-game .game-panel.cinematic-active .vr-film-hint{display:none!important;}

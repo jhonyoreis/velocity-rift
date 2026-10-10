@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Velocity Rift 3.7.10 — Cidade das Fendas</title>
+    <title>Velocity Rift 3.7.11 — Cidade das Fendas</title>
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <link rel="stylesheet" href="./src/styles.css" />
   </head>
   <body>
     <main class="shell">
-      <section class="game-panel" aria-label="Velocity Rift 3.7.10">
+      <section class="game-panel" aria-label="Velocity Rift 3.7.11">
         <canvas id="game" width="960" height="540"></canvas>
         <div id="overlay" class="overlay" role="region" aria-label="Menu do Velocity Rift">
           <section id="mainMenu" class="menu-screen v3-main v4-home" aria-labelledby="menuHeading">
@@ -43,7 +43,7 @@
             <div class="v4-home-art" aria-hidden="true">
               <img src="./menu-hero.svg" alt="" width="850" height="760" decoding="async" />
             </div>
-            <small class="v4-home-version">v3.7.10 · <span class="vr-build-id">APK R12</span></small>
+            <small class="v4-home-version">v3.7.11 · <span class="vr-build-id">APK R13</span></small>
 
             <!-- Keep existing progress anchors for saves and other menus,
                  without showing a statistics dashboard on the home screen. -->
@@ -99,13 +99,12 @@
                 <h2 id="cinematicTitle">A Flor e a Ruptura</h2>
                 <p id="cinematicText">Uma história está prestes a começar.</p>
               </div>
-              <div class="vr-film-actions">
-                <button id="cinematicNextButton" type="button" class="vr-film-next">Avançar <span aria-hidden="true">➜</span></button>
-                <button id="cinematicSkipButton" type="button" class="vr-film-skip">Pular cena</button>
-                <button id="cinematicExitButton" type="button" class="vr-film-exit" aria-label="Interromper a cutscene e voltar ao menu">Menu</button>
+              <div class="vr-film-actions" aria-label="Controles da cutscene">
+                <button id="cinematicNextButton" type="button" class="vr-film-next" aria-label="Avançar diálogo" title="Avançar diálogo"><span aria-hidden="true">➜</span></button>
+                <button id="cinematicExitButton" type="button" class="vr-film-exit" aria-label="Voltar ao menu principal" title="Voltar ao menu"><span aria-hidden="true">☰</span></button>
               </div>
-              <small class="vr-film-hint vr-desktop-help">Enter / Espaço: avançar · Esc: pular · cenas revistáveis na galeria</small>
-              <small class="vr-film-hint vr-mobile-help">Toque em Avançar para continuar ou em Pular cena.</small>
+              <small class="vr-film-hint vr-desktop-help">Enter / Espaço: avançar · Esc: menu · cenas revistáveis na galeria</small>
+              <small class="vr-film-hint vr-mobile-help">Toque na seta para avançar ou no menu para voltar.</small>
             </div>
           </section>
           <section id="settingsMenu" class="menu-screen v3-settings" aria-labelledby="settingsHeading" hidden>

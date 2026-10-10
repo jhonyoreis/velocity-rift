@@ -58,8 +58,13 @@ test("cinematic mobile dialogue hides speaker and title but preserves story and 
   assert.ok(css.includes(".vr-film-dialogue #cinematicTitle"));
   assert.ok(css.includes("max-height:min(25vh,130px)"));
   assert.ok(html.includes('id="cinematicText"'));
-  for(const id of ["cinematicNextButton","cinematicSkipButton","cinematicExitButton"])
+  for(const id of ["cinematicNextButton","cinematicExitButton"])
     assert.ok(html.includes('id="'+id+'"'));
+  assert.ok(!html.includes('id="cinematicSkipButton"'));
+  assert.match(html,/id="cinematicNextButton"[^>]*aria-label="Avançar diálogo"/);
+  assert.match(html,/id="cinematicExitButton"[^>]*aria-label="Voltar ao menu principal"/);
+  assert.ok(js.includes('next.setAttribute("aria-label",action)'));
+  assert.ok(!js.includes('querySelector("#cinematicSkipButton")'));
   assert.ok(js.includes('document.querySelector("#cinematicText").textContent=frame.text;'));
 });
 

@@ -856,10 +856,13 @@ function refreshCinematicText(){
   document.querySelector("#cinematicTitle").textContent=frame.title;
   document.querySelector("#cinematicText").textContent=frame.text;
   const next=document.querySelector("#cinematicNextButton");
-  next.textContent=cinematic.frameIndex===scene.frames.length-1?
-    (cinematic.replay?"Voltar à galeria ➜":
-      cinematic.key==="opening"?"Continuar história ➜":"Começar fase ➜")
-    :"Avançar ➜";
+  const action=cinematic.frameIndex===scene.frames.length-1?
+    (cinematic.replay?"Voltar à galeria":
+      cinematic.key==="opening"?"Continuar história":"Começar fase")
+    :"Avançar diálogo";
+  // Preserve the icon-only control, keeping its purpose accessible to assistive tech.
+  next.setAttribute("aria-label",action);
+  next.title=action;
 }
 function updateCinematic(dt){
   if(!cinematic.active)return;
@@ -4853,7 +4856,7 @@ window.addEventListener("keydown",(event)=>{
     if(["enter"," ","arrowright"].includes(key)){
       event.preventDefault();nextCinematicFrame();return;
     }
-    if(key==="escape"){event.preventDefault();finishCinematic();return;}
+    if(key==="escape"){event.preventDefault();cancelCinematic(true);return;}
     return;
   }
   if((key==="p"||key==="escape")&&gameStarted&&!event.repeat){
@@ -4918,7 +4921,6 @@ document.querySelector("#galleryStageOne").addEventListener("click",()=>replayCi
 document.querySelector("#galleryStageTwo").addEventListener("click",()=>replayCinematic("intro2"));
 document.querySelector("#galleryStageThree").addEventListener("click",()=>replayCinematic("intro3"));
 document.querySelector("#cinematicNextButton").addEventListener("click",nextCinematicFrame);
-document.querySelector("#cinematicSkipButton").addEventListener("click",finishCinematic);
 document.querySelector("#cinematicExitButton").addEventListener("click",()=>cancelCinematic(true));
 for(const [index,name] of ["One","Two","Three","Four"].entries()){
   const button=document.querySelector("#mapNodeStage"+name);
