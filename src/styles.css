@@ -2104,3 +2104,337 @@ body {
     color:#092b34;
   }
 }
+
+
+/* ETAPA 4 / ANDROID — layout mobile-first em paisagem.
+   Ativado no WebView Capacitor e em navegadores de toque em paisagem.
+   Uma área de scroll por tela; a ilustração não é deformada. */
+.vr-mobile-help{display:none;}
+html.mobile-game,html.mobile-game body{width:100%;height:100%;min-height:100%;margin:0;overflow:hidden;}
+html.mobile-game body{display:block;overscroll-behavior:none;background:#081426;}
+html.mobile-game .shell{
+  display:block;width:100%;max-width:none;height:100dvh;max-height:100dvh;
+  min-height:0;margin:0;padding:0;
+}
+html.mobile-game .game-panel{
+  position:relative;width:100%;height:100%;border:0;border-radius:0;
+  max-width:none;overflow:hidden;box-shadow:none;
+  background:
+    radial-gradient(ellipse 85% 135% at 50% 48%,#19334d 0%,#0c2036 52%,#061322 100%);
+}
+html.mobile-game .game-panel canvas{
+  position:absolute;inset:0;display:block;
+  width:100%!important;height:100%!important;
+  max-width:100%;max-height:100%;aspect-ratio:auto;
+  object-fit:contain;object-position:center;
+  background:transparent;
+}
+html.mobile-game .game-panel .overlay{
+  position:absolute;inset:0;width:100%;height:100%;min-height:0;
+  max-height:100%;overflow:hidden;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:max(9px,env(safe-area-inset-top)) max(15px,env(safe-area-inset-right))
+    max(9px,env(safe-area-inset-bottom)) max(15px,env(safe-area-inset-left));
+}
+html.mobile-game .game-panel .overlay .menu-screen[hidden]{display:none!important;}
+html.mobile-game .game-panel .overlay .menu-screen:not([hidden]){
+  min-height:0;max-height:100%;max-width:min(100%,1100px);
+  overflow-x:hidden;
+  scrollbar-width:thin;scrollbar-color:#609891 transparent;
+  overscroll-behavior:contain;
+}
+html.mobile-game .game-panel .overlay button,
+html.mobile-game .game-panel .touch-controls button{
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation;
+}
+html.mobile-game .game-panel .overlay button:focus-visible{
+  outline:2px solid #ffe5a4;outline-offset:2px;
+}
+html.mobile-game .vr-mobile-help{display:block;}
+html.mobile-game .vr-desktop-help{display:none!important;}
+
+/* Home: side-by-side em qualquer largura de celular horizontal. */
+html.mobile-game .game-panel .overlay .v4-home{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.02fr);
+  gap:clamp(4px,2vw,26px);align-items:center;
+  width:min(100%,980px);height:100%;max-height:100%;
+  margin:0;padding:clamp(10px,2.7vh,23px) clamp(6px,2.8vw,31px);
+  overflow-y:auto;
+}
+html.mobile-game .v4-home .v4-home-copy{gap:clamp(8px,3vh,21px);}
+html.mobile-game .v4-home h1#menuHeading{
+  font-size:clamp(1.8rem,9.8vh,4rem);line-height:.96;letter-spacing:-.06em;
+}
+html.mobile-game .v4-home .v4-home-tagline{
+  margin:7px 0 0!important;font-size:clamp(.66rem,2.7vh,.9rem);
+}
+html.mobile-game .v4-home .v4-home-actions{gap:8px;}
+html.mobile-game .v4-home .v4-home-button{
+  min-height:clamp(40px,10.8vh,54px);padding:8px 15px;font-size:.75rem;
+}
+html.mobile-game .v4-home .v4-home-links{gap:5px 16px;}
+html.mobile-game .v4-home .v4-home-links button{padding:5px 0;font-size:.66rem;}
+html.mobile-game .v4-home .v4-home-art{
+  position:relative;right:auto;top:auto;width:100%;height:100%;
+  align-self:stretch;opacity:1;
+}
+html.mobile-game .v4-home .v4-home-art img{width:100%;max-height:100%;object-fit:contain;}
+html.mobile-game .v4-home .v4-home-version{right:clamp(8px,3vw,30px);bottom:5px;}
+
+/* Mapa: mapa interativo à esquerda, ficha concisa à direita. */
+html.mobile-game .game-panel .overlay .rift-map-clean{
+  display:grid;grid-template-rows:auto minmax(0,1fr) auto;
+  gap:clamp(6px,1.8vh,14px);
+  padding:clamp(7px,1.8vh,14px) clamp(4px,2.3vw,25px);
+  height:100%;max-height:100%;width:min(100%,1100px);overflow:hidden;
+}
+html.mobile-game .rift-map-clean .rift-map-header{align-items:center;gap:8px;}
+html.mobile-game .rift-map-clean .rift-map-header h2{
+  font-size:clamp(1.2rem,5.1vh,2rem);
+}
+html.mobile-game .rift-map-clean .rift-map-overline{font-size:.52rem;margin-bottom:3px;}
+html.mobile-game .rift-map-clean .rift-map-intro{font-size:.62rem;margin-top:3px;}
+html.mobile-game .rift-map-clean .rift-map-progress{font-size:.62rem;padding:6px 9px;}
+html.mobile-game .rift-map-clean .rift-map-layout{
+  display:grid;grid-template-columns:minmax(0,1.07fr) minmax(0,.93fr);
+  gap:clamp(7px,1.4vw,15px);height:100%;min-height:0;overflow:hidden;
+}
+html.mobile-game .rift-map-clean .rift-map-world.rift-map-cartography{
+  width:100%;height:100%;min-height:0;
+}
+html.mobile-game .rift-map-clean .rift-map-info{height:100%;min-height:0;}
+html.mobile-game .rift-map-clean .rift-map-details{
+  display:flex;width:100%;height:100%;min-height:0;
+  gap:clamp(4px,1.2vh,9px);padding:clamp(8px,2.4vh,15px);
+  overflow-y:auto;scrollbar-width:thin;
+}
+html.mobile-game .rift-map-clean .rift-map-details h3{
+  font-size:clamp(1.05rem,4.7vh,1.72rem);
+}
+html.mobile-game .rift-map-clean .rift-detail-main{gap:2px;margin-top:0;}
+html.mobile-game .rift-map-clean .rift-detail-story{
+  margin:2px 0 0;min-height:0;font-size:clamp(.59rem,2.25vh,.72rem);
+  line-height:1.3;
+}
+html.mobile-game .rift-map-clean .rift-detail-stats{padding:5px 0;margin-top:auto;}
+html.mobile-game .rift-map-clean .rift-detail-stats>div{padding:0 6px;}
+html.mobile-game .rift-map-clean .rift-map-launch{min-height:38px;padding:7px 10px;}
+html.mobile-game .rift-map-clean .rift-map-footer{min-height:33px;align-items:center;}
+html.mobile-game .rift-map-clean .rift-map-back{padding:8px 12px;min-height:34px;}
+html.mobile-game .rift-map-clean .rift-map-cartography .rift-map-node{
+  width:clamp(84px,13vw,125px);height:clamp(56px,17vh,75px);
+  padding:4px 3px;gap:1px;
+}
+html.mobile-game .rift-map-clean .rift-map-cartography .rift-map-node .rift-node-emblem{
+  width:20px;height:20px;font-size:.75rem;
+}
+html.mobile-game .rift-map-clean .rift-map-cartography .rift-node-title{font-size:.52rem;}
+html.mobile-game .rift-map-clean .rift-map-cartography .rift-node-number{font-size:.45rem;}
+html.mobile-game .rift-map-clean .rift-map-cartography .rift-map-node small{font-size:.42rem;}
+
+/* Coleção, configurações, galeria, resultados e confirmação:
+   UMA rolagem contínua por página, com cartões compactos e acessíveis. */
+html.mobile-game .game-panel .overlay .vr-collection,
+html.mobile-game .game-panel .overlay .v3-settings,
+html.mobile-game .game-panel .overlay .v3-confirm,
+html.mobile-game .game-panel .overlay .vr-gallery,
+html.mobile-game .game-panel .overlay .vr-death,
+html.mobile-game .game-panel .overlay #resultMenu{
+  display:flex;flex-direction:column;
+  width:min(100%,880px);height:auto;max-height:100%;
+  overflow-y:auto;overflow-x:hidden;gap:clamp(7px,1.9vh,13px);
+  padding:clamp(8px,2vh,15px) clamp(8px,2.3vw,17px);
+}
+html.mobile-game .game-panel .overlay .vr-collection{display:block;max-width:910px;}
+html.mobile-game .vr-collection .vr-collection-header h2{font-size:clamp(1.4rem,6vh,2.3rem);}
+html.mobile-game .vr-collection .vr-collection-progress{margin:10px 0 0;}
+html.mobile-game .vr-collection .vr-collection-section{margin-top:13px;}
+html.mobile-game .vr-collection .achievement-list,
+html.mobile-game .vr-collection .secret-route-list{
+  grid-template-columns:repeat(2,minmax(0,1fr));height:auto;
+  max-height:none;overflow:visible;gap:7px;
+}
+html.mobile-game .vr-collection .achievement-entry{min-height:59px;padding:8px;}
+html.mobile-game .vr-collection .secret-route-entry{min-height:56px;padding:9px;}
+html.mobile-game .v3-settings-card{width:100%;max-width:650px;gap:8px;padding:12px 17px;}
+html.mobile-game .v3-volume-control{gap:2px;}
+html.mobile-game .v3-volume-control p{display:none;}
+html.mobile-game .v3-confirm{justify-content:center;}
+html.mobile-game .v3-preserve-notice{padding:9px;line-height:1.3;}
+html.mobile-game .v3-confirm-icon{font-size:1.7rem;}
+html.mobile-game .vr-gallery{max-width:760px;}
+html.mobile-game .vr-gallery-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+html.mobile-game .vr-gallery-entry{grid-template-columns:65px minmax(0,1fr);min-height:62px;padding:8px;}
+html.mobile-game #resultMenu .result-stats{width:100%;max-width:600px;gap:8px;}
+html.mobile-game #resultMenu .result-menu-actions{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;
+  max-width:600px;width:100%;
+}
+html.mobile-game #resultMenu .result-menu-actions button{
+  min-height:40px;padding:8px;font-size:.72rem;
+}
+html.mobile-game .vr-death{margin:auto;justify-content:center;}
+html.mobile-game .vr-death h2{font-size:clamp(1.8rem,7vh,3rem);}
+html.mobile-game .vr-death-actions{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;max-width:520px;
+}
+html.mobile-game .vr-death-actions button{min-height:42px;}
+
+/* Pause = modal mobile layout, audio compact and instructions on touch. */
+html.mobile-game .game-panel.pause-active canvas{display:block;}
+html.mobile-game .game-panel.pause-active .overlay{
+  position:absolute;inset:0;min-height:0;max-height:100%;height:100%;
+  display:flex;overflow:hidden;align-items:center;justify-content:center;
+}
+html.mobile-game .game-panel .overlay .v31-pause{
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+  width:min(100%,930px);height:auto;max-height:100%;
+  overflow-y:auto;overflow-x:hidden;
+  gap:clamp(6px,1.7vh,11px);
+  padding:clamp(7px,1.6vh,14px) clamp(9px,2vw,20px);
+}
+html.mobile-game .v31-pause h2{font-size:clamp(1.55rem,6vh,2rem);}
+html.mobile-game .v31-pause-stage{font-size:.68rem;}
+html.mobile-game .v31-pause-body{
+  display:grid;grid-template-columns:.83fr 1.17fr;width:100%;gap:clamp(8px,2vw,18px);
+}
+html.mobile-game .v31-pause-actions{gap:7px;}
+html.mobile-game .v31-pause-actions button{min-height:39px;padding:7px;font-size:.72rem;}
+html.mobile-game .v31-pause-audio{gap:4px;padding:9px 12px;}
+html.mobile-game .v31-compact-volume input{height:16px;}
+html.mobile-game .v31-pause-controls{padding:9px 12px;gap:4px;}
+html.mobile-game .v31-control-grid{display:none;}
+html.mobile-game .vr-pause-touch-help{margin:2px 0 0!important;font-size:.74rem;color:#c7e7e0;}
+html.mobile-game .v31-track-now-playing{font-size:.6rem;}
+html.mobile-game .v31-in-game-pause{
+  top:max(10px,env(safe-area-inset-top));
+  right:max(13px,env(safe-area-inset-right));
+  min-height:38px;min-width:66px;padding:7px 11px;z-index:7;
+}
+
+/* Cinemática: painel curto e botões confortáveis, sem dicas de teclado. */
+html.mobile-game .game-panel.cinematic-active canvas{display:block;}
+html.mobile-game .game-panel.cinematic-active .overlay{
+  position:absolute;inset:0;min-height:0;max-height:100%;
+  display:block;overflow:hidden;padding:0;
+}
+html.mobile-game .game-panel .overlay .vr-cinematic-ui:not([hidden]){
+  position:absolute;inset:0;display:flex;
+  width:100%;height:100%;max-width:none;max-height:100%;
+  padding:max(10px,env(safe-area-inset-top)) max(18px,env(safe-area-inset-right))
+    max(8px,env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-left));
+  overflow:hidden;
+}
+html.mobile-game .vr-film-top{max-width:min(100%,1120px);margin:0 auto;}
+html.mobile-game .vr-film-header{
+  gap:16px;font-size:clamp(.58rem,2.5vh,.77rem);
+  letter-spacing:.095em;line-height:1.2;
+}
+html.mobile-game .vr-film-progress{margin-top:6px;height:4px;}
+html.mobile-game .vr-film-bottom{
+  align-self:center;width:min(84%,760px);max-width:760px;
+  margin:0;max-height:74%;
+  display:flex;flex-direction:column;gap:6px;
+}
+html.mobile-game .vr-film-dialogue{
+  border-radius:11px;
+  padding:clamp(8px,2vh,13px) clamp(12px,2vw,18px);
+  max-height:calc(100% - 50px);overflow:auto;
+  background:linear-gradient(110deg,rgba(5,13,32,.88),rgba(14,24,47,.80));
+}
+html.mobile-game .vr-film-speaker{font-size:.61rem;letter-spacing:.12em;}
+html.mobile-game .vr-film-dialogue h2{
+  margin:3px 0;font-size:clamp(1rem,4vh,1.38rem);line-height:1.1;
+}
+html.mobile-game .vr-film-dialogue p{
+  font-size:clamp(.73rem,2.85vh,.9rem);line-height:1.28;
+}
+html.mobile-game .vr-film-actions{
+  display:grid;grid-template-columns:1.45fr 1fr .7fr;align-items:stretch;
+  margin:0;gap:8px;flex-wrap:nowrap;
+}
+html.mobile-game .vr-film-actions button{
+  width:100%;min-height:41px;min-width:0;
+  padding:8px 9px;font-size:clamp(.7rem,2.5vh,.82rem);
+}
+html.mobile-game .vr-film-hint{display:none!important;}
+
+/* Touch gamepad: two arrows on left, actions on right. No overlap with
+   the bottom middle of the game; pointer listeners continue unchanged. */
+html.mobile-game .game-panel .touch-controls{
+  position:absolute;display:grid!important;
+  grid-template-columns:repeat(2,minmax(47px,70px)) minmax(8px,1fr)
+    repeat(3,minmax(50px,78px));
+  align-items:end;gap:clamp(5px,1vw,11px);
+  left:max(13px,env(safe-area-inset-left));
+  right:max(13px,env(safe-area-inset-right));
+  bottom:max(9px,env(safe-area-inset-bottom));
+  z-index:6;pointer-events:none;
+}
+html.mobile-game .game-panel .touch-controls button{
+  flex:none;grid-row:1;
+  min-width:0;min-height:clamp(47px,13.7vh,72px);
+  border:1px solid rgba(142,250,223,.48);
+  border-radius:14px;padding:7px 3px;
+  font-size:clamp(.66rem,2.3vh,.83rem);font-weight:850;
+  background:rgba(14,38,60,.82);color:#effffc;
+  box-shadow:0 5px 15px #0210214a;
+  pointer-events:auto;touch-action:none;user-select:none;
+}
+html.mobile-game .game-panel .touch-controls button:nth-child(1){grid-column:1;}
+html.mobile-game .game-panel .touch-controls button:nth-child(2){grid-column:2;}
+html.mobile-game .game-panel .touch-controls button:nth-child(3){
+  grid-column:4;margin:0;background:rgba(46,160,145,.88);
+}
+html.mobile-game .game-panel .touch-controls button:nth-child(4){grid-column:5;}
+html.mobile-game .game-panel .touch-controls button:nth-child(5){grid-column:6;}
+html.mobile-game .game-panel .touch-controls button:active{
+  background:#a4f5db;color:#072937;border-color:#d5ffee;
+}
+html.mobile-game .game-panel.menu-active .touch-controls,
+html.mobile-game .game-panel.pause-active .touch-controls,
+html.mobile-game .game-panel.cinematic-active .touch-controls{
+  display:none!important;
+}
+@media(orientation:portrait){
+  html.mobile-game .game-panel .overlay .v4-home{
+    display:flex;flex-direction:column;justify-content:center;
+    padding:20px 22px;gap:12px;
+  }
+  html.mobile-game .v4-home .v4-home-art{
+    position:absolute;right:-18%;top:0;width:70%;height:100%;opacity:.20;
+  }
+  html.mobile-game .rift-map-clean .rift-map-layout{
+    grid-template-columns:minmax(0,1fr);overflow:auto;
+  }
+  html.mobile-game .game-panel .overlay .rift-map-clean{overflow:auto;}
+  html.mobile-game .rift-map-clean .rift-map-world.rift-map-cartography{min-height:245px;}
+  html.mobile-game .rift-map-clean .rift-map-info{min-height:270px;}
+}
+@media(max-height:370px) and (orientation:landscape){
+  html.mobile-game .v4-home .v4-home-copy{gap:7px;}
+  html.mobile-game .v4-home h1#menuHeading{font-size:clamp(1.75rem,9vh,2.3rem);}
+  html.mobile-game .v4-home .v4-home-button{min-height:39px;}
+  html.mobile-game .v4-home .v4-home-links{gap:3px 12px;}
+  html.mobile-game .rift-map-clean .rift-map-overline,
+  html.mobile-game .rift-map-clean .rift-map-intro{display:none;}
+  html.mobile-game .rift-map-clean .rift-map-header h2{font-size:1.2rem;}
+  html.mobile-game .rift-map-clean .rift-map-layout{gap:7px;}
+  html.mobile-game .rift-map-clean .rift-detail-story{display:none;}
+  html.mobile-game .rift-map-clean .rift-map-details{padding:8px;gap:4px;}
+  html.mobile-game .rift-map-clean .rift-map-cartography .rift-map-node{
+    height:clamp(49px,15vh,58px);width:clamp(79px,12vw,102px);
+  }
+  html.mobile-game .rift-map-clean .rift-map-cartography .rift-map-node .rift-node-emblem{display:none;}
+  html.mobile-game .vr-film-dialogue{padding:7px 12px;}
+  html.mobile-game .vr-film-dialogue h2{font-size:1rem;}
+  html.mobile-game .vr-film-dialogue p{font-size:.72rem;}
+  html.mobile-game .vr-film-actions button{min-height:37px;}
+  html.mobile-game .v31-pause-controls{display:none;}
+  html.mobile-game .v31-pause{gap:5px;padding:7px 12px;}
+}
+@media(prefers-reduced-motion:reduce){
+  html.mobile-game .vr-film-progress,html.mobile-game .vr-gallery-entry{
+    transition:none;
+  }
+}

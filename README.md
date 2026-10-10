@@ -525,3 +525,11 @@ O APK ficará em `android/app/build/outputs/apk/debug/app-debug.apk`.
 independente do ambiente Android. A orientação `sensorLandscape` mantém o
 jogo em paisagem; no celular, o espaço útil varia conforme a barra do sistema.
 
+
+## Etapa 4 — Responsividade Android
+
+O APK utiliza modo imersivo, mantendo o Canvas 16:9 sem distorção e aproveitando as telas largas. A interface é adaptada para toque e paisagem: home, mapa, conquistas, configurações, galeria, pausa, derrota, resultados e cinematográficas.
+
+As cinematográficas mostram dicas por toque, não atalhos de teclado. O HUD e os botões de movimento/boost/pulo recebem um layout mobile específico, com áreas de segurança para recortes da tela.
+
+QA no celular: verificar menus, status e navegação sem sobreposição, proporções de tela, cenas, combinação dos controles de toque, chefes, checkpoint, save e áudio. A geração do APK continua em GitHub Actions (workflow Android APK). O pacote debug pode ser assinado com chave diferente a cada compilação e exigir reinstalação, que pode apagar saves locais.

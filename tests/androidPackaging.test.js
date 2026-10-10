@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
-import {setAndroidLandscape} from "../scripts/configure-android.mjs";
+import {setAndroidLandscape,addImmersiveMainActivity} from "../scripts/configure-android.mjs";
 
 test("native orientation patch targets only the Capacitor activity",()=>{
   const source='<manifest xmlns:android="http://schemas.android.com/apk/res/android">'+
@@ -45,4 +45,18 @@ test("landscape game continues to expose touch controls",()=>{
    assert.ok(html.includes(key));
  assert.ok(css.includes("@media (pointer:coarse) and (orientation:landscape)"));
  assert.ok(css.includes(".touch-controls button:nth-child(3)"));
+});
+
+test("native Android activity hides status and navigation bars",()=>{
+  const basic='package com.velocityrift.game;'+
+    'import com.getcapacitor.BridgeActivity;'+
+    'public class MainActivity extends BridgeActivity {}';
+  const changed=addImmersiveMainActivity(basic);
+  for(const feature of ["onCreate(android.os.Bundle","onWindowFocusChanged(boolean hasFocus)",
+    "void enterImmersiveMode()","WindowInsets.Type.systemBars()",
+    "BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE","SYSTEM_UI_FLAG_IMMERSIVE_STICKY",
+    "LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES"])
+    assert.ok(changed.includes(feature),feature);
+  assert.equal(addImmersiveMainActivity(changed),changed);
+  assert.throws(()=>addImmersiveMainActivity("class Other {}"),/BridgeActivity/);
 });

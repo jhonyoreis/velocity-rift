@@ -16,6 +16,7 @@ import {renderRiftCorridorBackground} from "./rendering/riftCorridorBackground.j
 import {createEnemy as enemy,isCityEnemyType} from "./game/enemies.js";
 import {resolveAirDashDirection} from "./game/dashDirection.js";
 import {calculateCrystalDamage} from "./game/crystals.js";
+import {isNativeAndroid,shouldUseMobilePresentation} from "./game/mobilePresentation.js";
 import {checkpointReached,checkpointRespawnTarget} from "./game/checkpoints.js";
 import {STAGE_ARRIVAL_SECONDS,STAGE_ARRIVAL_DISTANCE,sampleStageArrival} from "./game/stageArrival.js";
 import {renderCrystal} from "./rendering/crystals.js";
@@ -43,6 +44,19 @@ const soundToggle = document.querySelector("#soundToggle");
 const musicToggle = document.querySelector("#musicToggle");
 const trackNowPlaying = document.querySelector("#trackNowPlaying");
 const debugToggle = document.querySelector("#debugToggle");
+
+
+function syncMobilePresentation(){
+  const android=isNativeAndroid(window.Capacitor);
+  const landscape=window.matchMedia("(orientation:landscape)").matches;
+  const coarse=window.matchMedia("(pointer:coarse)").matches;
+  document.documentElement.classList.toggle("native-android",android);
+  document.documentElement.classList.toggle("mobile-game",
+    shouldUseMobilePresentation({nativeAndroid:android,pointerCoarse:coarse,landscape}));
+}
+syncMobilePresentation();
+window.addEventListener("resize",syncMobilePresentation,{passive:true});
+window.addEventListener("orientationchange",syncMobilePresentation);
 
 const VIEW_W = canvas.width;
 const VIEW_H = canvas.height;
@@ -4164,7 +4178,76 @@ function drawParticles() {
   ctx.globalAlpha = 1;
 }
 
+
+function drawMobileHud(){
+  const speed=Math.round(Math.abs(player.vx));
+  const progress=clamp(player.x/goal.x,0,1);
+  ctx.save();
+  ctx.textAlign="left";
+  ctx.fillStyle="rgba(5,16,30,.82)";
+  roundRect(15,12,248,81,13);ctx.fill();
+  roundRect(277,12,384,81,13);ctx.fill();
+  roundRect(675,12,270,81,13);ctx.fill();
+  ctx.fillStyle="#ebfff8";ctx.font="bold 21px system-ui";
+  ctx.fillText("◆ "+player.rings+" CRISTAIS",29,40);
+  ctx.fillStyle="#aadcd6";ctx.font="bold 15px system-ui";
+  ctx.fillText("VELOCIDADE "+speed,29,65);
+  ctx.fillStyle="#bafbea";ctx.font="bold 17px system-ui";
+  ctx.fillText(["","FLORESTA NEON","CÂNION PRISMA","CIDADE DAS FENDAS"][activeStage],295,37);
+  ctx.fillStyle="#2b525b";roundRect(295,48,345,14,7);ctx.fill();
+  ctx.fillStyle="#75ebd7";roundRect(295,48,Math.max(.5,345*progress),14,7);ctx.fill();
+  ctx.fillStyle="#d9ffed";ctx.font="bold 15px system-ui";
+  ctx.fillText("NÚCLEOS "+player.cores+"/3",295,82);
+  ctx.fillText(Math.round(progress*100)+"%",583,82);
+  ctx.fillStyle="#f9e0bb";ctx.font="bold 22px system-ui";
+  ctx.fillText(gameTime.toFixed(1)+" s",692,40);
+  ctx.fillStyle="#d4e6ed";ctx.font="bold 14px system-ui";
+  ctx.fillText("BOOST",692,66);
+  ctx.fillStyle="#285568";roundRect(750,56,176,12,6);ctx.fill();
+  ctx.fillStyle=player.boost>22?"#79efdb":"#ff9c71";
+  roundRect(750,56,Math.max(.5,176*player.boost/100),12,6);ctx.fill();
+
+  if(activeStage===2&&guardian.active&&!guardian.defeated){
+    ctx.fillStyle="rgba(19,12,49,.86)";roundRect(285,103,389,49,9);ctx.fill();
+    ctx.fillStyle="#ebd4ff";ctx.font="bold 16px system-ui";
+    ctx.fillText("GUARDIÃO DO PRISMA",299,124);
+    ctx.fillStyle="#3f3058";ctx.fillRect(299,131,360,11);
+    ctx.fillStyle="#b99afa";ctx.fillRect(299,131,360*guardian.hp/guardian.maxHp,11);
+  }
+  if(activeStage===3&&cityBoss.active&&!cityBoss.defeated){
+    ctx.fillStyle="rgba(19,12,49,.86)";roundRect(285,103,389,49,9);ctx.fill();
+    ctx.fillStyle="#f5d8ff";ctx.font="bold 16px system-ui";
+    ctx.fillText("ARQUITETO DO VAZIO",299,124);
+    ctx.fillStyle="#472d56";ctx.fillRect(299,131,360,11);
+    ctx.fillStyle="#ffaada";ctx.fillRect(299,131,360*cityBoss.hp/4,11);
+  }
+  if(activeStage===3&&dashUnlocked()){
+    ctx.fillStyle="#f8dda9";ctx.font="bold 14px system-ui";
+    ctx.fillText("DASH "+(airDash.available?"PRONTO":"RECARREGANDO"),295,
+      cityBoss.active&&!cityBoss.defeated?170:111);
+  }
+  if(notification.timer>0){
+    ctx.globalAlpha=Math.min(1,notification.timer/.4);
+    ctx.fillStyle="rgba(12,24,43,.91)";roundRect(190,371,580,71,10);ctx.fill();
+    ctx.strokeStyle="#8cf8e4";ctx.lineWidth=2;ctx.stroke();
+    ctx.textAlign="center";ctx.fillStyle="#d5fff0";
+    ctx.font="bold 18px system-ui";ctx.fillText(notification.title,VIEW_W/2,399);
+    if(notification.subtitle){
+      ctx.fillStyle="#ffdfaa";ctx.font="15px system-ui";
+      ctx.fillText(notification.subtitle,VIEW_W/2,424);
+    }
+  }
+  if(debugMode){
+    ctx.textAlign="left";ctx.fillStyle="#ffdea6";ctx.font="bold 16px system-ui";
+    ctx.fillText("DEBUG ATIVO",19,116);
+  }
+  ctx.restore();
+}
 function drawHud() {
+  if(document.documentElement.classList.contains("mobile-game")){
+    drawMobileHud();
+    return;
+  }
   const speed = Math.round(Math.abs(player.vx));
   ctx.fillStyle = "rgba(5, 9, 11, 0.72)";
   roundRect(16, 14, 290, 86, 8);

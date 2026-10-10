@@ -2,7 +2,7 @@
 <html lang="pt-BR">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Velocity Rift 3.7.2 — Cidade das Fendas</title>
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <link rel="stylesheet" href="./src/styles.css" />
@@ -101,7 +101,8 @@
                 <button id="cinematicSkipButton" type="button" class="vr-film-skip">Pular cena</button>
                 <button id="cinematicExitButton" type="button" class="vr-film-exit" aria-label="Interromper a cutscene e voltar ao menu">Menu</button>
               </div>
-              <small class="vr-film-hint">Enter / Espaço: avançar · Esc: pular · cenas revistáveis na galeria</small>
+              <small class="vr-film-hint vr-desktop-help">Enter / Espaço: avançar · Esc: pular · cenas revistáveis na galeria</small>
+              <small class="vr-film-hint vr-mobile-help">Toque em Avançar para continuar ou em Pular cena.</small>
             </div>
           </section>
           <section id="settingsMenu" class="menu-screen v3-settings" aria-labelledby="settingsHeading" hidden>
@@ -417,6 +418,7 @@
             </div>
             <div class="v31-pause-controls">
               <div class="v31-pause-subtitle">⌨ CONTROLES</div>
+              <p class="vr-mobile-help vr-pause-touch-help">Na tela: ◀ ▶ para mover, Pular, Boost e Deslizar.</p>
               <div class="v31-control-grid">
                 <span><strong>Mover</strong>A/D ou ← →</span>
                 <span><strong>Pular / Dash</strong>Espaço, W ou ↑ (duas vezes no ar; dash horizontal)</span>
