@@ -2659,3 +2659,78 @@ html.mobile-game .v3-settings #settingsBackButton{
   html.mobile-game .vr-pause-clean .v31-track-now-playing{display:none;}
   html.mobile-game .v3-settings .v3-settings-card{padding:8px;gap:4px;}
 }
+
+
+/* Android hotfix — explicit gameplay state always restores the gamepad.
+   Some WebViews misreport (pointer:coarse) after an orientation or activity
+   transition; the JS 'gameplay-active' state is the source of truth. */
+html.mobile-game .game-panel.gameplay-active .touch-controls{
+  display:grid!important;
+  visibility:visible!important;
+  opacity:1!important;
+  position:absolute!important;
+  z-index:40!important;
+  pointer-events:none;
+  left:max(15px,env(safe-area-inset-left));
+  right:max(15px,env(safe-area-inset-right));
+  bottom:max(12px,env(safe-area-inset-bottom));
+}
+html.mobile-game .game-panel.gameplay-active .touch-controls button{
+  display:block!important;visibility:visible!important;opacity:1!important;
+  pointer-events:auto;
+  background:rgba(13,45,64,.90);
+  border:2px solid rgba(151,255,226,.8);
+  box-shadow:0 5px 23px rgba(0,0,0,.32);
+}
+html.mobile-game .game-panel.gameplay-active .touch-controls button:nth-child(3){
+  background:rgba(42,159,138,.94);
+}
+html.mobile-game .game-panel.gameplay-active .v31-in-game-pause{
+  display:block!important;visibility:visible!important;
+  z-index:42!important;
+}
+@media(pointer:coarse){
+  .game-panel.gameplay-active .touch-controls{
+    display:flex!important;visibility:visible!important;opacity:1!important;
+    z-index:40!important;
+  }
+  html.mobile-game .game-panel.gameplay-active .touch-controls{display:grid!important;}
+}
+.game-panel:not(.gameplay-active) .touch-controls{display:none!important;}
+.game-panel:not(.gameplay-active) .v31-in-game-pause{display:none!important;}
+
+/* Cinematic mobile dialogue: show the story paragraph only, leaving the
+   art and its characters unobstructed. The chapter title above is retained. */
+html.mobile-game .game-panel .vr-film-dialogue #cinematicSpeaker,
+html.mobile-game .game-panel .vr-film-dialogue #cinematicTitle{
+  display:none!important;
+}
+html.mobile-game .vr-film-bottom{
+  width:min(49vw,590px);
+  max-width:590px;
+  max-height:44%;
+  gap:6px;
+  margin-left:clamp(0px,1vw,12px);
+}
+html.mobile-game .vr-film-dialogue{
+  padding:9px 13px;
+  max-height:min(25vh,130px);
+  overflow-y:auto;
+  border-left-width:2px;
+  border-radius:10px;
+}
+html.mobile-game .vr-film-dialogue p{
+  font-size:clamp(.74rem,2.6vh,.92rem);
+  line-height:1.32;
+  margin:0!important;
+}
+html.mobile-game .vr-film-actions{grid-template-columns:1.5fr 1fr .65fr;gap:6px;}
+html.mobile-game .vr-film-actions button{
+  font-size:clamp(.68rem,2.35vh,.84rem);
+  min-height:clamp(39px,10vh,46px);
+}
+@media(max-height:380px) and (orientation:landscape){
+  html.mobile-game .vr-film-bottom{width:min(53vw,540px);max-height:48%;}
+  html.mobile-game .vr-film-dialogue{max-height:27vh;padding:7px 11px;}
+  html.mobile-game .vr-film-dialogue p{font-size:.72rem;line-height:1.22;}
+}

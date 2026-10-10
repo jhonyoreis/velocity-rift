@@ -47,7 +47,10 @@ const debugToggle = document.querySelector("#debugToggle");
 
 
 function syncMobilePresentation(){
-  const android=isNativeAndroid(window.Capacitor);
+  // Android WebViews can temporarily report a desktop-like pointer on resume.
+  // Use the device UA as a fallback; keep the browser desktop layout unchanged.
+  const android=isNativeAndroid(window.Capacitor)||
+    /android/i.test(window.navigator.userAgent);
   const landscape=window.matchMedia("(orientation:landscape)").matches;
   const coarse=window.matchMedia("(pointer:coarse)").matches;
   document.documentElement.classList.toggle("native-android",android);
@@ -129,6 +132,26 @@ let pickupSoundCooldown = 0;
 let sentryShots = [];
 let soundEnabled = true;
 let audioContext = null;
+let audioMixOutput=null;
+// Music and effects share a dynamics-limited output, avoiding sharp peaks
+// when the default mix is amplified for small Android phone speakers.
+function gameAudioOutput(){
+  if(!audioContext)return null;
+  if(audioMixOutput)return audioMixOutput;
+  const output=typeof audioContext.createDynamicsCompressor==="function"
+    ?audioContext.createDynamicsCompressor():audioContext.createGain();
+  if("threshold" in output){
+    output.threshold.value=-14;
+    output.knee.value=8;
+    output.ratio.value=10;
+    output.attack.value=.004;
+    output.release.value=.17;
+  }
+  output.connect(audioContext.destination);
+  audioMixOutput=output;
+  return audioMixOutput;
+}
+
 let musicEnabled = true;
 let musicBus = null;
 let musicStep = 0;
@@ -929,7 +952,7 @@ function launchCinematic(key,onEnd,replay=false){
   screens.forEach(screen=>{screen.hidden=screen!==cinematicMenu;});
   overlay.classList.remove("is-hidden");
   const panel=document.querySelector(".game-panel");
-  panel.classList.remove("menu-active","pause-active");
+  panel.classList.remove("menu-active","pause-active","gameplay-active");
   panel.classList.add("cinematic-active");
   pauseButton.hidden=true;
   refreshCinematicText();
@@ -1306,7 +1329,7 @@ function showScreen(target) {
   jumpHeld = false;
   screens.forEach(screen => { screen.hidden = screen !== target; });
   overlay.classList.remove("is-hidden");
-  document.querySelector(".game-panel").classList.remove("pause-active");
+  document.querySelector(".game-panel").classList.remove("pause-active","gameplay-active");
   document.querySelector(".game-panel").classList.add("menu-active");
   pauseButton.hidden = true;
   refreshProgressView();
@@ -1435,7 +1458,9 @@ function showResults(time, crystals, cores = 0) {
 }
 
 function syncPauseButton(){
-  pauseButton.hidden=!gameStarted||paused||gameCleared;
+  const playing=gameStarted&&!paused&&!gameCleared&&!cinematic.active;
+  document.querySelector(".game-panel").classList.toggle("gameplay-active",playing);
+  pauseButton.hidden=!playing;
   pauseButton.textContent="Ⅱ PAUSA";
   pauseButton.setAttribute("aria-label","Pausar o jogo");
   pauseButton.setAttribute("aria-pressed",String(paused));
@@ -1735,7 +1760,7 @@ function startGame(stage=activeStage,skipCinematic=false,withArrival=false) {
   gameStarted = true;
   screens.forEach(screen => { screen.hidden = true; });
   document.querySelector(".game-panel").classList.remove("menu-active");
-  document.querySelector(".game-panel").classList.remove("pause-active");
+  document.querySelector(".game-panel").classList.remove("pause-active","cinematic-active");
   overlay.classList.add("is-hidden");
   syncPauseButton();
   syncMusic();
@@ -4294,6 +4319,7 @@ function unlockAudio() {
   if (!AudioCtor) return;
   try {
     audioContext = new AudioCtor();
+    gameAudioOutput();
     if (audioContext.state === "suspended") audioContext.resume().catch(() => {});
     initMusic();
   } catch (_) {
@@ -4341,7 +4367,9 @@ function playSfx(kind) {
   if (!config) return;
   try {
     const [start, end, duration, waveform, volume] = config;
-    const gain=volume*effectiveAudioGain("effects");
+    // Approximately +8 dB for feedback sounds, adjustable with the same
+    // existing effects slider; no bypass of mute settings.
+    const gain=volume*2.5*effectiveAudioGain("effects");
     const now = audioContext.currentTime;
     const oscillator = audioContext.createOscillator();
     const envelope = audioContext.createGain();
@@ -4352,7 +4380,7 @@ function playSfx(kind) {
     envelope.gain.exponentialRampToValueAtTime(Math.max(.0001,gain), now + 0.014);
     envelope.gain.exponentialRampToValueAtTime(0.0001, now + duration);
     oscillator.connect(envelope);
-    envelope.connect(audioContext.destination);
+    envelope.connect(gameAudioOutput()||audioContext.destination);
     oscillator.start(now);
     oscillator.stop(now + duration + 0.02);
     oscillator.onended = () => { oscillator.disconnect(); envelope.disconnect(); };
@@ -4408,14 +4436,17 @@ const PRISM_HATS=new Set([2,5,7,10,13,15]);
 
 function initMusic(){
   if(!audioContext || musicBus)return;
-  try{musicBus=audioContext.createGain();musicBus.gain.value=0;musicBus.connect(audioContext.destination)}
+  try{musicBus=audioContext.createGain();musicBus.gain.value=0;musicBus.connect(gameAudioOutput()||audioContext.destination)}
   catch(_){musicBus=null}
 }
 function syncMusic(resetSchedule=true){
   if(!musicBus||!audioContext)return;
-  const level=cinematic.active?.115*effectiveAudioGain("music"):
+  // Raise the original very quiet synthesized soundtrack by roughly
+  // 10 dB. Fade and the Music/Master sliders still scale it to zero.
+  const level=(cinematic.active?.115:
     gameStarted&&!paused&&!gameCleared?
-      (activeStage===3?.13:activeStage===2?.13:.14)*effectiveAudioGain("music"):0;
+      (activeStage===3?.13:activeStage===2?.13:.14):0)*
+    3.2*effectiveAudioGain("music");
   const now=audioContext.currentTime;
   musicBus.gain.cancelScheduledValues(now);
   musicBus.gain.setTargetAtTime(level,now,.055);
@@ -4929,7 +4960,9 @@ document.querySelectorAll('[data-key]').forEach(button => {
   const release = event => { event.preventDefault(); keys.delete(key); if (key === ' ') jumpHeld = false; };
   button.addEventListener('pointerdown', event => {
     event.preventDefault();
-    button.setPointerCapture(event.pointerId);
+    // Older Android WebViews may reject pointer capture; never let that
+    // prevent movement, jump, boost or slide from registering.
+    try{button.setPointerCapture(event.pointerId)}catch(_){}
     unlockAudio();
     keys.add(key);
     if(key===' '&&!jumpHeld){

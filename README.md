@@ -562,3 +562,31 @@ coletar núcleo, descobrir segredo e ver a contagem desaparecer; iniciar
 cenas com legendas longas e comparar espaço de arte; conferir que chefes
 continuam tendo barra de vida e que o Boost permanece legível.
 
+
+
+### Hotfix Android — controles, diálogo e áudio (Etapa 4)
+
+Após o teste visual do APK, foram aplicados estes ajustes:
+
+- **Controles e Pause restaurados durante a partida:** o estado
+  `gameplay-active` é marcado explicitamente quando o jogo está em execução;
+  a exibição dos cinco controles e do botão de pausa não depende apenas de
+  `pointer: coarse`, que alguns WebViews Android reportam incorretamente.
+  A detecção da apresentação Android também aceita o user agent do aparelho.
+  A captura de toques tem tratamento de falha para preservar o comando.
+- **Cinematográficas mobile:** o balão de história não mostra nome do
+  narrador nem título da cena, ficando menor e mantendo somente o
+  parágrafo e os botões de ação. O cabeçalho do capítulo permanece.
+- **Som amplificado:** música em ~3,2× e efeitos em ~2,5× da mixagem
+  anterior; ambos continuam controlados pelos sliders, silenciáveis e
+  ligados a um compressor de dinâmica para conter picos. A alteração
+  afeta o sintetizador interno, não o volume geral do Android.
+
+**Testes manuais no novo APK:** abrir cinematográfica, iniciar Floresta
+Neon e confirmar os botões ◀ ▶ Pular Boost Slide e Pause; testar toques
+simultâneos e transições entre pausa, morte, conclusão de fase e próximas
+fases; ouvir música e efeitos nos volumes 0%, 50% e 100% com o
+**volume físico do Android ajustado confortavelmente**, verificando
+distorções; conferir legibilidade de parágrafos longos da história.
+O áudio deve ser testado em alto-falantes e fones em um volume confortável.
+
