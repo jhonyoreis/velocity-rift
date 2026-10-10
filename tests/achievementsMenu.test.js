@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {ACHIEVEMENTS} from "../src/data/achievements.js";
 import {SECRET_DEFS} from "../src/data/secretRoutes.js";
+import {secretUpgradeReward} from "../src/game/secretUpgrades.js";
 const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
 const css=readFileSync(new URL("../src/styles.css",import.meta.url),"utf8");
 const main=readFileSync(new URL("../src/main.js",import.meta.url),"utf8");
@@ -65,9 +66,9 @@ test("collection counts and progress bar use saved achievements and secret archi
    secrets:{stage1:[SECRET_DEFS[1][0].id],stage2:[],stage3:[]},
    secretTimes:{stage1:{},stage2:{},stage3:{}}
  };
- const run=new Function("document","ACHIEVEMENTS","SECRET_DEFS","progress",source+
+ const run=new Function("document","ACHIEVEMENTS","SECRET_DEFS","progress","secretUpgradeReward",source+
    "\nreturn refreshAchievementsView;");
- run(document,ACHIEVEMENTS,SECRET_DEFS,progress)();
+ run(document,ACHIEVEMENTS,SECRET_DEFS,progress,secretUpgradeReward)();
  assert.equal(nodes.get("#achievementsCount").textContent,"2 de "+ACHIEVEMENTS.length);
  assert.equal(nodes.get("#achievementProgressTrack").attributes["aria-valuenow"],"2");
  assert.equal(nodes.get("#achievementProgressTrack").attributes["aria-valuemax"],String(ACHIEVEMENTS.length));
