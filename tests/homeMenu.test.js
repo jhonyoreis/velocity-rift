@@ -6,6 +6,7 @@ const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
 const css=readFileSync(new URL("../src/styles.css",import.meta.url),"utf8");
 const illustration=readFileSync(new URL("../public/menu-hero.svg",import.meta.url),"utf8");
 const main=readFileSync(new URL("../src/main.js",import.meta.url),"utf8");
+const version=JSON.parse(readFileSync(new URL("../package.json",import.meta.url),"utf8")).version;
 const start=html.indexOf('<section id="mainMenu"'),end=html.indexOf('<section id="galleryMenu"',start);
 const home=html.slice(start,end);
 
@@ -15,7 +16,7 @@ test("home uses uncluttered title-left, illustration-right composition",()=>{
  assert.ok(home.indexOf('class="v4-home-copy"')<home.indexOf('class="v4-home-art"'));
  assert.ok(home.includes('src="./menu-hero.svg"'));
  assert.ok(home.includes('Corra. Salte. Rasgue a fenda.'));
- assert.ok(home.includes('class="v4-home-version">v3.7.2'));
+ assert.ok(home.includes('class="v4-home-version">v'+version));
  assert.ok(!home.includes("SALVAMENTO AUTOMÁTICO"));
  assert.ok(!home.includes("ALICIA ALÉM DAS FENDAS"));
 });
