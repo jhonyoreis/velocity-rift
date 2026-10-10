@@ -21,7 +21,7 @@ test("echoes and bonus challenges are saved independently from campaign",()=>{
  const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
  for(const s of ["ALICIA_ECHOES","function collectStoryEchoes()",
   "function drawStoryEchoes()","ECHO_ARCHIVE_KEY","BONUS_CHALLENGE_KEY",
-  "earnedBonusChallenges(activeStage","function refreshStoryArchive()",
+  "earnedBonusChallenges(stage,run)","function refreshStoryArchive()",
   "function refreshBonusChallengesView()"])
   assert.ok(source.includes(s),s);
  for(const id of ["storyArchiveList","storyArchiveCount","bonusChallengeList","bonusChallengeCount"])

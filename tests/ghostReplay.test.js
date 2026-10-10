@@ -20,7 +20,8 @@ test("game records only eligible stage clears and draws ghost non-colliding",()=
  assert.ok(source.includes("recordGhostFrame(ghostRun,gameTime,player)"));
  assert.ok(source.includes("function drawRecordGhost()"));
  assert.ok(source.includes("function saveBestGhost("));
- assert.ok(source.includes("if(!debugUsedThisRun)saveBestGhost("));
+ assert.ok(source.includes("saveBestGhost(time,result.archiveRecord)"));
+ assert.ok(source.includes("if(!debugUsedThisRun){"));
  assert.ok(source.includes('id="ghostToggle"')===false);
  const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
  assert.ok(html.includes('id="ghostToggle"'));
