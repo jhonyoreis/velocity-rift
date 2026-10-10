@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Velocity Rift 3.8.1 — Cidade das Fendas</title>
+    <title>Velocity Rift 3.8.2 — Cidade das Fendas</title>
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <link rel="stylesheet" href="./src/styles.css" />
   </head>
   <body>
     <main class="shell">
-      <section class="game-panel" aria-label="Velocity Rift 3.8.1">
+      <section class="game-panel" aria-label="Velocity Rift 3.8.2">
         <canvas id="game" width="960" height="540"></canvas>
         <div id="overlay" class="overlay" role="region" aria-label="Menu do Velocity Rift">
           <section id="mainMenu" class="menu-screen v3-main v4-home" aria-labelledby="menuHeading">
@@ -43,7 +43,7 @@
             <div class="v4-home-art" aria-hidden="true">
               <img src="./menu-hero.svg" alt="" width="850" height="760" decoding="async" />
             </div>
-            <small class="v4-home-version">v3.8.1 · <span class="vr-build-id">APK R15</span></small>
+            <small class="v4-home-version">v3.8.2 · <span class="vr-build-id">APK R16</span></small>
 
             <!-- Keep existing progress anchors for saves and other menus,
                  without showing a statistics dashboard on the home screen. -->
@@ -306,7 +306,7 @@
                   <div class="rift-detail-main">
                     <h3>Fenda Original</h3>
                     <p class="rift-detail-region">CAPÍTULO FINAL</p>
-                    <p class="rift-detail-story">Uma prévia jogável do mundo fragmentado: portais conectados, dimensões alternadas, gravidade invertida, descidas de impulso e criaturas dimensionais.</p>
+                    <p class="rift-detail-story">A travessia oficial: nove setores, fendas conectadas, dimensões alternadas, gravidade invertida e longas descidas de impulso. O confronto final chegará na 4.0.</p>
                   </div>
                   <div class="rift-detail-coming">ALTAR DOS NOVE NÚCLEOS · <strong id="mapStageFourCores">0/9</strong></div>
                   <p id="stageFourProgress" class="rift-stage-progress">Entre para ver o altar; recupere os nove núcleos das fases anteriores para abrir a porta.</p>
@@ -318,7 +318,22 @@
               <button id="backToMainButton" class="rift-map-back" type="button">← VOLTAR AO MENU</button>
             </footer>
           </section>
-          <section id="achievementsMenu" class="menu-screen achievement-screen vr-collection" aria-labelledby="achievementsHeading" hidden>
+                <section id="riftTraversalMenu" class="menu-screen" hidden aria-labelledby="riftTraversalTitle">
+        <p class="eyebrow">FENDA ORIGINAL · TRAVESSIA</p>
+        <h2 id="riftTraversalTitle">LIMIAR ALCANÇADO</h2>
+        <p>Flux chegou à fortaleza do Soberano. O confronto e o resgate de Alicia continuam na 4.0.</p>
+        <div class="result-stats">
+          <p>Tempo <strong id="riftTraversalTime">—</strong></p>
+          <p>Velocidade máxima <strong id="riftTraversalSpeed">—</strong></p>
+          <p>Cristais <strong id="riftTraversalCrystals">—</strong></p>
+        </div>
+        <p class="rift-stage-progress">A vitória da campanha será registrada após o confronto final.</p>
+        <div class="menu-actions">
+          <button id="riftTraversalRestart" type="button">REPETIR TRAVESSIA ↻</button>
+          <button id="riftTraversalMap" type="button">VOLTAR AO MAPA</button>
+        </div>
+      </section>
+<section id="achievementsMenu" class="menu-screen achievement-screen vr-collection" aria-labelledby="achievementsHeading" hidden>
             <header class="vr-collection-header">
               <div>
                 <span class="vr-collection-kicker">ARQUIVO DE FLUX</span>

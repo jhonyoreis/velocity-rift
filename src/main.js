@@ -11,7 +11,7 @@ import {ACHIEVEMENTS} from "./data/achievements.js";
 import {createStageOneWorld} from "./levels/forest.js";
 import {createStageTwoWorld} from "./levels/canyon.js";
 import {createStageThreeWorld} from "./levels/city.js";
-import {createOriginalRiftPreview,countRiftKeys} from "./game/originalRiftPreview.js";
+import {createOriginalRift,countRiftKeys} from "./game/originalRift.js";
 import {installSecretRoutes} from "./levels/secretChallenges.js";
 import {gradeForTime as gradeForTimeByStage} from "./game/scoring.js";
 import {computeCampaignCompletion} from "./game/completion.js";
@@ -59,7 +59,8 @@ function placeGameplayControls(){
 }
 placeGameplayControls();
 
-const screens=[mainMenu,stageMenu,resultMenu,achievementsMenu,settingsMenu,newGameConfirm,pauseMenu,deathMenu,cinematicMenu,galleryMenu];
+const riftTraversalMenu=document.querySelector("#riftTraversalMenu");
+const screens=[riftTraversalMenu,mainMenu,stageMenu,resultMenu,achievementsMenu,settingsMenu,newGameConfirm,pauseMenu,deathMenu,cinematicMenu,galleryMenu];
 let selectedMapStage=1;
 const soundToggle = document.querySelector("#soundToggle");
 const musicToggle = document.querySelector("#musicToggle");
@@ -122,10 +123,13 @@ let bestTime = 0;
 try { bestTime = Number(localStorage.getItem("velocity-rift-best-time")) || 0; } catch (_) { /* private storage */ }
 const progress=loadProgress();
 const campaign=loadCampaign();
-// 3.8 preview runs independently of the established 1-3 campaign runtime.
-const riftPreview=createOriginalRiftPreview({onExit:()=>showStageMenu()});
-// Permanently owned via historical route records (independent of New Game).
+// The 3.8 traversal uses its own runtime while the 4.0 finale is in development.
 let boostUpgrades=secretUpgradeStats(progress.secrets);
+let riftQAFrozen=false;
+const riftPreview=createOriginalRift({onExit:()=>showStageMenu(),
+  onDeath:showDeathScreen,onFinish:showRiftTraversalResult,drawFlux:drawFluxBody,
+  isDebug:()=>debugMode,boostCapacity:()=>boostCapacity(),onSound:playSfx});
+// Permanently owned via historical route records (independent of New Game).
 function boostCapacity(){return fullTestMode?150:boostUpgrades.capacity;}
 function boostPower(){return fullTestMode?1.12:boostUpgrades.powerMultiplier;}
 function testUnlocked(){return debugMode||fullTestMode;}
@@ -1140,8 +1144,8 @@ function refreshMapView(){
   const riftCores=countRiftKeys(campaign,fullTestMode);
   const previewButton=document.querySelector("#stageFourButton");
   previewButton.disabled=!previewAvailable;
-  previewButton.textContent=previewAvailable?"EXPLORAR PRÉVIA 3.8 →":"CONCLUA A CIDADE PARA ENTRAR";
-  document.querySelector("#mapStageFourBadge").textContent=previewAvailable?"PRÉVIA 3.8":"BLOQUEADA";
+  previewButton.textContent=previewAvailable?"JOGAR FENDA ORIGINAL →":"CONCLUA A CIDADE PARA ENTRAR";
+  document.querySelector("#mapStageFourBadge").textContent=previewAvailable?"TRAVESSIA 3.8":"BLOQUEADA";
   document.querySelector("#mapNodeStageFourStatus").textContent=previewAvailable?"ACESSO AO ALTAR":"BLOQUEADA";
   document.querySelector("#mapStageFourCores").textContent=riftCores+"/9";
   document.querySelector("#stageFourProgress").textContent=riftCores===9?
@@ -1243,18 +1247,26 @@ function showDeathScreen(fell, lost){
   gameStarted=false;gameCleared=false;paused=false;accumulator=0;
   airDash.active=false;airDash.time=0;
   document.querySelector("#deathStageLabel").textContent=
-    ["","Floresta Neon","Cânion Prisma","Cidade das Fendas"][activeStage];
+    ["","Floresta Neon","Cânion Prisma","Cidade das Fendas","Fenda Original"][activeStage];
   document.querySelector("#deathReason").textContent=fell
     ?"Flux caiu na fenda. Todos os cristais foram perdidos."
     :"Flux ficou sem cristais para resistir ao impacto.";
   document.querySelector("#deathCrystalLoss").textContent=
     lost+" cristal"+(lost===1?" perdido":"is perdidos");
-  const checkpoint=checkpointRespawnTarget(checkpoints,checkpointIndex,spawn);
+  const checkpoint=riftPreview.active?{fromCheckpoint:riftPreview.info().checkpointIndex>=0}:
+    checkpointRespawnTarget(checkpoints,checkpointIndex,spawn);
   document.querySelector("#deathRestartButton").title=
     checkpoint.fromCheckpoint?"Voltar ao checkpoint":"Reiniciar fase";
   showScreen(deathMenu);
 }
 function restartAfterDeath(){
+  if(riftPreview.active){
+    riftPreview.respawn();gameStarted=true;gameCleared=false;paused=false;accumulator=0;
+    keys.clear();jumpHeld=false;
+    screens.forEach(screen=>{screen.hidden=true;});overlay.classList.add("is-hidden");
+    document.querySelector(".game-panel").classList.remove("menu-active","pause-active");
+    syncPauseButton();syncMusic();ensureLoop();return;
+  }
   const target=checkpointRespawnTarget(checkpoints,checkpointIndex,spawn);
   if(!target.fromCheckpoint){
     // No checkpoint: restart the full stage as before.
@@ -1379,15 +1391,15 @@ function showPauseMenu(){
   paused=true;accumulator=0;keys.clear();jumpHeld=false;
   syncMusic();
   document.querySelector("#pauseStageLabel").textContent=riftPreview.active?
-    "Fenda Original · Prévia 3.8":
+    "Fenda Original · "+riftPreview.info().sector:
     ["","Primeiro Impulso","Cânion Prisma","Cidade das Fendas"][activeStage];
   document.querySelector("#pauseStatTime").textContent=formatTime(riftPreview.active?riftPreview.info().time:gameTime);
   document.querySelector("#pauseStatCrystals").textContent=String(riftPreview.active?riftPreview.info().crystals:player.rings);
   document.querySelector("#pauseStatCores").textContent=riftPreview.active?riftPreview.info().cores+"/9":(fullTestMode?3:player.cores)+"/3";
-  document.querySelector("#pauseStatSecrets").textContent=riftPreview.active?"PRÉVIA":
+  document.querySelector("#pauseStatSecrets").textContent=riftPreview.active?"—":
     (fullTestMode?3:secretTrials.filter(trial=>trial.completed).length)+"/3";
   document.querySelector("#pauseStatProgress").textContent=riftPreview.active?
-    Math.round(100*clamp(riftPreview.info().x/9500,0,1))+"%":
+    riftPreview.info().progress+"%":
     Math.round(100*clamp(player.x/goal.x,0,1))+"%";
   document.querySelector("#pauseBoostUpgrades").textContent=
     "BOOST "+boostCapacity()+" · FORÇA +"+
@@ -1687,6 +1699,13 @@ function startGame(stage=activeStage,skipCinematic=false,withArrival=false) {
   ensureLoop();
 }
 
+function showRiftTraversalResult(result){
+  // Traversal is playable in 3.8; campaign victory requires the 4.0 finale.
+  document.querySelector("#riftTraversalTime").textContent=formatTime(result.time);
+  document.querySelector("#riftTraversalSpeed").textContent=Math.round(result.topSpeed)+" u/s";
+  document.querySelector("#riftTraversalCrystals").textContent=result.crystals;
+  gameStarted=false;gameCleared=false;keys.clear();showScreen(riftTraversalMenu);
+}
 function startRiftPreview(){
   if(!campaign.stage3Completed&&!testUnlocked())return;
   unlockAudio();
@@ -2547,6 +2566,7 @@ function drawGuardian(){
 }
 
 function update(dt) {
+  if(riftQAFrozen)return;
   if(riftPreview.active){riftPreview.update(dt,keys);return;}
   if(stageArrival.active){updateStageArrival(dt);return;}
   if(dashAltar.active){updateDashAltar(dt);return;}
@@ -4768,13 +4788,15 @@ function scheduleRiftTheme(at,step){
   const beat=step%16,section=riftPreview.musicSection;
   const root=[37,39,34,42][Math.floor(step/16)%4];
   if([0,3,6,8,11,14].includes(beat))
-    synthMusic(section===2?48:56,at,.10,section===2?.18:.12,"sine");
+    synthMusic(section===4?48:section===3?62:56,at,.10,section===4?.18:.12,"sine");
   if(beat===4||beat===12)synthMusic(178,at,.09,.06,"square");
-  if(beat%2||section>=1)synthMusic(1900,at,.035,.016,"triangle");
+  if(beat%2||section===3||section===4)synthMusic(1900,at,.035,.016,"triangle");
   prismVoice(midiToHz(root+[0,0,7,3][beat%4]),at,RIFT_STEP_SECONDS*1.9,.07,"bass");
   const note=RIFT_MOTIF[step%RIFT_MOTIF.length];
-  if(note!==null)prismVoice(midiToHz(root+28+note+(section===2?12:0)),
-    at,RIFT_STEP_SECONDS*(section===2?2.1:1.4),section===2?.13:.09,"glass");
+  if(note!==null)prismVoice(midiToHz(root+28+note+(section===4?12:section===2?7:0)),
+    at,RIFT_STEP_SECONDS*(section===5?3.5:section===4?2.1:1.4),section===4?.13:.09,"glass");
+  if(section===1&&beat%4===2)prismVoice(midiToHz(root+43),at,RIFT_STEP_SECONDS*2,.045,"glass");
+  if(section===3&&beat%2===0)synthMusic(2300,at,.025,.024,"triangle");
   if(beat===0)for(const n of [0,3,7,10])
     prismVoice(midiToHz(root+24+n),at,RIFT_STEP_SECONDS*11,.022,"pad");
 }
@@ -5006,6 +5028,8 @@ document.querySelector("#stageOneButton").addEventListener("click", ()=>startGam
  document.querySelector("#stageTwoButton").addEventListener("click",()=>{if(campaign.stage1Completed||testUnlocked())startGame(2)});
 document.querySelector("#stageThreeButton").addEventListener("click",()=>{if(campaign.stage2Completed||testUnlocked())startGame(3)});
 document.querySelector("#stageFourButton").addEventListener("click",startRiftPreview);
+document.querySelector("#riftTraversalRestart").addEventListener("click",startRiftPreview);
+document.querySelector("#riftTraversalMap").addEventListener("click",showStageMenu);
 document.querySelector("#backToMainButton").addEventListener("click", showMainMenu);
 document.querySelector("#achievementsButton").addEventListener("click",showAchievementsMenu);
 document.querySelector("#resultsAchievementsButton").addEventListener("click",showAchievementsMenu);
@@ -5060,3 +5084,9 @@ document.querySelectorAll('[data-key]').forEach(button => {
 
 showMainMenu();
 draw();
+
+if(import.meta.env.DEV&&new URLSearchParams(location.search).has("rift-qa")){
+  window.__riftQA={freeze(){riftQAFrozen=true;},info:()=>riftPreview.info(),
+    step(inputs){riftPreview.update(1/120,new Set(inputs));draw();},
+    release(){riftQAFrozen=false;}};
+}

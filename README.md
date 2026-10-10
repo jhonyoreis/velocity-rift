@@ -1,4 +1,4 @@
-# Velocity Rift — Cidade das Fendas (versão 3.8.1 em teste)
+# Velocity Rift — Cidade das Fendas (versão 3.8.2 em teste)
 
 Um prototipo web 2D inspirado em jogos de plataforma de alta velocidade. Ele usa
 HTML, CSS e Canvas, sem assets oficiais. O Vite é uma dependência de desenvolvimento.
@@ -823,3 +823,15 @@ QA manual complementar: completar corrida de mais de cinco minutos e verificar o
 - A fenda de retorno na entrada da prévia agora é desenhada explicitamente e permite retornar ao mapa sem reunir os nove núcleos.
 - O teste visual Android aguarda a abertura real do menu de pausa da prévia e registra detalhes da interface e uma captura de diagnóstico quando não ocorrer. Isso ajuda a distinguir falhas de tempo/visibilidade de erros de integração no runtime.
 - Atualização do pacote Android e da etiqueta de instalação para `3.8.1 · APK R15`; saves e progresso antigos mantidos.
+
+
+## 3.8.2 — Fenda Original: travessia oficial (APK R16)
+
+- A prévia de 10 mil unidades torna-se um percurso oficial de **36.600 unidades**, o maior dos quatro mundos, com **nove setores e nove checkpoints**.
+- **Cinco fendas conectadas**, duas regiões extensas com gravidade invertida, cinco âncoras de alternância dimensional, plataformas móveis, três sequências longas de momentum e uma passagem final de 520 unidades que exige Dash através de uma membrana.
+- Quatro tipos de criaturas dimensionais, sentinelas com projéteis, espinhos e lasers com aviso. Boost/Dash derrotam inimigos; ataques não protegem dos perigos. A energia recarrega somente nos orbes de Boost.
+- Flux usa seu sprite original, HUD minimalista e velocímetro colorido. Dano, tela de morte e retorno ao checkpoint preservam a dimensão e a gravidade. TESTE 100% permite explorar sem invulnerabilidade; DEBUG continua separado.
+- O altar exige os nove núcleos das primeiras fases. Quatro aparições do Soberano e variações de **A Origem do Vazio** acompanham o trajeto.
+- O percurso termina no **Limiar do Soberano**, com resultados da tentativa e opções para repetir/voltar ao mapa. A batalha final, a transformação rubra, o resgate de Alicia, os créditos e a conclusão da campanha permanecem para a **4.0**; a travessia não grava vitória, recorde ou progresso final antecipado.
+- **125 testes**, build e testes de navegador desktop/Android horizontal; a nova automação percorre a fase inteira com comandos comuns, sem invulnerabilidade, e valida as telas e o checkpoint invertido. Capturas são produzidas em `test-artifacts/visual/`. QA em aparelho real ainda deve avaliar dificuldade, som e desempenho.
+- Dependências resolvidas em lockfile e Playwright fixado na versão usada pela validação. Detalhes e roteiro manual em [QA-3.8.2](docs/QA-3.8.2.md).

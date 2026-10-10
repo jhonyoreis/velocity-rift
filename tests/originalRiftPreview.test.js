@@ -15,14 +15,14 @@ test("altar requires nine distinct cores from this campaign and never trusts dup
  assert.equal(riftGateOpen(9),true);
 });
 test("fourth chapter keeps gravity, dimensions and momentum separate from campaign stages",()=>{
- assert.equal(RIFT_PREVIEW_WIDTH,10000);
+ assert.equal(RIFT_PREVIEW_WIDTH,36600);
  const platforms=previewPlatforms();
  assert.ok(platforms.length>=16);
  assert.ok(platforms.some(x=>x.orientation==="ceiling"));
  assert.ok(platforms.some(x=>x.dimension===1));
- assert.deepEqual(portalDestination("a"),{x:2825,y:201,gravity:-1,dimension:0});
+ assert.deepEqual(portalDestination("a"),{x:6810,y:202,gravity:-1,dimension:0});
  assert.equal(portalDestination("b").gravity,1);
- assert.equal(portalDestination("c").dimension,1);
+ assert.equal(portalDestination("d").gravity,-1);
  assert.equal(portalDestination("unknown"),null);
 });
 test("stage 4 entrance is blocked without nine cores; debug preview is session-only",()=>{
