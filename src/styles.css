@@ -2810,3 +2810,56 @@ html.mobile-game .v4-home .v4-home-button:active{transform:scale(.965);}
   html.mobile-game .rift-map-cartography .rift-map-node,
   html.mobile-game .v4-home .v4-home-button{transition:none;}
 }
+
+
+/* 3.7.5 — compact confirmations, icon-only actions, no scrollable detail panels. */
+.game-panel .overlay .vr-death-minimal,
+.game-panel .overlay .vr-confirm-minimal{
+  width:min(100%,480px);max-width:480px;max-height:min(95%,390px);
+  padding:clamp(14px,3.2vh,28px)!important;
+  display:flex;flex-direction:column;justify-content:center;align-items:center;
+  gap:clamp(12px,3vh,23px)!important;overflow:hidden;
+  background:linear-gradient(155deg,rgba(8,22,40,.95),rgba(20,31,55,.96));
+  border:1px solid rgba(146,231,233,.19);
+  border-radius:18px;box-shadow:0 15px 50px #010b17ab;
+}
+.game-panel .vr-death-minimal h2,
+.game-panel .vr-confirm-minimal h2{
+  font-size:clamp(1.5rem,5.3vh,3rem);font-weight:900;line-height:1.13;
+  text-align:center;margin:0;color:#f6f7fa;letter-spacing:.05em;
+}
+.game-panel .vr-confirm-minimal .vr-confirm-note{
+  margin:0;max-width:355px;color:#c9d8e1;text-align:center;
+  font-size:clamp(.72rem,2.3vh,.92rem);line-height:1.45;
+}
+.game-panel .vr-death-minimal .vr-death-actions,
+.game-panel .vr-confirm-minimal .vr-confirm-actions{
+  display:flex;flex-direction:row;justify-content:center;align-items:center;
+  gap:clamp(16px,4vw,32px);width:auto;
+}
+.game-panel .vr-death-minimal .vr-icon-action,
+.game-panel .vr-confirm-minimal .vr-icon-action{
+  width:clamp(55px,11vh,74px);height:clamp(55px,11vh,74px);min-height:55px;
+  border-radius:16px;padding:0;display:flex;align-items:center;justify-content:center;
+  font-family:system-ui,sans-serif;font-weight:800;font-size:clamp(1.8rem,5vh,2.9rem);
+  line-height:1;border:1px solid #8bc9dc77;
+  background:#1b334a;color:#a6f8e8;cursor:pointer;
+  transition:transform .11s ease,background .11s ease;
+  box-shadow:inset 0 0 24px #90f3e210;
+}
+.game-panel .vr-death-minimal .vr-exit,
+.game-panel .vr-confirm-minimal .vr-confirm-no{color:#f3c4ab;border-color:#f3c4ab66;background:#3a2b40;}
+.game-panel .vr-confirm-minimal .vr-confirm-yes{background:#163b36;color:#b2ffdf;border-color:#73dca1aa;}
+.game-panel .vr-icon-action:hover{transform:translateY(-2px);filter:brightness(1.12);}
+.game-panel .vr-icon-action:focus-visible{outline:3px solid #fff1a0;outline-offset:3px;}
+.game-panel .vr-icon-action:active{transform:scale(.955);}
+html.mobile-game .game-panel .vr-death-minimal,
+html.mobile-game .game-panel .vr-confirm-minimal{
+  width:min(62vw,455px);max-height:90%;padding:12px!important;
+}
+html.mobile-game .game-panel .vr-death-minimal .vr-icon-action,
+html.mobile-game .game-panel .vr-confirm-minimal .vr-icon-action{
+  width:clamp(54px,11vh,68px);height:clamp(54px,11vh,68px);
+}
+.game-panel .vr-pause-clean .vr-pause-debug .debug-toggle+ .debug-toggle{margin-left:8px;}
+@media (prefers-reduced-motion:reduce){.game-panel .vr-icon-action{transition:none;}}

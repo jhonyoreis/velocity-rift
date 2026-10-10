@@ -1,4 +1,4 @@
-# Velocity Rift — Cidade das Fendas (versão 3.7.4 em teste)
+# Velocity Rift — Cidade das Fendas (versão 3.7.5 em teste)
 
 Um prototipo web 2D inspirado em jogos de plataforma de alta velocidade. Ele usa
 HTML, CSS e Canvas, sem assets oficiais. O Vite é uma dependência de desenvolvimento.
@@ -721,4 +721,18 @@ atualizações com assinatura idêntica.
 - [ ] Verificar FPS, partículas e efeitos no Android e desktop.
 - [ ] Após configurar Secrets, gerar e verificar assinatura de um APK
   estável, depois instalar uma atualização posterior sem apagar saves.
+
+
+## 3.7.5 — Etapa 4: primeiro bloco de melhorias
+
+Primeira entrega do conjunto de 17 propostas da [issue #7](https://github.com/jhonyoreis/velocity-rift/issues/7).
+Esta versão contém **4 melhorias**:
+- #13: TESTE 100% isolado de DEBUG em Opções de teste; ativa acesso às fases, dash e boost máximo temporários, além de mostrar conclusão total no menu de progresso/coleção. Não salva conquistas ou recordes nem torna Flux invulnerável. Ao desligar, o save legítimo permanece inalterado.
+- #14: velocímetro numérico com barra proporcional e sete cores: cinza, azul, ciano, verde, amarelo, laranja e vermelho.
+- #16: tela de morte minimalista com apenas título e botões de reiniciar/menu em ícones; perda de cristais/checkpoint continuam funcionando.
+- #17: confirmação de Novo Jogo reduzida a título, aviso curto e botões de confirmar/cancelar em ícones.
+
+**Ainda pendentes:** transições cinematográficas, altar do dash, passagem por portais, escalonamento do Guardião, ecos de Alicia, apresentação dos chefes, checkpoints especiais, música dinâmica, aparência evolutiva, arquivo narrativo, desafios extras e fantasma de recorde. Não considerar a Etapa 4 concluída até implementar e validar os demais itens.
+
+**QA manual:** inspecionar ambas as telas minimalistas; testar TESTE 100% isolado com dano fatal e save intacto após reiniciar; comparar DEBUG e TESTE 100% simultâneos; inspecionar o velocímetro em todas as bandas incluindo impulso em descidas.
 

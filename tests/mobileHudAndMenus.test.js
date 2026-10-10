@@ -15,7 +15,7 @@ test("minimal HUD shows crystals, time and boost, not stage or percentage",()=>{
  assert.ok(hud.includes("player.rings"));
  assert.ok(hud.includes("gameTime.toFixed(1)"));
  assert.ok(hud.includes("BOOST"));
- assert.ok(!hud.includes("VELOCIDADE"));
+ assert.ok(hud.includes("VELOCIDADE"));
  assert.ok(!hud.includes("NÚCLEOS "+'"'+"+player.cores"));
  assert.ok(!hud.includes("Rotas secretas "+'"'+"+"));
  assert.ok(!hud.includes("CIDADE DAS FENDAS"));

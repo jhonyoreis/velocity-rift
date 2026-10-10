@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Velocity Rift 3.7.4 — Cidade das Fendas</title>
+    <title>Velocity Rift 3.7.5 — Cidade das Fendas</title>
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <link rel="stylesheet" href="./src/styles.css" />
   </head>
   <body>
     <main class="shell">
-      <section class="game-panel" aria-label="Velocity Rift 3.7.2">
+      <section class="game-panel" aria-label="Velocity Rift 3.7.5">
         <canvas id="game" width="960" height="540"></canvas>
         <div id="overlay" class="overlay" role="region" aria-label="Menu do Velocity Rift">
           <section id="mainMenu" class="menu-screen v3-main v4-home" aria-labelledby="menuHeading">
@@ -43,7 +43,7 @@
             <div class="v4-home-art" aria-hidden="true">
               <img src="./menu-hero.svg" alt="" width="850" height="760" decoding="async" />
             </div>
-            <small class="v4-home-version">v3.7.4 · <span class="vr-build-id">APK R6</span></small>
+            <small class="v4-home-version">v3.7.5 · <span class="vr-build-id">APK R7</span></small>
 
             <!-- Keep existing progress anchors for saves and other menus,
                  without showing a statistics dashboard on the home screen. -->
@@ -131,18 +131,12 @@
               <button id="settingsBackButton" class="secondary-action" type="button">← Voltar ao menu</button>
             </div>
           </section>
-          <section id="newGameConfirm" class="menu-screen v3-confirm" role="group" aria-labelledby="confirmNewHeading" hidden>
-            <div class="v3-confirm-icon" aria-hidden="true">◇</div>
-            <div class="menu-eyebrow">NOVA JORNADA // CONFIRMAÇÃO</div>
-            <h2 id="confirmNewHeading">Começar um novo jogo?</h2>
-            <p class="menu-subtitle">Sua campanha voltará ao início e a fase 2 será bloqueada novamente.</p>
-            <div class="v3-preserve-notice">
-              <strong>Seus feitos ficam guardados.</strong>
-              <span>Conquistas e recordes históricos continuam salvos, mas os tempos e coleções do mapa começam do zero.</span>
-            </div>
-            <div class="menu-actions">
-              <button id="confirmNewGameButton" class="primary-action" type="button">Sim, começar do início ➜</button>
-              <button id="cancelNewGameButton" class="secondary-action" type="button">Cancelar</button>
+          <section id="newGameConfirm" class="menu-screen v3-confirm vr-confirm-minimal" role="group" aria-labelledby="confirmNewHeading" hidden>
+            <h2 id="confirmNewHeading">NOVO JOGO?</h2>
+            <p class="vr-confirm-note">A campanha será reiniciada. Conquistas e recordes permanecem.</p>
+            <div class="vr-confirm-actions">
+              <button id="confirmNewGameButton" type="button" class="vr-icon-action vr-confirm-yes" aria-label="Confirmar novo jogo" title="Confirmar novo jogo">✓</button>
+              <button id="cancelNewGameButton" type="button" class="vr-icon-action vr-confirm-no" aria-label="Cancelar novo jogo" title="Cancelar novo jogo">✕</button>
             </div>
           </section>
           <section id="stageMenu" class="menu-screen rift-map-screen rift-map-clean" aria-labelledby="stageHeading" hidden>
@@ -374,17 +368,20 @@
             </div>
           </section>
 
-          <section id="deathMenu" class="menu-screen vr-death" role="group" aria-labelledby="deathHeading" hidden>
-        <span class="vr-death-label">FIM DA TENTATIVA</span>
-        <h2 id="deathHeading">VOCÊ MORREU</h2>
-        <p id="deathStageLabel" class="vr-death-stage">Floresta Neon</p>
-        <p id="deathReason" class="vr-death-reason">Flux perdeu todos os cristais.</p>
-        <p id="deathCrystalLoss" class="vr-death-loss">0 cristais perdidos</p>
-        <div class="vr-death-actions">
-          <button id="deathRestartButton" class="primary-action" type="button">↺ REINICIAR FASE</button>
-          <button id="deathMainButton" class="secondary-action" type="button">⌂ MENU PRINCIPAL</button>
-        </div>
-      </section>
+          <section id="deathMenu" class="menu-screen vr-death vr-death-minimal" role="group" aria-labelledby="deathHeading" hidden>
+            <h2 id="deathHeading">VOCÊ MORREU</h2>
+            <div hidden aria-hidden="true">
+              <span id="deathStageLabel"></span>
+              <span id="deathReason"></span>
+              <span id="deathCrystalLoss"></span>
+            </div>
+            <div class="vr-death-actions">
+              <button id="deathRestartButton" class="vr-icon-action vr-restart" type="button" aria-label="Reiniciar do checkpoint ou da fase" title="Reiniciar">↻</button>
+              <button id="deathMainButton" class="vr-icon-action vr-exit" type="button" aria-label="Voltar ao menu principal" title="Voltar ao menu">
+                <svg viewBox="0 0 24 24" width="33" height="33" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linejoin="round" stroke-linecap="round"><path d="M4 21V3l13-2v22L4 21Z"/><path d="M17 13h4M13 12h.01"/></svg>
+              </button>
+            </div>
+          </section>
       <section id="pauseMenu" class="menu-screen v31-pause vr-pause-clean" aria-labelledby="pauseHeading" hidden>
         <header class="vr-pause-head">
           <div>
@@ -440,7 +437,8 @@
             <div class="vr-pause-debug">
               <button id="debugToggle" class="debug-toggle" type="button"
                 aria-pressed="false" aria-label="Alternar modo de teste; pontuações desta tentativa não serão registradas" hidden>DEBUG: OFF</button>
-              <small>Modo de teste: boost infinito, voo e invencibilidade. Não registra recordes.</small>
+              <button id="fullTestToggle" class="debug-toggle" type="button" aria-pressed="false" aria-label="Alternar teste de conclusão 100 por cento, sem invencibilidade">TESTE 100%: OFF</button>
+              <small>DEBUG: invencibilidade e boost infinito. TESTE 100%: desbloqueios simulados, mas Flux ainda pode morrer. Ambos são independentes e não salvam recordes.</small>
             </div>
           </details>
         </div>

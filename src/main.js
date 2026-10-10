@@ -1,6 +1,7 @@
 import {SECRET_DEFS} from "./data/secretRoutes.js";
 import {secretUpgradeStats,secretUpgradeReward} from "./game/secretUpgrades.js";
 import {mobileTutorialSign} from "./game/mobileTutorial.js";
+import {speedometer} from "./game/speedometer.js";
 import {ACHIEVEMENTS} from "./data/achievements.js";
 import {createStageOneWorld} from "./levels/forest.js";
 import {createStageTwoWorld} from "./levels/canyon.js";
@@ -58,6 +59,7 @@ const soundToggle = document.querySelector("#soundToggle");
 const musicToggle = document.querySelector("#musicToggle");
 const trackNowPlaying = document.querySelector("#trackNowPlaying");
 const debugToggle = document.querySelector("#debugToggle");
+const fullTestToggle=document.querySelector("#fullTestToggle");
 
 
 function syncMobilePresentation(){
@@ -107,6 +109,7 @@ const GRADE_ORDER=["C","B","A","S"];
 // Steps are [horizontal offset, rise, platform width, platform behavior].
 let activeStage = 1;
 let debugMode = false;
+let fullTestMode=false; // Session-only, preserves real campaign and archive.
 let debugUsedThisRun = false;
 let bestTime = 0;
 try { bestTime = Number(localStorage.getItem("velocity-rift-best-time")) || 0; } catch (_) { /* private storage */ }
@@ -114,7 +117,9 @@ const progress=loadProgress();
 const campaign=loadCampaign();
 // Permanently owned via historical route records (independent of New Game).
 let boostUpgrades=secretUpgradeStats(progress.secrets);
-function boostCapacity(){return boostUpgrades.capacity;}
+function boostCapacity(){return fullTestMode?150:boostUpgrades.capacity;}
+function boostPower(){return fullTestMode?1.12:boostUpgrades.powerMultiplier;}
+function testUnlocked(){return debugMode||fullTestMode;}
 const secretTrials=[];
 const notification={title:"",subtitle:"",timer:0};
 const collectibleToast={title:"",timer:0};
@@ -185,7 +190,7 @@ const DASH_SECONDS=.255,DASH_SPEED=1140;
 const cityDashCore={x:3730,y:396};
 let dashUnlockFlash=0;
 function dashUnlocked(){
-  return campaign.aerialDash||((debugMode||debugUsedThisRun)&&activeStage===3);
+  return campaign.aerialDash||fullTestMode||((debugMode||debugUsedThisRun)&&activeStage===3);
 }
 function resetAirDash(){
   Object.assign(airDash,{active:false,available:true,time:0,trail:0,dx:1,dy:0});
@@ -221,7 +226,7 @@ function updateAirDash(dt){
   dashUnlockFlash=Math.max(0,dashUnlockFlash-dt);
 }
 function collectCityDashCore(){
-  if(activeStage!==3||campaign.aerialDash||player.x<cityDashCore.x-32||
+  if(activeStage!==3||campaign.aerialDash||fullTestMode||player.x<cityDashCore.x-32||
     player.x>cityDashCore.x+32||Math.abs(player.y-cityDashCore.y)>60)return;
   if(!debugUsedThisRun){campaign.aerialDash=true;saveCampaign();grantAchievement("dash");}
   airDash.available=true;dashUnlockFlash=2;
@@ -232,7 +237,7 @@ function collectCityDashCore(){
   playSfx("dash-unlock");
 }
 function drawCityDashCore(){
-  if(activeStage!==3||campaign.aerialDash)return;
+  if(activeStage!==3||campaign.aerialDash||fullTestMode)return;
   const t=visualTime;
   ctx.save();ctx.translate(cityDashCore.x,cityDashCore.y);
   ctx.shadowColor="#ffe09c";ctx.shadowBlur=25;
@@ -948,7 +953,7 @@ function showGalleryMenu(){
 function refreshCinematicGallery(){
   const entries=[["opening","Opening"],["intro1","StageOne"],["intro2","StageTwo"],["intro3","StageThree"]];
   for(const [key,name] of entries){
-    const seen=campaign.scenesSeen.includes(key);
+    const seen=fullTestMode||campaign.scenesSeen.includes(key);
     const button=document.querySelector("#gallery"+name);
     const state=document.querySelector("#gallery"+name+"State");
     button.disabled=!seen;
@@ -1024,7 +1029,7 @@ function finishCinematic(){
   cinematic.active=false;cinematic.key=null;cinematic.onEnd=null;
   document.querySelector(".game-panel").classList.remove("cinematic-active");
   cinematicMenu.hidden=true;
-  if(!replay&&!debugMode&&!campaign.scenesSeen.includes(key)){
+  if(!replay&&!testUnlocked()&&!campaign.scenesSeen.includes(key)){
     campaign.scenesSeen.push(key);saveCampaign();
   }
   if(cb)cb();else showMainMenu();
@@ -1037,7 +1042,7 @@ function cancelCinematic(returnToMenu=true){
   if(returnToMenu)showMainMenu();
 }
 function replayCinematic(key){
-  if(!campaign.scenesSeen.includes(key))return;
+  if(!fullTestMode&&!campaign.scenesSeen.includes(key))return;
   launchCinematic(key,showGalleryMenu,true);
 }
 
@@ -1128,12 +1133,13 @@ function recordCampaignSecret(stage,id){
   saveCampaign();
   return true;
 }
-function campaignCompletion(){return computeCampaignCompletion(campaign);}
+function campaignCompletion(){return fullTestMode?
+ {stages:4,cores:12,secrets:12,percent:100}:computeCampaignCompletion(campaign);}
 function nextCampaignStage(){
   return campaign.stage2Completed&&campaign.lastStage===3?3:campaign.stage1Completed&&campaign.lastStage===2?2:1;
 }
 function continueCampaign(){
-  if(!campaign.started)return;
+  if(!campaign.started&&!fullTestMode)return;
   startGame(nextCampaignStage());
 }
 function askNewGame(){
@@ -1248,8 +1254,8 @@ function selectMapStage(stage){
   }
 }
 function refreshMapView(){
-  const unlocked=campaign.stage1Completed||debugMode;
-  const cityUnlocked=campaign.stage2Completed||debugMode;
+  const unlocked=campaign.stage1Completed||testUnlocked();
+  const cityUnlocked=campaign.stage2Completed||testUnlocked();
   // Paths mirror campaign unlocks. Even locked regions remain selectable
   // for preview; their "Play" buttons are separately disabled.
   for(const [id,open] of [["mapPathToCanyon",unlocked],["mapPathToCity",cityUnlocked]]){
@@ -1309,7 +1315,7 @@ function refreshProgressView() {
     "Fases "+completion.stages+"/4  ·  Núcleos "+completion.cores+
     "/12  ·  Rotas secretas "+completion.secrets+"/12";
   const continueButton=document.querySelector("#startButton");
-  const canContinue=campaign.started===true;
+  const canContinue=campaign.started===true||fullTestMode;
   continueButton.disabled=!canContinue;
   continueButton.setAttribute("aria-disabled",String(!canContinue));
   const description=canContinue
@@ -1324,7 +1330,7 @@ function refreshProgressView() {
     campaign.stage2Completed?"Fase concluída nesta campanha":
     campaign.stage1Completed?"Região disponível":
     "Conclua Primeiro Impulso para liberar";
-  const unlocked=campaign.stage1Completed||debugMode;
+  const unlocked=campaign.stage1Completed||testUnlocked();
   document.querySelector("#stageTwoButton").disabled=!unlocked;
   document.querySelector("#stageTwoCard").classList.toggle("stage-card-locked",!unlocked);
   document.querySelector("#stageTwoCard").classList.toggle("stage-card-active",unlocked);
@@ -1367,8 +1373,8 @@ function showDeathScreen(fell, lost){
   document.querySelector("#deathCrystalLoss").textContent=
     lost+" cristal"+(lost===1?" perdido":"is perdidos");
   const checkpoint=checkpointRespawnTarget(checkpoints,checkpointIndex,spawn);
-  document.querySelector("#deathRestartButton").textContent=
-    checkpoint.fromCheckpoint?"↺ VOLTAR AO CHECKPOINT":"↺ REINICIAR FASE";
+  document.querySelector("#deathRestartButton").title=
+    checkpoint.fromCheckpoint?"Voltar ao checkpoint":"Reiniciar fase";
   showScreen(deathMenu);
 }
 function restartAfterDeath(){
@@ -1454,8 +1460,8 @@ function showResults(time, crystals, cores = 0) {
   document.querySelector("#resultSecrets").textContent=secretTrials.filter(t=>t.completed).length+"/3";
   const nextStageButton=document.querySelector("#nextStageButton");
   // Stages 2/3 unlock in order. Debug-only clears never grant permanent access.
-  const nextPlayable=(activeStage===1&&(campaign.stage1Completed||debugMode))||
-    (activeStage===2&&(campaign.stage2Completed||debugMode));
+  const nextPlayable=(activeStage===1&&(campaign.stage1Completed||testUnlocked()))||
+    (activeStage===2&&(campaign.stage2Completed||testUnlocked()));
   nextStageButton.disabled=!nextPlayable;
   nextStageButton.textContent=nextPlayable
     ?("Próxima fase: "+(activeStage===1?"Cânion Prisma":"Cidade das Fendas")+" ➜")
@@ -1497,10 +1503,12 @@ function showPauseMenu(){
     Math.round(100*clamp(player.x/goal.x,0,1))+"%";
   document.querySelector("#pauseBoostUpgrades").textContent=
     "BOOST "+boostCapacity()+" · FORÇA +"+
-    boostUpgrades.powerLevels*3+"% · "+boostUpgrades.collected+"/9 MELHORIAS";
+    (fullTestMode?12:boostUpgrades.powerLevels*3)+"% · "+
+    (fullTestMode?9:boostUpgrades.collected)+"/9 MELHORIAS"+(fullTestMode?" · TESTE":"");
   for(const id of ["pauseAudioDetails","pauseControlsDetails","pauseDebugDetails"])
     document.querySelector("#"+id).open=false;
   if(debugToggle)debugToggle.hidden=false;
+  if(fullTestToggle)fullTestToggle.hidden=false;
   screens.forEach(screen=>{screen.hidden=screen!==pauseMenu;});
   overlay.classList.remove("is-hidden");
   const panel=document.querySelector(".game-panel");
@@ -1759,20 +1767,20 @@ function resetGame() {
 
 function startGame(stage=activeStage,skipCinematic=false,withArrival=false) {
   if(![1,2,3].includes(stage))return;
-  if(stage===2&&!campaign.stage1Completed&&!debugMode)return;
-  if(stage===3&&!campaign.stage2Completed&&!debugMode)return;
+  if(stage===2&&!campaign.stage1Completed&&!testUnlocked())return;
+  if(stage===3&&!campaign.stage2Completed&&!testUnlocked())return;
   const chapter="intro"+stage;
-  if(!skipCinematic&&!debugMode&&!campaign.scenesSeen.includes(chapter)){
+  if(!skipCinematic&&!testUnlocked()&&!campaign.scenesSeen.includes(chapter)){
     launchCinematic(chapter,()=>startGame(stage,true,true),false);
     return;
   }
   unlockAudio();
-  if(!debugMode){
+  if(!testUnlocked()){
     campaign.started=true;
     campaign.lastStage=stage;
     saveCampaign();
   }
-  debugUsedThisRun = debugMode;
+  debugUsedThisRun = debugMode||fullTestMode;
   if(debugToggle)debugToggle.hidden=true;
   activateStage(stage);
   resetGame();
@@ -2618,7 +2626,7 @@ function update(dt) {
   const accel = player.onGround ? (player.sliding ? 390 : 1280) : 660;
   const friction = player.onGround ? (player.sliding ? 180 : 1050) : 110;
   const normalMax = 480;
-  const boostMax = BOOST_MAX_SPEED*boostUpgrades.powerMultiplier;
+  const boostMax = BOOST_MAX_SPEED*boostPower();
   const speedBeforeInput = Math.abs(player.vx);
 
   if (left&&!airDash.active) {
@@ -2638,7 +2646,7 @@ function update(dt) {
   player.boosting = boosting;
   if (boosting && !wasBoosting) { playSfx("boost"); triggerFluxFx("boost"); }
   if (boosting) {
-    player.vx += player.facing * BOOST_ACCELERATION * boostUpgrades.powerMultiplier * dt;
+    player.vx += player.facing * BOOST_ACCELERATION * boostPower() * dt;
     player.boost = debugMode?boostCapacity():Math.max(0, player.boost - 34 * dt);
     player.trail.push({ x: player.x, y: player.y, life: 0.24 });
   }
@@ -3290,7 +3298,7 @@ function drawSecretTrials(){
 }
 
 function refreshAchievementsView(){
-  const unlocked=ACHIEVEMENTS.filter(a=>progress.achievements[a.id]).length;
+  const unlocked=ACHIEVEMENTS.filter(a=>fullTestMode||progress.achievements[a.id]).length;
   const total=ACHIEVEMENTS.length;
   const counter=document.querySelector("#achievementsCount");
   if(counter)counter.textContent=unlocked+" de "+total;
@@ -3302,14 +3310,14 @@ function refreshAchievementsView(){
   const fill=document.querySelector("#achievementProgressFill");
   if(fill)fill.style.width=(total?Math.round(100*unlocked/total):0)+"%";
   const summary=document.querySelector("#secretCollection");
-  const discovered=[1,2,3].reduce((n,stage)=>n+progress.secrets["stage"+stage].length,0);
+  const discovered=fullTestMode?9:[1,2,3].reduce((n,stage)=>n+progress.secrets["stage"+stage].length,0);
   const available=[1,2,3].reduce((n,stage)=>n+SECRET_DEFS[stage].length,0);
   if(summary)summary.textContent=discovered+" de "+available+" descobertas";
   const list=document.querySelector("#achievementList");
   const routes=document.querySelector("#secretRouteList");
   if(routes)routes.innerHTML=[1,2,3].flatMap(stage=>
     SECRET_DEFS[stage].map(def=>{
-      const earned=progress.secrets["stage"+stage].includes(def.id);
+      const earned=fullTestMode||progress.secrets["stage"+stage].includes(def.id);
       const time=progress.secretTimes["stage"+stage][def.id];
       return '<div class="secret-route-entry'+(earned?' discovered':'')+'">'+
         '<strong>'+(earned?'✦ ':'◇ ')+def.name+'</strong>'+
@@ -3322,7 +3330,7 @@ function refreshAchievementsView(){
     })
   ).join("");
   if(list)list.innerHTML=ACHIEVEMENTS.map(a=>{
-    const unlocked=progress.achievements[a.id]===true;
+    const unlocked=fullTestMode||progress.achievements[a.id]===true;
     return '<div class="achievement-entry'+(unlocked?' achieved':' locked')+'">'+
       '<span class="achievement-symbol" aria-hidden="true">'+(unlocked?'✦':'◇')+'</span>'+
       '<div><strong>'+a.title+'</strong><small>'+a.description+'</small></div>'+
@@ -4292,6 +4300,17 @@ function drawMinimalHud(mobile){
   roundRect(295,30,Math.max(0,362*clamp(player.boost/boostCapacity(),0,1)),10,5);ctx.fill();
   ctx.fillStyle="#d4ffef";ctx.font="bold 11px system-ui";
   ctx.fillText("BOOST",298,20);
+  // Racing telemetry: absolute velocity, visible fill and seven speed colors.
+  const gauge=speedometer(player.vx);
+  ctx.fillStyle="rgba(7,23,38,.76)";
+  roundRect(291,50,370,26,8);ctx.fill();
+  ctx.fillStyle=gauge.color;
+  roundRect(295,54,362*gauge.fraction,8,4);ctx.fill();
+  ctx.fillStyle="#d8f7ff";ctx.font="bold 10px system-ui";
+  ctx.fillText("VELOCIDADE",298,72);
+  ctx.textAlign="right";
+  ctx.fillText(gauge.value+" u/s",655,72);
+  ctx.textAlign="left";
 
   const boss=activeStage===2&&guardian.active&&!guardian.defeated
     ?{name:"GUARDIÃO DO PRISMA",hp:guardian.hp,max:guardian.maxHp}
@@ -4870,6 +4889,18 @@ function warpToGuardian(){
   debugUsedThisRun=true;
 }
 if(debugToggle)debugToggle.addEventListener("click",toggleDebugMode);
+function toggleFullTestMode(){
+  fullTestMode=!fullTestMode;
+  // A test run stays unranked even if switched off before its end.
+  if(gameStarted)debugUsedThisRun=true;
+  if(fullTestToggle){
+    fullTestToggle.textContent="TESTE 100%: "+(fullTestMode?"ON":"OFF");
+    fullTestToggle.setAttribute("aria-pressed",String(fullTestMode));
+  }
+  if(player.boost>boostCapacity())player.boost=boostCapacity();
+  refreshProgressView();
+}
+if(fullTestToggle)fullTestToggle.addEventListener("click",toggleFullTestMode);
 
 window.addEventListener("keydown",(event)=>{
   const key=event.key.toLowerCase();
@@ -4960,15 +4991,15 @@ for(const [index,name] of ["One","Two","Three","Four"].entries()){
   });
 }
 document.querySelector("#stageOneButton").addEventListener("click", ()=>startGame(1));
- document.querySelector("#stageTwoButton").addEventListener("click",()=>{if(campaign.stage1Completed||debugMode)startGame(2)});
-document.querySelector("#stageThreeButton").addEventListener("click",()=>{if(campaign.stage2Completed||debugMode)startGame(3)});
+ document.querySelector("#stageTwoButton").addEventListener("click",()=>{if(campaign.stage1Completed||testUnlocked())startGame(2)});
+document.querySelector("#stageThreeButton").addEventListener("click",()=>{if(campaign.stage2Completed||testUnlocked())startGame(3)});
 document.querySelector("#backToMainButton").addEventListener("click", showMainMenu);
 document.querySelector("#achievementsButton").addEventListener("click",showAchievementsMenu);
 document.querySelector("#resultsAchievementsButton").addEventListener("click",showAchievementsMenu);
 document.querySelector("#achievementsBackButton").addEventListener("click",showMainMenu);
 document.querySelector("#nextStageButton").addEventListener("click",()=>{
-  if(gameCleared&&activeStage===1&&(campaign.stage1Completed||debugMode))startGame(2);
-  else if(gameCleared&&activeStage===2&&(campaign.stage2Completed||debugMode))startGame(3);
+  if(gameCleared&&activeStage===1&&(campaign.stage1Completed||testUnlocked()))startGame(2);
+  else if(gameCleared&&activeStage===2&&(campaign.stage2Completed||testUnlocked()))startGame(3);
 });
 document.querySelector("#retryButton").addEventListener("click", ()=>startGame(activeStage));
 document.querySelector("#resultsStagesButton").addEventListener("click", showStageMenu);
