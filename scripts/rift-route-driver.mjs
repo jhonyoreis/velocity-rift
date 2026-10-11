@@ -21,7 +21,7 @@ export function createRiftRouteDriver({collectExtras=false}={}){
     needDash=needJump&&!s.grounded&&jumpAge>.09;
    }
   }
-  if(["dormant","chase"].includes(boss.mode)&&world.barricades.some(b=>b.x>s.x-40&&b.x<s.x+250)&&Math.abs(target-s.x)>300)speed=900;
+  if(["dormant","chase"].includes(boss.mode)&&world.barricades.some(b=>b.x>s.x-40&&b.x<s.x+550)&&Math.abs(target-s.x)>300)speed=900;
   extraJump=false;
   if(collectExtras&&boss.mode==="dormant"&&s.gravity===1){
    if(extra&&s.secrets.includes(extra.id)){extraExit=world.cores[extra.core];extra=null;extraStep=0;}
@@ -46,18 +46,20 @@ export function createRiftRouteDriver({collectExtras=false}={}){
   const platforms=world.platforms.filter(p=>(p.dimension===-1||p.dimension===s.dimension)&&p.orientation===(s.gravity===1?"floor":"ceiling"));
   const p=platforms.find(p=>s.x>=p.x1-18&&s.x<=p.x2+18&&Math.abs(platformSurface(p,s.x,s.time)-(s.y+s.gravity*18))<60);
   const slope=p?(p.y2-p.y1)/(p.x2-p.x1):0;
-  if(["dormant","chase"].includes(boss.mode)&&Math.abs(delta)>300&&world.barricades.some(b=>b.x>s.x-40&&b.x<s.x+250))keys.add("shift");
+  if(["dormant","chase"].includes(boss.mode)&&Math.abs(delta)>300&&world.barricades.some(b=>b.x>s.x-40&&b.x<s.x+550))keys.add("shift");
   if(boss.mode==="dormant"&&s.grounded&&slope*s.gravity>0&&s.x>1100&&Math.abs(delta)>600)keys.add("arrowdown");
   if(extra&&!s.trials.some(t=>t.id===extra.id)&&Math.hypot(s.x-extra.x,s.y-extra.y)<120&&interactAge>.25){keys.add("arrowdown");interactAge=0;}
   if(anchor&&Math.abs(s.x-anchor.x)<80&&interactAge>.2){keys.add("arrowdown");interactAge=0;}
-  const gap=p&&p.x2-s.x<130&&!platforms.some(n=>n!==p&&n.x1<=p.x2+22&&n.x2>p.x2&&Math.abs(platformSurface(n,p.x2,s.time)-platformSurface(p,p.x2,s.time))<30);
+  const gap=p&&p.x2-s.x<65&&!platforms.some(n=>n!==p&&n.x1<=p.x2+22&&n.x2>p.x2&&Math.abs(platformSurface(n,p.x2,s.time)-platformSurface(p,p.x2,s.time))<30);
   const rise=p&&p.x2-s.x<130&&platforms.some(n=>n!==p&&Math.abs(n.x1-p.x2)<30&&(platformSurface(p,p.x2,s.time)-platformSurface(n,n.x1,s.time))*s.gravity>15);
   const hazard=world.hazards.some(h=>h.x>s.x&&h.x-s.x<120);
   const enemy=world.enemies.some(e=>(e.dimension===-1||e.dimension===s.dimension)&&["rift-laser","rift-triple"].includes(e.type)&&e.x>s.x-40&&e.x<s.x+145);
   if(anchor&&Math.abs(s.x-anchor.x)<170)needJump=needDash=false;
-  needDash ||= enemy&&!anchor;
-  needJump ||= !extra&&!extraExit&&boss.mode==="dormant"&&(gap||rise||hazard||(enemy&&!anchor));
-  if(s.grounded&&needJump&&jumpAge>.35){keys.delete("arrowdown");keys.add(" ");jumpAge=0;dashed=false;fastJump=!extra&&(enemy||needDash||(rune&&Math.abs(s.x-rune.x)<125));}
+  const wall=world.barricades.some(b=>b.x>s.x-40&&b.x<s.x+180);
+  needDash ||= (enemy||wall)&&!anchor;
+  needJump ||= wall&&!anchor&&s.grounded;
+  needJump ||= !extra&&!extraExit&&boss.mode==="dormant"&&(gap||rise||hazard||((enemy||wall)&&!anchor));
+  if(s.grounded&&needJump&&jumpAge>.35){keys.delete("arrowdown");keys.add(" ");jumpAge=0;dashed=false;fastJump=!extra&&(enemy||wall||needDash||(rune&&Math.abs(s.x-rune.x)<125));}
   else if(jumpAge<(extraJump?.34:fastJump?.025:boss.mode==="dormant"?.3:.2))keys.add(" ");
   else if(!extra&&!extraExit&&!s.grounded&&s.dashReady&&!dashed&&((needDash&&jumpAge>(fastJump?.06:.24))||(boss.mode==="dormant"&&jumpAge>(fastJump?.06:.36)))){
    // Horizontal Dash continues in the approach direction rather than braking.

@@ -1,4 +1,16 @@
-# Velocity Rift — Uma Flor, Enfim (versão 4.0.2)
+# Velocity Rift — Uma Flor, Enfim (versão 4.0.3)
+
+## 4.0.3 — Continuidade do Flux (APK R20)
+
+- Fenda Original usa os parâmetros de movimento das outras fases: aceleração,
+  velocidade, consumo do Boost, salto, Dash e desaceleração ao sair do Dash.
+- Mantém os upgrades permanentes, lente dourada do Dash, núcleo fortalecido,
+  animação por distância, transições de salto/pouso e rastros de movimento.
+- Disparos inimigos causam dano durante Boost e Dash em toda a campanha.
+- Travessia validada por comandos de jogador, incluindo seis selos, três rotas
+  opcionais e os encontros com o Soberano; controles das dimensões e gravidade
+  invertida continuam ativos.
+
 
 ## 4.0.2 — Estabilização (APK R19)
 

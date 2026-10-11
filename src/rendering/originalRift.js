@@ -245,11 +245,18 @@ export function drawOriginalRift(ctx,s,layout,{W=960,H=540,drawFlux=null,drawSov
  for(const p of s.particles){ctx.globalAlpha=p.life*2;ctx.fillStyle=p.color;ctx.fillRect(p.x,p.y,4,4);}ctx.globalAlpha=1;
  if(ghost&&drawFlux&&(ghost.dimension===undefined||ghost.dimension===s.dimension)&&Math.abs(ghost.x-s.x)<900){ctx.save();ctx.globalAlpha=.25;ctx.translate(ghost.x,ghost.y);ctx.scale(1,ghost.gravity||1);drawFlux({...ghost,x:0,y:0,vx:400,vy:0,onGround:true,sliding:false,boosting:false,invulnerable:0,animationPhase:t*15},{boost:0,turn:0,landing:0,takeoff:0,hit:0,run:1},t);ctx.restore();}
  if(s.scarlet>0){ctx.save();ctx.strokeStyle="#ff456d";ctx.fillStyle="#ff466e22";ctx.lineWidth=3;ctx.beginPath();ctx.arc(s.x,s.y,31+Math.sin(t*15)*4,0,Math.PI*2);ctx.fill();ctx.stroke();for(let i=0;i<6;i++){const a=t*3+i*Math.PI/3;ctx.beginPath();ctx.moveTo(s.x+Math.cos(a)*41,s.y+Math.sin(a)*41);ctx.lineTo(s.x+Math.cos(a+.4)*22,s.y+Math.sin(a+.4)*22);ctx.lineTo(s.x+Math.cos(a)*12,s.y+Math.sin(a)*12);ctx.stroke();}ctx.restore();}
+ for(const g of s.ghosts){
+  ctx.save();ctx.globalAlpha=(g.life/.25)**2*(g.boosting?.34:.20);
+  ctx.translate(g.x,g.y);ctx.scale(g.facing,s.gravity);
+  ctx.fillStyle=g.boosting?"#70fff8":"#b8edf1";
+  ctx.beginPath();ctx.ellipse(0,g.sliding?0:-3,g.sliding?24:17,g.sliding?8:18,-.12,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle="#b5ffff";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-17,-7);ctx.lineTo(-34,-6);ctx.stroke();ctx.restore();
+ }
  ctx.save();ctx.translate(s.x,s.y);ctx.scale(1,s.gravity);
  if(s.scarlet>0)ctx.filter="hue-rotate(170deg) saturate(1.7)";
- if(drawFlux)drawFlux({x:0,y:0,vx:s.vx,vy:s.vy,facing:s.facing,onGround:s.grounded,ground:null,
-  sliding:s.sliding,boosting:s.boosting,invulnerable:s.invincible,animationPhase:t*(Math.abs(s.vx)>30?18:2)},
-  {boost:s.boosting?1:0,turn:0,landing:0,takeoff:0,hit:0,run:Math.abs(s.vx)>30?1:0},t);
+ if(drawFlux)drawFlux({x:0,y:0,vx:s.vx,vy:s.vy,facing:s.facing,onGround:s.grounded,ground:s.ground,
+  sliding:s.sliding,boosting:s.boosting,invulnerable:s.invincible,animationPhase:s.animationPhase},
+  s.fx,t);
  else{
   ctx.fillStyle="#dff9ff";ctx.beginPath();ctx.arc(0,-3,17,0,Math.PI*2);ctx.fill();
   ctx.fillStyle="#6feef1";ctx.fillRect(s.facing>0?2:-14,-9,12,9);

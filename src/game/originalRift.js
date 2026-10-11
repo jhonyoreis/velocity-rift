@@ -1,3 +1,4 @@
+import {FLUX_MOTION as M} from "./fluxMotion.js";
 import {createOriginalRiftLayout,platformSurface,laserState,RIFT_WORLD_WIDTH,RIFT_FINISH_X,riftSectorAt} from "../levels/originalRift.js";
 import {createSovereign,advanceSovereign,hitSovereign,enemyCanBeDestroyed,shotFan,distanceToBeam,CHASE,SOVEREIGN_ARENA} from "../bosses/sovereign.js";
 import {drawOriginalRift} from "../rendering/originalRift.js";
@@ -30,7 +31,7 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
    deaths:0,shots:[],beams:[],shotTimers:new Map(),particles:[],visitedSectors:new Set(),
    distance:0,topSpeed:0,lastDamageLost:0,damageCount:0,scarlet:0,boss:createSovereign(),
    runes:new Set(),runCores:new Set(),secrets:new Set(),trials:new Map(),interactHeld:false,
-   story:null,storyNext:null,chaseDone:false,arenaStarted:false,awakened:false,gravityWarning:0};
+   story:null,storyNext:null,chaseDone:false,arenaStarted:false,awakened:false,gravityWarning:0,animationPhase:0,ghosts:[],ghostTimer:0,ground:null,fx:{run:0,boost:0,turn:0,landing:0,takeoff:0,hit:0},previousFacing:1};
   return info();
  }
  start();
@@ -64,7 +65,7 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
   if(s.invincible>0||isDebug()||s.dead)return;
   if(s.crystals===0){die(false);return;}
   s.damageCount++;s.crystals=all?0:Math.max(0,s.crystals-Math.min(s.crystals,Math.max(8,Math.ceil(s.crystals*.35))));
-  s.invincible=1.25;s.vy=-260*s.gravity;s.grounded=false;s.dash=0;
+  s.fx.hit=1;s.invincible=1.25;s.vy=-260*s.gravity;s.grounded=false;s.dash=0;
   burst(s.x,s.y,"#ffa68b");onSound("hit");
  }
  function respawn(){
@@ -102,41 +103,41 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
   const slide=keys.has("arrowdown")||keys.has("s");
   const interact=(slide||keys.has("x"))&&!s.interactHeld;s.interactHeld=slide||keys.has("x");
   const pressed=jump&&!s.jumpHeld;s.jumpHeld=jump;
-  s.jumpBuffer=Math.max(0,s.jumpBuffer-dt);s.coyote=s.grounded?.1:Math.max(0,s.coyote-dt);
+  s.jumpBuffer=Math.max(0,s.jumpBuffer-dt);s.coyote=s.grounded?.11:Math.max(0,s.coyote-dt);
   if(left!==right)s.facing=left?-1:1;
   s.sliding=slide&&s.grounded;
-  s.boosting=(keys.has("shift")||keys.has("j"))&&s.boost>0&&Math.abs(s.vx)>50;
+  s.boosting=(keys.has("shift")||keys.has("j"))&&!s.dash&&s.boost>0&&Math.abs(s.vx)>50;
   const under=s.grounded?surfacesAt(s.x,s.gravity===1?"floor":"ceiling")
    .find(p=>Math.abs(s.y+s.gravity*RIFT_RADIUS-p.y)<40):null;
-  const accel=s.grounded?(s.sliding?260:1450):800;
+  const accel=s.grounded?(s.sliding?M.slideAcceleration:M.groundAcceleration):M.airAcceleration;
   if(!s.dash){
    const priorSpeed=Math.abs(s.vx);
    if(left!==right)s.vx+=(left?-1:1)*accel*dt;
-   else if(s.grounded)s.vx*=Math.exp(-(s.sliding?.65:7)*dt);
-   if(s.boosting){s.vx+=s.facing*950*dt*boostPower()*(s.scarlet>0?1.4:1);s.boost=Math.max(0,s.boost-25*dt);}
-   if(s.sliding&&under){
-    const slope=(under.p.y2-under.p.y1)/(under.p.x2-under.p.x1);
-    s.vx+=s.gravity*slope*2100*dt;
-    if(slope*s.vx*s.gravity>0)s.vx*=Math.exp(.85*dt);
-   }
-   // Fast momentum decays smoothly when leaving a ramp or releasing Boost.
-   const cap=s.sliding?1180:s.boosting?(s.scarlet>0?1120:850)*boostPower():630;
-   if(Math.abs(s.vx)>cap)s.vx=Math.sign(s.vx)*Math.min(Math.abs(s.vx),Math.max(cap,priorSpeed-120*dt));
-   s.vx=clamp(s.vx,-1180,1180);
+   else if(s.grounded){const friction=(s.sliding?M.slideFriction:M.groundFriction)*dt;s.vx=Math.sign(s.vx)*Math.max(0,Math.abs(s.vx)-friction);}
+   if(s.boosting){s.vx+=s.facing*M.boostAcceleration*dt*boostPower();s.boost=Math.max(0,s.boost-M.boostDrain*dt);}
+   const slope=under?(under.p.y2-under.p.y1)/(under.p.x2-under.p.x1)*s.gravity:0;
+   const downhill=s.sliding&&s.grounded&&slope*s.vx>0.001;
+   if(downhill){const rate=.62+Math.min(Math.abs(slope),.35)*2.4;s.vx=Math.sign(s.vx)*Math.min(M.slideCap,Math.abs(s.vx)*Math.exp(rate*dt));}
+   const cap=s.boosting?M.boostSpeed*boostPower():M.normalSpeed;
+   if(!downhill&&Math.abs(s.vx)>cap){const braking=s.sliding?880:1800;s.vx=Math.sign(s.vx)*Math.min(Math.abs(s.vx),Math.max(cap,priorSpeed-braking*dt));}
   }
   if(pressed){
    if(s.grounded||s.coyote>0){s.jumpBuffer=.12;}
-   else if(s.dashReady){s.dash=.21;s.dashReady=false;s.vy=0;s.vx=s.facing*(s.scarlet>0?1350:1080);onSound("air-dash");}
+   else if(s.dashReady){s.dashFacing=s.facing;s.dash=M.dashSeconds;s.dashReady=false;s.vy=0;s.vx=s.facing*M.dashSpeed;onSound("air-dash");}
    else s.jumpBuffer=.12;
   }
   if(s.jumpBuffer>0&&(s.grounded||s.coyote>0)){
-   s.vy=-(s.scarlet>0?790:690)*s.gravity;s.grounded=false;s.coyote=0;s.jumpBuffer=0;onSound("jump");
+   s.fx.takeoff=1;s.vy=-(M.jumpSpeed+Math.min(90,Math.abs(s.vx)*.09))*s.gravity;s.grounded=false;s.coyote=0;s.jumpBuffer=0;onSound("jump");
   }
   const wasGrounded=s.grounded,prevX=s.x,prevY=s.y;
+  s.ground=null;
+  if(s.dash>0){s.facing=s.dashFacing;s.vx=s.dashFacing*M.dashSpeed;s.vy=0;}
+  const wasDashing=s.dash>0;
   s.dash=Math.max(0,s.dash-dt);
+  if(wasDashing&&!s.dash)s.vx=s.dashFacing*M.dashExitSpeed;
   if(s.dash<=0){
-   s.vy=clamp(s.vy+2100*s.gravity*dt,-1300,1300);
-   if(!jump&&s.vy*s.gravity<0)s.vy+=750*s.gravity*dt;
+   if(!jump&&s.vy*s.gravity<-160)s.vy+=M.jumpCut*s.gravity*dt;
+   s.vy=clamp(s.vy+M.gravity*s.gravity*dt,-M.terminalSpeed,M.terminalSpeed);
   }
   s.x=clamp(s.x+s.vx*dt,RIFT_RADIUS,RIFT_WORLD_WIDTH-RIFT_RADIUS);
   if(s.boss.mode==="arena"||s.boss.mode==="scarlet"||s.boss.mode==="invincible")s.x=clamp(s.x,SOVEREIGN_ARENA.left+35,SOVEREIGN_ARENA.right-35);
@@ -154,7 +155,7 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
    return followsSlope||(s.gravity===1?oldEdge<=y+9&&edge>=y-3&&s.vy>=0:
     oldEdge>=y-9&&edge<=y+3&&s.vy<=0);
   }).sort((a,b)=>Math.abs(edge-a.y)-Math.abs(edge-b.y));
-  if(candidates.length){s.y=candidates[0].y-s.gravity*RIFT_RADIUS;s.vy=0;s.grounded=true;s.dashReady=true;}
+  if(candidates.length){s.ground={...candidates[0].p,y1:candidates[0].p.y1*s.gravity,y2:candidates[0].p.y2*s.gravity};s.y=candidates[0].y-s.gravity*RIFT_RADIUS;s.vy=0;s.grounded=true;s.dashReady=true;}
   if(s.y>790||s.y<-165){if(isDebug())respawn();else die(true);return;}
   for(const portal of layout.portals)if(s.portalCooldown===0&&Math.abs(s.x-portal.x)<43&&Math.abs(s.y-portal.y)<86){
    const required=portal.id==="b"?0:portal.id==="e"?4:null;
@@ -252,6 +253,21 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
     else s.crystals++;
    }
   }
+  for(const ghost of s.ghosts)ghost.life-=dt;
+  s.ghosts=s.ghosts.filter(g=>g.life>0).slice(-10);
+  s.ghostTimer-=dt;
+  if((Math.abs(s.vx)>415||s.boosting)&&s.ghostTimer<=0){
+   s.ghosts.push({x:s.x,y:s.y,facing:s.facing,sliding:s.sliding,boosting:s.boosting,life:.25});
+   s.ghostTimer=s.boosting?.045:.075;
+  }
+  s.animationPhase+=Math.abs(s.vx)*dt*.049;
+  const ease=1-Math.exp(-15*dt);
+  s.fx.run+=((s.grounded&&Math.abs(s.vx)>60?clamp(Math.abs(s.vx)/480,0,1):0)-s.fx.run)*ease;
+  s.fx.boost+=(Number(s.boosting)-s.fx.boost)*(1-Math.exp(-12*dt));
+  for(const [key,rate] of [["landing",2.7],["takeoff",4.1],["turn",5],["hit",2.6]])s.fx[key]=Math.max(0,s.fx[key]-dt*rate);
+  if(!wasGrounded&&s.grounded)s.fx.landing=1;
+  if(s.previousFacing!==s.facing&&Math.abs(s.vx)>115)s.fx.turn=1;
+  s.previousFacing=s.facing;
   s.distance=Math.max(s.distance,s.x);s.topSpeed=Math.max(s.topSpeed,Math.abs(s.vx));
   onFrame(s);
   const targetX=clamp(s.x-960*(s.facing>0?.38:.62),0,RIFT_WORLD_WIDTH-960);

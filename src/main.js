@@ -1,3 +1,5 @@
+import {fluxAppearance} from "./game/fluxAppearance.js";
+import {FLUX_MOTION} from "./game/fluxMotion.js";
 import {FINAL_SCORE,finalScoreStep} from "./audio/finalScore.js";
 import {drawFinaleFrame} from "./rendering/finale.js";
 import {createCinematicArt} from "./rendering/cinematicArt.js";
@@ -96,12 +98,12 @@ const keys = new Set();
 let lastTime = 0;
 let accumulator = 0;
 const FIXED_DT = 1 / 120;
-const BOOST_MAX_SPEED = 590;
-const BOOST_ACCELERATION = 850;
+const BOOST_MAX_SPEED = FLUX_MOTION.boostSpeed;
+const BOOST_ACCELERATION = FLUX_MOTION.boostAcceleration;
 const BOOST_GATE_MIN_SPEED = 510;
 const BOOST_SMASH_MIN_SPEED = 550;
 // A short burst of exponential momentum downhill, bounded for readable gameplay.
-const SLIDE_DOWNHILL_CAP = 870;
+const SLIDE_DOWNHILL_CAP = FLUX_MOTION.slideCap;
 const CAMERA_IDLE_ANCHOR = 0.42;
 const CAMERA_FAST_ANCHOR = 0.19;
 let paused = false;
@@ -128,7 +130,7 @@ const campaign=loadCampaign();
 let boostUpgrades=secretUpgradeStats(progress.secrets);
 let riftQAFrozen=false;
 const riftPreview=createOriginalRift({onExit:()=>showStageMenu(),
-  onDeath:showDeathScreen,onFinish:finishRiftCampaign,drawFlux:drawFluxBody,
+  onDeath:showDeathScreen,onFinish:finishRiftCampaign,drawFlux:(actor,fx,clock)=>drawFluxBody({...actor,campaignAppearance:true},fx,clock),
   drawSovereign:(...args)=>cinemaSovereign(...args),drawAlicia:(...args)=>cinemaAlicia(...args),
   onStory:key=>launchCinematic(key,()=>{riftPreview.resumeStory();resumeRiftScreen();}),
   onCore:id=>{if(!debugUsedThisRun)recordCampaignCore(4,id);},
@@ -282,12 +284,12 @@ const audioLevels=loadAudioLevels();
 // Aerial dash is always horizontal, locked to Flux's facing direction
 // at activation. No mouse aiming, diagonal movement or vertical boost.
 const airDash={active:false,available:true,time:0,dx:1,dy:0,trail:0};
-const DASH_SECONDS=.255,DASH_SPEED=1140;
+const DASH_SECONDS=FLUX_MOTION.dashSeconds,DASH_SPEED=FLUX_MOTION.dashSpeed;
 const cityDashCore={x:3730,y:396};
 const dashAltar={active:false,elapsed:0,duration:2.6,usedThisRun:false};
 let dashUnlockFlash=0;
 function dashUnlocked(){
-  return campaign.aerialDash||fullTestMode||((debugMode||debugUsedThisRun)&&activeStage===3);
+  return campaign.aerialDash||fullTestMode||((debugMode||debugUsedThisRun)&&activeStage>=3);
 }
 function resetAirDash(){
   Object.assign(airDash,{active:false,available:true,time:0,trail:0,dx:1,dy:0});
@@ -314,7 +316,7 @@ function updateAirDash(dt){
     player.vy=airDash.dy*DASH_SPEED;
     if(airDash.time===0){
       airDash.active=false;
-      player.vx=airDash.dx*560;
+      player.vx=airDash.dx*FLUX_MOTION.dashExitSpeed;
       player.vy=Math.min(220,airDash.dy*390);
     }
   }
@@ -2648,9 +2650,9 @@ function update(dt) {
 
   player.sliding = slide && player.onGround;
   player.animationPhase += Math.abs(player.vx) * dt * 0.049;
-  const accel = player.onGround ? (player.sliding ? 390 : 1280) : 660;
-  const friction = player.onGround ? (player.sliding ? 180 : 1050) : 110;
-  const normalMax = 480;
+  const accel = player.onGround ? (player.sliding ? FLUX_MOTION.slideAcceleration : FLUX_MOTION.groundAcceleration) : FLUX_MOTION.airAcceleration;
+  const friction = player.onGround ? (player.sliding ? FLUX_MOTION.slideFriction : FLUX_MOTION.groundFriction) : 110;
+  const normalMax = FLUX_MOTION.normalSpeed;
   const boostMax = BOOST_MAX_SPEED*boostPower();
   const speedBeforeInput = Math.abs(player.vx);
 
@@ -2672,7 +2674,7 @@ function update(dt) {
   if (boosting && !wasBoosting) { playSfx("boost"); triggerFluxFx("boost"); }
   if (boosting) {
     player.vx += player.facing * BOOST_ACCELERATION * boostPower() * dt;
-    player.boost = debugMode?boostCapacity():Math.max(0, player.boost - 34 * dt);
+    player.boost = debugMode?boostCapacity():Math.max(0, player.boost - FLUX_MOTION.boostDrain * dt);
     player.trail.push({ x: player.x, y: player.y, life: 0.24 });
   }
 
@@ -2706,7 +2708,7 @@ function update(dt) {
     const springJump=player.ground?.behavior==="spring"&&
       secretTrials.some(t=>t.active&&t.id===player.ground.secretId);
     player.sliding = false;
-    player.vy = -660 - Math.min(90, Math.abs(player.vx) * 0.09) -
+    player.vy = -FLUX_MOTION.jumpSpeed - Math.min(90, Math.abs(player.vx) * 0.09) -
       (springJump?95:0);
     player.onGround = false;
     player.ground = null;
@@ -2731,9 +2733,9 @@ function update(dt) {
       player.vx=airDash.dx*DASH_SPEED;player.vy=airDash.dy*DASH_SPEED;
       player.x+=player.vx*dt;player.y+=player.vy*dt;
     }else{
-    if(!jump&&player.vy<-160)player.vy+=1450*dt;
-    player.vy+=1850*dt;
-    player.vy=Math.min(player.vy,1250);
+    if(!jump&&player.vy<-160)player.vy+=FLUX_MOTION.jumpCut*dt;
+    player.vy+=FLUX_MOTION.gravity*dt;
+    player.vy=Math.min(player.vy,FLUX_MOTION.terminalSpeed);
     player.x+=player.vx*dt;
     player.y+=player.vy*dt;
     }
@@ -2938,12 +2940,10 @@ function updateSentryShots(dt){
     shot.y+=shot.vy*dt;
     shot.life-=dt;
     if(shot.life<=0)continue;
-    // A fast boost can intercept plasma; debug mode ignores collision.
+    // Projectiles damage Flux even while Boost or Dash is active.
     if(distance(shot.x,shot.y,player.x,player.y)<PLAYER_RADIUS+shot.r){
       shot.life=0;
-      if(!shot.unblockable&&player.boosting&&Math.abs(player.vx)>BOOST_SMASH_MIN_SPEED){
-        emitParticles(shot.x,shot.y,"#ff9ccb",6,80);
-      }else damagePlayer(false);
+      damagePlayer(false);
     }
   }
   sentryShots=sentryShots.filter(p=>p.life>0&&p.x>cameraX-240
@@ -4132,6 +4132,8 @@ function drawFluxGhosts(){
 }
 
 function drawFluxBody(actor,fx,clock){
+  const campaignActor=actor===player||actor.campaignAppearance;
+  const appearance=fluxAppearance({dash:campaignActor&&dashUnlocked(),upgraded:campaignActor&&(fullTestMode||boostUpgrades.collected>0),goldScarf:campaignActor&&(fullTestMode||challengeBadges.size>=3)});
   const moving=Math.abs(actor.vx)>40;
   const airborne=!actor.onGround;
   const fast=clamp(Math.abs(actor.vx)/SLIDE_DOWNHILL_CAP,0,1);
@@ -4178,7 +4180,7 @@ function drawFluxBody(actor,fx,clock){
     ctx.ellipse(9,-1,12,6,-.1,0,Math.PI*2);ctx.fill();
     ctx.fillStyle="#128e9b";ctx.beginPath();
     ctx.ellipse(14,-1,6,3,0,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle="#85fff0";ctx.fillRect(15,-3,3,2);
+    ctx.fillStyle=appearance.lens;ctx.fillRect(15,-3,3,2);
     ctx.fillStyle="#f9ba61";roundRect(-23,4,46,3,1.5);ctx.fill();
   } else {
     const stride = moving && !airborne ? Math.sin(actor.animationPhase) : 0;
@@ -4193,7 +4195,7 @@ function drawFluxBody(actor,fx,clock){
       1-fx.landing*.15+fx.takeoff*.11);
 
     // Scarf reacts to motion and gives Flux a recognizable profile.
-    ctx.fillStyle = actor===player&&(fullTestMode||challengeBadges.size>=3)?"#f8d787":"#ffba5e";
+    ctx.fillStyle = appearance.scarf;
     ctx.beginPath();
     ctx.moveTo(-11, -7 + bounce);
     ctx.lineTo(-25 - fast * 15, -13 + Math.sin(clock * 12) * 3);
@@ -4224,7 +4226,7 @@ function drawFluxBody(actor,fx,clock){
     ctx.beginPath();
     ctx.ellipse(-2, 5 + bounce, 13, 14, -0.16, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = actor===player&&(fullTestMode||boostUpgrades.collected>0)?"#aaffdf":"#52ebe1";
+    ctx.fillStyle = appearance.core;
     ctx.beginPath();
     ctx.arc(3, 6 + bounce, 6, 0, Math.PI * 2);
     ctx.fill();
@@ -4247,7 +4249,7 @@ function drawFluxBody(actor,fx,clock){
     ctx.beginPath();
     ctx.ellipse(7, -6 + bounce, 10, 6, -0.12, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = actor===player&&dashUnlocked()?"#ffde95":"#73fff0";
+    ctx.fillStyle = appearance.lens;
     if(clock%4.8>4.67)ctx.fillRect(7,-8+bounce,7,1.5);
     else{ctx.beginPath();ctx.ellipse(9,-8+bounce,4,2,0,0,Math.PI*2);ctx.fill();}
     ctx.fillStyle = "#f0c06c";
@@ -5132,5 +5134,19 @@ draw();
 if(import.meta.env.DEV&&new URLSearchParams(location.search).has("rift-qa")){
   window.__riftQA={freeze(){riftQAFrozen=true;},info:()=>riftPreview.info(),
     step(inputs,render=true){riftPreview.update(1/120,new Set(inputs));if(render){if(cinematic.active)drawCinematic();else draw();}},
+    projectileDamage(mode){
+      const savedPlayer={...player},savedDash={...airDash},savedStarted=gameStarted,savedDebug=debugMode,
+        savedShots=sentryShots,savedParticles=particles.slice(),savedFx={...fluxFx,waves:fluxFx.waves.slice()},savedDamage=runDamageCount,savedShake=shakeTime;
+      try{
+        gameStarted=true;debugMode=false;player.rings=100;player.invulnerable=0;player.vx=DASH_SPEED;
+        player.boosting=mode==="boost";airDash.active=mode==="dash";
+        sentryShots=[{x:player.x,y:player.y,vx:0,vy:0,life:2,r:7}];
+        updateSentryShots(0);
+        return {rings:player.rings,invulnerable:player.invulnerable,dashActive:airDash.active};
+      }finally{
+        Object.assign(player,savedPlayer);Object.assign(airDash,savedDash);Object.assign(fluxFx,savedFx);
+        gameStarted=savedStarted;debugMode=savedDebug;sentryShots=savedShots;particles=savedParticles;runDamageCount=savedDamage;shakeTime=savedShake;
+      }
+    },
     release(){riftQAFrozen=false;}};
 }

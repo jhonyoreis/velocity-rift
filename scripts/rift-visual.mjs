@@ -31,9 +31,12 @@ try{
   page.on("console",m=>{if(m.text().includes("música desativada após erro"))errors.push(m.text());});
   await page.addInitScript(()=>{
    const proto=CanvasRenderingContext2D.prototype,save=proto.save,restore=proto.restore;
+   const fill=Object.getOwnPropertyDescriptor(proto,"fillStyle");window.__fluxColors=[];
+   Object.defineProperty(proto,"fillStyle",{get:fill.get,set(value){if(this.canvas.id==="game"){window.__fluxColors.push(value);if(window.__fluxColors.length>2000)window.__fluxColors.shift();};return fill.set.call(this,value);}});
    window.__canvasSaveDepth=0;
    proto.save=function(){if(this.canvas.id==="game")window.__canvasSaveDepth++;return save.call(this);};
    proto.restore=function(){if(this.canvas.id==="game")window.__canvasSaveDepth--;return restore.call(this);};
+   localStorage.setItem("velocity-rift-progress-v1",JSON.stringify({secrets:{stage1:["canopy","lumen","horizon"],stage2:["echo","prism","zenith"],stage3:["antenna","underpass","skyline"]}}));
    // Existing 3.8 save: no stage4, preserve its prior collectibles.
    localStorage.setItem("velocity-rift-campaign-v3",JSON.stringify({started:true,stage1Completed:true,stage2Completed:true,stage3Completed:true,lastStage:3,aerialDash:true,
     extras:{cores:{stage1:[0,1,2],stage2:[0,1,2],stage3:[0,1,2]},secrets:{stage1:["canopy","lumen","horizon"],stage2:["echo","prism","zenith"],stage3:["antenna","underpass","skyline"]}},scenesSeen:[]}));
@@ -44,6 +47,14 @@ try{
   await page.evaluate(()=>window.__riftQA.freeze());
   await page.locator("#selectStagesButton").click();await page.locator("#mapNodeStageFour").click();await page.locator("#stageFourButton").click();
   await advanceScene(page,prefix);
+  const continuity=await page.evaluate(()=>{
+   window.__fluxColors=[];window.__riftQA.step([],true);
+   return {colors:window.__fluxColors,boost:window.__riftQA.projectileDamage("boost"),dash:window.__riftQA.projectileDamage("dash")};
+  });
+  assert.ok(continuity.colors.includes("#ffde95"),"stage 4 keeps the unlocked golden Dash lens");
+  assert.ok(continuity.colors.includes("#aaffdf"),"stage 4 keeps permanent upgrade core color");
+  for(const mode of ["boost","dash"]){assert.ok(continuity[mode].rings<100);assert.ok(continuity[mode].invulnerable>0);}
+  assert.equal(continuity.dash.dashActive,false,"enemy shot interrupts Dash");
   await page.evaluate(async()=>{const {createRiftRouteDriver}=await import("/scripts/rift-route-driver.mjs");window.riftInputs=createRiftRouteDriver({collectExtras:true});window.riftPoses=new Set();});
   const snapshots=new Set();let ended=false,checkedRoutes=false;
   for(let batch=0;batch<120;batch++){

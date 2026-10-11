@@ -39,5 +39,5 @@ test("dedicated checkpoints are flagged at both boss entrances and respawn logic
 test("boss music and Flux skin react to damage and permanently unlocked powers",()=>{
  assert.ok(main.includes("GUARDIAN_STEP_SECONDS/guardianPhase(guardian.hp).tempo"));
  assert.ok(main.includes("boostCapacity()>100?"));
- assert.ok(main.includes("actor===player&&dashUnlocked()"));
+ assert.ok(main.includes("dash:campaignActor&&dashUnlocked()"));
 });
