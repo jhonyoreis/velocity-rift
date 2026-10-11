@@ -9,6 +9,11 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));let browser;
 async function advanceScene(page,prefix){
  for(let i=0;i<9&&await page.locator("#cinematicMenu").isVisible();i++){
   const title=await page.locator("#cinematicTitle").innerText();
+  const canvasDepth=await page.evaluate(()=>{
+   for(let i=0;i<120;i++)window.__riftQA.step([],true);
+   return window.__canvasSaveDepth;
+  });
+  assert.equal(canvasDepth,0,"cinematic Canvas save/restore must remain balanced: "+title);
   if(/promessa desperta|Alicia está livre|Uma flor para Alicia|Uma Flor, Enfim/.test(title))
    await page.screenshot({path:folder+"/"+prefix+"-scene-"+title.normalize("NFD").replace(/[^a-zA-Z]/g,"")+".png"});
   await page.locator("#cinematicNextButton").click();
@@ -25,6 +30,10 @@ try{
   page.on("pageerror",e=>errors.push(e.message));
   page.on("console",m=>{if(m.text().includes("música desativada após erro"))errors.push(m.text());});
   await page.addInitScript(()=>{
+   const proto=CanvasRenderingContext2D.prototype,save=proto.save,restore=proto.restore;
+   window.__canvasSaveDepth=0;
+   proto.save=function(){if(this.canvas.id==="game")window.__canvasSaveDepth++;return save.call(this);};
+   proto.restore=function(){if(this.canvas.id==="game")window.__canvasSaveDepth--;return restore.call(this);};
    // Existing 3.8 save: no stage4, preserve its prior collectibles.
    localStorage.setItem("velocity-rift-campaign-v3",JSON.stringify({started:true,stage1Completed:true,stage2Completed:true,stage3Completed:true,lastStage:3,aerialDash:true,
     extras:{cores:{stage1:[0,1,2],stage2:[0,1,2],stage3:[0,1,2]},secrets:{stage1:["canopy","lumen","horizon"],stage2:["echo","prism","zenith"],stage3:["antenna","underpass","skyline"]}},scenesSeen:[]}));
@@ -36,7 +45,7 @@ try{
   await page.locator("#selectStagesButton").click();await page.locator("#mapNodeStageFour").click();await page.locator("#stageFourButton").click();
   await advanceScene(page,prefix);
   await page.evaluate(async()=>{const {createRiftRouteDriver}=await import("/scripts/rift-route-driver.mjs");window.riftInputs=createRiftRouteDriver({collectExtras:true});window.riftPoses=new Set();});
-  const snapshots=new Set();let ended=false;
+  const snapshots=new Set();let ended=false,checkedRoutes=false;
   for(let batch=0;batch<120;batch++){
    const state=await page.evaluate(()=>{
     const api=window.__riftQA;
@@ -47,6 +56,12 @@ try{
     }return api.info();
    });
    assert.equal(state.dead,false,prefix+" player-input route died at "+state.x);
+   if(!checkedRoutes&&state.secrets.length&&!state.story&&!state.finished){
+    await page.locator("#pauseButton").click();
+    await page.locator("#pauseMenu").waitFor({state:"visible"});
+    assert.equal(await page.locator("#pauseStatSecrets").textContent(),state.secrets.length+"/3");
+    await page.locator("#resumeButton").click();checkedRoutes=true;
+   }
    const tag=state.pose||(state.boss.mode!=="dormant"?state.boss.mode:state.sector);
    if(!snapshots.has(tag)){snapshots.add(tag);await page.screenshot({path:folder+"/"+prefix+"-"+tag.normalize("NFD").replace(/[^a-zA-Z]/g,"")+".png"});}
    if(state.story){await advanceScene(page,prefix);continue;}
@@ -80,7 +95,10 @@ try{
   if(!mobile){
    await page.locator("#pauseButton").click();await page.locator("#pauseDebugDetails > summary").click();
    const archiveBefore=await page.evaluate(()=>["velocity-rift-campaign-v3","velocity-rift-progress-v1","velocity-rift-ghost-records-v1","velocity-rift-bonus-challenges-v1"].map(k=>localStorage.getItem(k)));
-   await page.locator("#fullTestToggle").click();await page.locator("#restartPauseButton").click();
+   await page.locator("#fullTestToggle").click();
+   await page.locator("#resumeButton").click();await page.locator("#pauseButton").click();
+   assert.match(await page.locator("#pauseBoostUpgrades").innerText(),/FORÇA \+15%/);
+   await page.locator("#restartPauseButton").click();
    await page.evaluate(async()=>{window.__riftQA.freeze();const {createRiftRouteDriver}=await import("/scripts/rift-route-driver.mjs");window.riftInputs=createRiftRouteDriver({collectExtras:true});});
    let testFinished=false;
    for(let batch=0;batch<120;batch++){
@@ -93,6 +111,16 @@ try{
    const archiveAfter=await page.evaluate(()=>["velocity-rift-campaign-v3","velocity-rift-progress-v1","velocity-rift-ghost-records-v1","velocity-rift-bonus-challenges-v1"].map(k=>localStorage.getItem(k)));
    assert.deepEqual(archiveAfter,archiveBefore,"test modes cannot save any campaign, collections, records or ghosts");
   }
+  if(!mobile){await page.locator("#resultsMainButton").click();await page.locator("#startButton").click();}
+  for(const [key,id] of [["n","musicToggle"],["m","soundToggle"]]){
+   const before=await page.locator("#"+id).innerText();
+   await page.keyboard.press(key);assert.notEqual(await page.locator("#"+id).innerText(),before,key+" shortcut in stage four");
+   await page.keyboard.press(key);assert.equal(await page.locator("#"+id).innerText(),before);
+  }
+  await page.keyboard.press("F3");assert.equal(await page.locator("#debugToggle").getAttribute("aria-pressed"),"true");
+  await page.keyboard.press("F3");assert.equal(await page.locator("#debugToggle").getAttribute("aria-pressed"),"false");
+  assert.equal(checkedRoutes,true,"pause routes regression was exercised");
+  assert.equal(await page.evaluate(()=>window.__canvasSaveDepth),0,"Canvas stack remains balanced after finale");
   assert.deepEqual(errors,[],prefix+" browser exceptions");await context.close();
  }
  console.log("Finale visual QA OK: input-only all cores/routes, 3 boss encounters, ending, save migration, 100%, ghost, gallery and pause on desktop + Android landscape");

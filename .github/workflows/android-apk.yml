@@ -3,6 +3,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      require_signed:
+        description: Require a permanent signing key for an update APK
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -31,7 +36,9 @@ jobs:
       - name: Install Android SDK 35
         run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
       - name: Install game dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
+      - name: Check dependency security
+        run: npm audit --audit-level=high
       - name: Check gameplay
         run: npm test
       - name: Build bundled web game
@@ -55,6 +62,7 @@ jobs:
           STORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          REQUIRE_SIGNED: ${{ inputs.require_signed }}
         run: |
           if [[ -n "$KEYSTORE_B64" && -n "$STORE_PASS" && -n "$KEY_PASS" && -n "$KEY_ALIAS" ]]; then
             umask 077
@@ -62,7 +70,13 @@ jobs:
             echo "enabled=true" >> "$GITHUB_OUTPUT"
           else
             echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "Stable APK signing skipped: configure all four GitHub Actions secrets."
+            echo "::warning::Debug APK only: permanent signing requires all four ANDROID_KEYSTORE secrets."
+            echo "### Android signing: DEBUG ONLY" >> "$GITHUB_STEP_SUMMARY"
+            echo "No permanently signed update APK was produced. Configure all four ANDROID_KEYSTORE secrets before distributing updates; debug signatures may differ from previous installations." >> "$GITHUB_STEP_SUMMARY"
+            if [[ "$REQUIRE_SIGNED" == "true" || -n "$KEYSTORE_B64" || -n "$STORE_PASS" || -n "$KEY_PASS" || -n "$KEY_ALIAS" ]]; then
+              echo "::error::Permanent signing was required or partially configured. Configure all four secrets."
+              exit 1
+            fi
           fi
       - name: Build stable signed release APK
         if: steps.signing.outputs.enabled == 'true'
@@ -96,6 +110,7 @@ jobs:
           if-no-files-found: error
           retention-days: 30
       - name: Publish installable APK
+        # Keep debug and permanently signed release artifacts clearly separate.
         uses: actions/upload-artifact@v4
         with:
           name: velocity-rift-android-debug

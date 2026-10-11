@@ -694,6 +694,7 @@ function drawCinematic(){
     t=cinematic.clock,elapsed=cinematic.elapsed,
     ratio=Math.min(1,elapsed/frame.duration);
   ctx.save();ctx.clearRect(0,0,VIEW_W,VIEW_H);
+  try {
   if(frame.art.startsWith("final:")){
     drawFinaleFrame(ctx,frame.art.slice(6),t,ratio,{cinemaLandscape,cinemaPortal,cinemaFlux,cinemaAlicia,cinemaFlower,cinemaSovereign,cinemaCanyon,cinemaMetropolis,cinemaForest});return;
   }
@@ -784,7 +785,9 @@ function drawCinematic(){
   ctx.globalAlpha=1;
   ctx.fillStyle="#050d23";ctx.fillRect(0,0,VIEW_W,23);
   ctx.fillRect(0,VIEW_H-21,VIEW_W,21);
-  ctx.restore();
+  } finally {
+    ctx.restore();
+  }
 }
 
 // --------------------- Cinematic director (3.5) ----------------------
@@ -1429,14 +1432,14 @@ function showPauseMenu(){
   document.querySelector("#pauseStatTime").textContent=formatTime(riftPreview.active?riftPreview.info().time:gameTime);
   document.querySelector("#pauseStatCrystals").textContent=String(riftPreview.active?riftPreview.info().crystals:player.rings);
   document.querySelector("#pauseStatCores").textContent=riftPreview.active?riftPreview.info().runCores.length+"/3":(fullTestMode?3:player.cores)+"/3";
-  document.querySelector("#pauseStatSecrets").textContent=riftPreview.active?"—":
+  document.querySelector("#pauseStatSecrets").textContent=riftPreview.active?riftPreview.info().secrets.length+"/3":
     (fullTestMode?3:secretTrials.filter(trial=>trial.completed).length)+"/3";
   document.querySelector("#pauseStatProgress").textContent=riftPreview.active?
     riftPreview.info().progress+"%":
     Math.round(100*clamp(player.x/goal.x,0,1))+"%";
   document.querySelector("#pauseBoostUpgrades").textContent=
     "BOOST "+boostCapacity()+" · FORÇA +"+
-    (fullTestMode?12:boostUpgrades.powerLevels*3)+"% · "+
+    Math.round((boostPower()-1)*100)+"% · "+
     (fullTestMode?12:boostUpgrades.collected)+"/12 MELHORIAS"+(fullTestMode?" · TESTE":"");
   for(const id of ["pauseAudioDetails","pauseControlsDetails","pauseDebugDetails"])
     document.querySelector("#"+id).open=false;
@@ -4999,6 +5002,9 @@ window.addEventListener("keydown",(event)=>{
       &&event.target?.tagName!=="INPUT")event.preventDefault();
     return;
   }
+  if(key==="m"&&!event.repeat){toggleSound();return;}
+  if(key==="n"&&!event.repeat){toggleMusic();return;}
+  if(key==="f3"&&!event.repeat){toggleDebugMode();event.preventDefault();return;}
   if(riftPreview.active){
     if(key==="r"&&!event.repeat)startRiftPreview();
     else keys.add(key);
@@ -5010,9 +5016,6 @@ window.addEventListener("keydown",(event)=>{
     !jumpHeld&&!player.onGround&&dashUnlocked()){
     if(startAirDash()){event.preventDefault();jumpHeld=true;return;}
   }
-  if(key==="m"&&!event.repeat)toggleSound();
-  if(key==="n"&&!event.repeat)toggleMusic();
-  if(key==="f3"&&!event.repeat){toggleDebugMode();event.preventDefault();}
   if(key==="b"&&!event.repeat&&debugMode)warpToGuardian();
   if(soundEnabled)unlockAudio();
   keys.add(key);

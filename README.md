@@ -1,4 +1,24 @@
-# Velocity Rift — Uma Flor, Enfim (versão 4.0.1)
+# Velocity Rift — Uma Flor, Enfim (versão 4.0.2)
+
+## 4.0.2 — Estabilização (APK R19)
+
+- Cutscenes finais restauram o estado do Canvas em todos os caminhos, inclusive
+  retornos antecipados, impedindo acúmulo da pilha a cada frame.
+- Atalhos M/N/F3 também funcionam na Fenda Original; a pausa mostra as rotas
+  coletadas e a potência real do Boost, incluindo +15% no TESTE 100%.
+- Capacitor Android/Core/CLI alinhados em 7.6.9, lockfile sincronizado e audit
+  de segurança obrigatório no CI e no build Android. Instalação usa `npm ci`.
+- O APK R19 inclui a correção do selo ECO introduzida em 4.0.1. Baixe sempre
+  o artefato associado ao commit atual; o APK R17 continua sendo anterior.
+- A geração informa explicitamente quando só há APK debug. Para exigir um APK
+  de atualização com chave permanente, use `require_signed=true` em Run workflow.
+  Configuração parcial dos quatro segredos falha, evitando um fallback silencioso.
+- A assinatura permanente depende dos quatro segredos ANDROID_KEYSTORE já
+  documentados abaixo. A atualização desta versão não cria nem publica chaves
+  privadas; sem esses segredos não existe um APK com assinatura permanente.
+
+Validação: lógica, build e navegador em desktop/Android horizontal; regressões
+do saldo de save/restore nas cenas finais, atalhos, rotas na pausa e TESTE 100%.
 
 
 ## 4.0.1 — Uma Flor, Enfim (APK R18)
