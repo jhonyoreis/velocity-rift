@@ -1,4 +1,4 @@
-# Velocity Rift 4.2.0 — APK R23
+# Velocity Rift 4.2.1 — APK R24
 
 A quarta fase encerra a campanha. O portão inicial continua exigindo nove
 núcleos distintos das primeiras três regiões da campanha atual. Há retorno
@@ -87,7 +87,7 @@ invertida. Capturas ficam em `test-artifacts/visual/` no workflow de validação
 
 A validação de navegador não substitui jogar no aparelho físico. No APK:
 
-1. Conferir **v4.2.0 · APK R23** e a coleção anterior após instalar.
+1. Conferir **v4.2.1 · APK R24** e a coleção anterior após instalar.
 2. Testar Pular, segunda pressão para Dash, Boost e Slide simultâneos.
 3. Alternar os pedestais e conferir legibilidade dos sinais em tela pequena.
 4. Ouvir os movimentos e ajustar volumes de música/efeitos conforme desejado.
@@ -131,6 +131,14 @@ A validação de navegador não substitui jogar no aparelho físico. No APK:
 - Validar frequência crescente de rajadas após cada acerto no Soberano Rubro.
 - Colisão da Orbe inicia exílio de 5 segundos; laser causa dano, pausa congela contagem e retorno preserva estado da arena.
 - Os três faróis elevados transportam a mapas exclusivos; núcleo antigo não concede recompensa.
-- Laser ou queda no desafio devolve ao farol sem morte; reentrada exige afastar e encostar novamente.
+- Laser ou queda no desafio devolve ao farol sem morte; reentrada permanece bloqueada até iniciar a fase novamente.
 - Vitória concede núcleo e eficiência uma única vez; consumo reduzido persiste no save.
 - Núcleos orbitam visivelmente durante a transformação na fase 4.
+
+## Ruínas entre realidades — R24
+
+- Concluir cada percurso com controles reais, incluindo vãos, pares de lasers e sentinelas.
+- Falhar, afastar e retornar ao farol: permanece bloqueado. Checkpoint não remove bloqueio; nova fase remove.
+- Conferir Orbe perseguindo mudanças de direção e desaparecendo no fim da vida útil.
+- Confirmar cristais inalterados após acerto no Soberano e coleta de ressonância.
+- Inspecionar cenários e perigos em desktop e Android horizontal, além da campanha completa.

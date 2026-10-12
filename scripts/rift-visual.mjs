@@ -62,7 +62,8 @@ try{
     const api=window.__riftQA;
     for(let i=0;i<240;i++){
      const s=api.info();if(s.dead||s.finished||s.story)break;
-     if(s.pocket&&!window.riftPoses.has("pocket-"+(s.pocket.trial?.id||s.pocket.kind))){const pose="pocket-"+(s.pocket.trial?.id||s.pocket.kind);window.riftPoses.add(pose);api.step([],true);return {...api.info(),pose};}
+     if(s.pocket&&!window.riftPoses.has("pocket-"+(s.pocket.trial?.id||s.pocket.kind))){const pose="pocket-"+(s.pocket.trial?.id||s.pocket.kind);window.riftPoses.add(pose);api.step([...window.riftInputs(s)],true);return {...api.info(),pose};}
+     if(s.pocket&&s.pocket.elapsed>2&&!window.riftPoses.has("action-"+(s.pocket.trial?.id||s.pocket.kind))){const pose="action-"+(s.pocket.trial?.id||s.pocket.kind);window.riftPoses.add(pose);api.step([...window.riftInputs(s)],true);return {...api.info(),pose};}
      if(s.victory){
       const phase=s.victory.elapsed<1?"destruction":s.victory.elapsed<3.2?"barrier":"reunion";
       if(!window.riftPoses.has("rescue-"+phase)){window.riftPoses.add("rescue-"+phase);api.step([],true);return {...api.info(),pose:"rescue-"+phase};}
@@ -72,7 +73,7 @@ try{
      api.step([...inputs],false);
     }return api.info();
    });
-   assert.equal(state.dead,false,prefix+" player-input route died at "+state.x);
+   assert.equal(state.dead,false,prefix+" player-input route died: "+JSON.stringify({x:state.x,y:state.y,time:state.time,secrets:state.secrets,failed:state.failedTrials,boss:state.boss.mode}));
    if(!checkedRoutes&&state.secrets.length&&!state.story&&!state.finished){
     await page.locator("#pauseButton").click();
     await page.locator("#pauseMenu").waitFor({state:"visible"});

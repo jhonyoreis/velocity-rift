@@ -1,17 +1,13 @@
 // Deterministic player inputs only: solve seals, read boss openings, never edit state.
+import {createPocketRouteDriver} from "./pocket-route-driver.mjs";
 import {createOriginalRiftLayout,platformSurface} from "../src/levels/originalRift.js";
 const activeFor=(thing,dimension)=>thing.dimension===undefined||thing.dimension===-1||thing.dimension===dimension;
 export function createRiftRouteDriver({collectExtras=false}={}){
+ const pocketInputs=createPocketRouteDriver();
  const world=createOriginalRiftLayout();let jumpAge=99,dashed=false,interactAge=99,fastJump=false,extra=null,extraStep=0,extraExit=null,extraJump=false;
  return function inputs(s,dt=1/120){
   jumpAge+=dt;interactAge+=dt;
-  if(s.pocket){const p=s.pocket,keys=new Set();
-   const floor=p.platforms.find(f=>p.x>=f.x1-18&&p.x<=f.x2+18&&Math.abs(p.y+18-f.y)<35);
-   if(p.kind==="exile"){const beam=p.lasers.find(b=>Math.abs(p.x-b.x)<150);const dir=beam?(p.x>=beam.x?1:-1):(p.x<480?1:-1);keys.add(p.x<65?"arrowright":p.x>895?"arrowleft":dir>0?"arrowright":"arrowleft");return keys;}
-   const beam=p.lasers.find(b=>b.x>p.x+35&&b.x-p.x<170&&b.warning<.4);
-   if(beam||p.vx>310)keys.add("arrowleft");else keys.add("arrowright");
-   if(p.grounded&&floor&&floor.x2-p.x<65&&jumpAge>.4){keys.add(" ");jumpAge=0;}else if(jumpAge<.32)keys.add(" ");return keys;
-  }
+  if(s.pocket)return pocketInputs(s.pocket,dt);
   let target=48000,speed=440,needJump=false,needDash=false;
   const rune=world.runes.find(r=>!s.runes.includes(r.id));
   if(rune&&s.x>rune.x-600&&s.x<rune.x+600&&s.gravity===rune.gravity&&activeFor(rune,s.dimension)){
@@ -21,10 +17,10 @@ export function createRiftRouteDriver({collectExtras=false}={}){
   if(anchor){target=anchor.x;speed=240;}
   const boss=s.boss;
   if(boss.mode==="chase"||boss.mode==="arena"||boss.mode==="scarlet"){
-   if(boss.mode==="scarlet"&&s.scarlet<=0){target=boss.resonance?.x??(s.x<45000?43650:45050);speed=630;}
-   else if(boss.x>0){target=boss.x;speed=boss.mode==="chase"?560:boss.vulnerable?440:230;
+   if(boss.mode==="scarlet"&&s.scarlet<=0){target=boss.resonance?.x??(s.x<45000?43650:45050);speed=450;}
+   else if(boss.x>0){target=boss.x;speed=boss.mode==="chase"?560:boss.vulnerable?(440):(440);
     if(boss.mode==="chase"&&boss.cycleDamaged)target=s.x+1000;
-    needJump=boss.vulnerable&&Math.abs(s.x-target)<140;
+    needJump=boss.vulnerable&&Math.abs(s.x-target)<(boss.mode==="scarlet"?(280):140);
     needDash=needJump&&!s.grounded&&jumpAge>.09;
    }
   }
@@ -46,10 +42,11 @@ export function createRiftRouteDriver({collectExtras=false}={}){
    }
   }
   // Read the telegraph and leave the ray corridor before its lethal pulse.
-  const ray=s.beams.find(b=>b.drainsAll&&b.life>0&&Math.abs(s.x-b.x1)<180);
-  if(ray&&["arena","scarlet"].includes(boss.mode)){target=s.x+(s.x>=ray.x1?1:-1)*260;speed=440;needJump=needDash=false;}
+  const ray=s.beams.find(b=>b.drainsAll&&b.life>0&&Math.abs(s.x-b.x1)<(380));
   const dangerMinion=["arena","scarlet"].includes(boss.mode)&&boss.minions.find(m=>!m.dead&&Math.abs(m.x-s.x)<200&&Math.abs(m.y-s.y)<90);
-  if(dangerMinion){target=dangerMinion.x;needJump=s.grounded;needDash=!s.grounded&&s.dashReady;}
+  if(dangerMinion&&!(boss.vulnerable&&(boss.mode!=="scarlet"||s.scarlet>0))){target=dangerMinion.x;needJump=s.grounded;needDash=!s.grounded&&s.dashReady;}
+  if(ray&&["arena","scarlet"].includes(boss.mode)){target=ray.x1+(s.x>=ray.x1?1:-1)*(85);speed=220;needJump=boss.vulnerable&&ray.life<.3&&s.scarlet>0;needDash=false;}
+  if(!needDash&&s.grounded&&["arena","scarlet"].includes(boss.mode)&&s.shots.some(p=>!p.orb&&Math.abs(p.x-s.x)<(100)&&Math.abs(p.y-s.y)<65&&(s.x-p.x)*p.vx>0))needJump=true;
   const delta=target-s.x,dir=delta>=0?1:-1,keys=new Set();
   if(Math.abs(delta)>20){
    if(s.vx*dir>speed)keys.add(dir>0?"arrowleft":"arrowright");

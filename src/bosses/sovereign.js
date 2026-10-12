@@ -74,7 +74,7 @@ export function advanceSovereign(b,s,dt,hooks){
   if(phase<opening-.8)b.volleyClock+=dt;b.orbClock+=dt;
   const volleyInterval=Math.max(.95,2.8-wounds*.35);
   if(b.volleyClock>=volleyInterval&&phase<opening-.8){b.volleyClock=0;b.shots.push(...shotFan(b.x,b.y,s,3,400).map(shot=>({...shot,sovereign:true})));}
-  if(b.orbClock>=8){b.orbClock=0;const angle=Math.atan2(s.y-b.y,s.x-b.x);b.shots.push({x:b.x,y:b.y,vx:Math.cos(angle)*260,vy:Math.sin(angle)*260,life:5,r:17,sovereign:true,orb:true});}
+  if(b.orbClock>=8){b.orbClock=0;const angle=Math.atan2(s.y-b.y,s.x-b.x);b.shots.push({x:b.x,y:b.y,vx:Math.cos(angle)*460,vy:Math.sin(angle)*460,life:5,r:17,sovereign:true,orb:true});}
   b.resonanceClock+=dt;
   if(!b.resonance&&b.resonanceClock>=4.5){
    const sites=[SOVEREIGN_ARENA.left+450,SOVEREIGN_ARENA.left+1850,SOVEREIGN_ARENA.right-450];
@@ -86,8 +86,16 @@ export function advanceSovereign(b,s,dt,hooks){
    b.resonance.warning=Math.max(0,b.resonance.warning-dt);
    b.resonance.y=s.gravity===1?608:192;
    if(b.resonance.warning===0&&Math.hypot(s.x-b.resonance.x,s.y-b.resonance.y)<55){
-    s.scarlet=7.5;s.crystals+=8;s.dashReady=true;b.resonance=null;hooks.awaken();
+    s.scarlet=7.5;s.dashReady=true;b.resonance=null;hooks.awaken();
    }
   }
  }
+}
+
+// Bounded turning lets the faster homing orb be dodged with a late directional change.
+export function steerRiftOrb(orb,player,dt){
+ const desired=Math.atan2(player.y-orb.y,player.x-orb.x),current=Math.atan2(orb.vy,orb.vx);
+ const delta=Math.atan2(Math.sin(desired-current),Math.cos(desired-current));
+ const heading=current+Math.max(-3.1*dt,Math.min(3.1*dt,delta));
+ orb.vx=Math.cos(heading)*460;orb.vy=Math.sin(heading)*460;
 }

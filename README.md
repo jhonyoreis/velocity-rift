@@ -1,4 +1,12 @@
-# Velocity Rift — Uma Flor, Enfim (versão 4.2.0)
+# Velocity Rift — Uma Flor, Enfim (versão 4.2.1)
+
+## 4.2.1 — Ruínas entre realidades (APK R24)
+
+- Três percursos próprios, vãos de 155 a 220 unidades, pares de lasers e sentinelas com projéteis sinalizados.
+- Plataformas facetadas, ruínas em paralaxe, fenda central, partículas, névoa e lasers com carga, núcleo luminoso e impacto. A realidade da Orbe ganhou uma ambientação de eclipse prateado.
+- Falhar bloqueia o desafio pelo restante da tentativa, inclusive após checkpoint; iniciar a fase novamente libera uma nova tentativa.
+- Orbe acelera de 260 para 460 unidades por segundo e persegue Flux com giro limitado para permitir esquiva.
+- Acertar o Soberano e recolher ressonância Rubra não concedem cristais.
 
 ## 4.2.0 — Realidades estilhaçadas (APK R23)
 

@@ -141,8 +141,8 @@ export function drawOriginalRift(ctx,s,layout,{W=960,H=540,drawFlux=null,drawSov
  }
  for(const trial of layout.trials){
   if(trial.x<cx-70||trial.x>cx+W+70)continue;
-  ctx.strokeStyle=s.secrets.has(trial.id)?"#8affd6":"#ffce82";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(trial.x,trial.y+30);ctx.lineTo(trial.x,trial.y-24);ctx.lineTo(trial.x+19,trial.y);ctx.lineTo(trial.x-19,trial.y);ctx.closePath();ctx.stroke();
-  ctx.fillStyle="#ffdd9a";ctx.textAlign="center";ctx.font="bold 10px system-ui";ctx.fillText((visible(layout.cores[trial.core],s)?"ENCOSTE · ":layout.cores[trial.core].dimension?"MUDE PARA ECO · ":"MUDE PARA ORIGEM · ")+trial.limit+"s",trial.x,trial.y-40);ctx.textAlign="left";
+  ctx.strokeStyle=s.failedTrials.has(trial.id)?"#5e5069":s.secrets.has(trial.id)?"#8affd6":"#ffce82";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(trial.x,trial.y+30);ctx.lineTo(trial.x,trial.y-24);ctx.lineTo(trial.x+19,trial.y);ctx.lineTo(trial.x-19,trial.y);ctx.closePath();ctx.stroke();
+  ctx.fillStyle="#ffdd9a";ctx.textAlign="center";ctx.font="bold 10px system-ui";ctx.fillText((s.failedTrials.has(trial.id)?"DESAFIO PERDIDO · ":s.secrets.has(trial.id)?"CONCLUÍDO · ":visible(layout.cores[trial.core],s)?"ENCOSTE · ":layout.cores[trial.core].dimension?"MUDE PARA ECO · ":"MUDE PARA ORIGEM · ")+trial.limit+"s",trial.x,trial.y-40);ctx.textAlign="left";
  }
  for(const core of layout.cores){
   if(layout.trials.some(trial=>trial.core===core.id)||s.runCores.has(core.id)||!visible(core,s)||core.x<cx-40||core.x>cx+W+40)continue;

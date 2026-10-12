@@ -29,3 +29,25 @@ test("phase-four transformation publishes remaining animation time while freezin
 test("efficiency rewards are permanent, bounded and deduplicated",()=>{
  const stats=secretUpgradeStats({stage4:["origin","origin","paradox","lastlight","bogus"]});assert.equal(stats.efficiencyLevels,3);assert.equal(stats.consumptionMultiplier,.92**3);assert.equal(stats.collected,3);
 });
+
+test("failure locks the route for this attempt, including checkpoint respawns",()=>{
+ let move={x:12790,y:178,dimension:1,gravity:1,vx:0,vy:0,crystals:40,chaseDone:true};
+ const r=createOriginalRift({onFrame:s=>{if(move){Object.assign(s,move);move=null;}}});r.start(9);tick(r);tick(r);
+ r.info().pocket.y=600;tick(r);assert.deepEqual(r.info().failedTrials,["origin"]);
+ move={x:12300,y:372};tick(r,160);move={x:12790,y:178};tick(r,3);assert.equal(r.info().pocket,null);
+ r.respawn();assert.deepEqual(r.info().failedTrials,["origin"]);r.start(9);assert.deepEqual(r.info().failedTrials,[]);
+});
+test("new trial routes have real gaps, paired lasers and live sentinels",()=>{
+ const routes=[];for(let core=0;core<3;core++){const p=createPocketReality("trial",{trial:{core,limit:25},returnPose:{}});routes.push(p.platforms);for(let i=1;i<p.platforms.length;i++)assert.ok(p.platforms[i].x1-p.platforms[i-1].x2>=150);assert.ok(p.enemies.length>=2);updatePocketReality(p,1/120,new Set());assert.equal(p.lasers.length,2);
+ p.x=p.enemies[0].x-100;p.y=p.enemies[0].y+100;for(let i=0;i<170;i++)updatePocketReality(p,1/120,new Set());assert.ok(p.shots.length>0);
+ }assert.notDeepEqual(routes[0],routes[1]);assert.notDeepEqual(routes[1],routes[2]);
+});
+test("Sovereign resonance grants Rubro without awarding crystals",()=>{
+ const b=createSovereign();b.mode="scarlet";b.resonance={x:44500,y:608,warning:0};const s={x:44500,y:608,gravity:1,crystals:17};advanceSovereign(b,s,1/120,{surfaceAt:()=>650,warnGravity(){},flipGravity(){},barrierHit(){},awaken(){}});assert.equal(s.scarlet,7.5);assert.equal(s.crystals,17);
+});
+test("successful Sovereign damage does not generate crystals",()=>{
+ let first=true;const r=createOriginalRift({onFrame:s=>{if(first){first=false;Object.assign(s,{x:44500,y:560,vx:0,vy:0,crystals:40,invincible:2,gravity:1,dimension:0,chaseDone:true,arenaStarted:true,dash:.2,dashFacing:1});Object.assign(s.boss,{mode:"arena",clock:3.8,cycle:0,x:44500,y:560,hp:5,maxHp:5,vulnerable:true,hitCooldown:0,volleyFired:true,beamFired:true});}}});r.start(9);tick(r);const s=tick(r);assert.equal(s.boss.hp,4);assert.equal(s.crystals,40);
+});
+test("homing orb is faster and turns toward Flux within a bounded angle",async()=>{
+ const {steerRiftOrb}=await import("../src/bosses/sovereign.js");const orb={x:0,y:0,vx:460,vy:0};steerRiftOrb(orb,{x:0,y:100},.1);assert.ok(orb.vy>0);assert.ok(Math.abs(Math.hypot(orb.vx,orb.vy)-460)<.001);assert.ok(Math.atan2(orb.vy,orb.vx)<=.311);steerRiftOrb(orb,{x:0,y:-100},.1);assert.ok(Math.abs(orb.vy)<1);
+});

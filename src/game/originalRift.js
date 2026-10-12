@@ -5,7 +5,7 @@ import {calculateCrystalDamage} from "./crystals.js";
 import {createVictorySequence,sampleVictorySequence} from "./victorySequence.js";
 import {FLUX_MOTION as M} from "./fluxMotion.js";
 import {createOriginalRiftLayout,platformSurface,laserState,RIFT_WORLD_WIDTH,RIFT_FINISH_X,riftSectorAt} from "../levels/originalRift.js";
-import {createSovereign,advanceSovereign,hitSovereign,enemyCanBeDestroyed,shotFan,distanceToBeam,CHASE,SOVEREIGN_ARENA} from "../bosses/sovereign.js";
+import {createSovereign,advanceSovereign,hitSovereign,enemyCanBeDestroyed,shotFan,distanceToBeam,CHASE,SOVEREIGN_ARENA,steerRiftOrb} from "../bosses/sovereign.js";
 import {drawOriginalRift} from "../rendering/originalRift.js";
 export const RIFT_CORE_REQUIREMENT=9;
 export {RIFT_WORLD_WIDTH,RIFT_FINISH_X};
@@ -26,7 +26,7 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
  const announce=(message,duration=2.5)=>{s.message=message;s.messageTime=duration;};
  function start(coreCount=0,bypass=false){
   s={active:true,cores:clamp(coreCount,0,9),bypass,gateOpened:riftGateOpen(coreCount)||bypass,
-   coreSlots:coreSlots()||Array.from({length:9},(_,i)=>i<coreCount),victory:null,pocket:null,pocketCooldown:0,
+   coreSlots:coreSlots()||Array.from({length:9},(_,i)=>i<coreCount),failedTrials:new Set(),victory:null,pocket:null,pocketCooldown:0,
    x:180,y:422,vx:0,vy:0,facing:1,gravity:1,dimension:0,grounded:false,
    jumpHeld:false,jumpBuffer:0,coyote:0,dashReady:true,dash:0,boosting:false,sliding:false,
    crystals:0,capacity:boostCapacity(),boost:boostCapacity()*.95,time:0,cameraX:0,cameraY:0,portalCooldown:0,
@@ -74,7 +74,7 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
   if(result.hit){damage();if(s.dead)return;}
   if(!result.done)return;
   Object.assign(s,p.returnPose,{invincible:Math.max(s.invincible,1),pocketCooldown:1.2,phaseFlash:.65});s.pocket=null;
-  if(p.trial){s.trials.delete(p.trial.id);if(result.won){s.secrets.add(p.trial.id);s.runCores.add(p.trial.core);onCore(p.trial.core);onSecret(p.trial.id,p.elapsed);onSound("secret-win");announce("DESAFIO CONCLUÍDO · CONSUMO DE BOOST −8%",4);}else{onSound("portal-enter");announce("DESAFIO ENCERRADO · VOLTE AO FAROL PARA TENTAR NOVAMENTE",3);}}
+  if(p.trial){s.trials.delete(p.trial.id);if(result.won){s.secrets.add(p.trial.id);s.runCores.add(p.trial.core);onCore(p.trial.core);onSecret(p.trial.id,p.elapsed);onSound("secret-win");announce("DESAFIO CONCLUÍDO · CONSUMO DE BOOST −8%",4);}else{s.failedTrials.add(p.trial.id);onSound("portal-enter");announce("DESAFIO PERDIDO · INDISPONÍVEL NESTA TENTATIVA",4);}}
   else{onSound("portal-enter");announce("DE VOLTA À REALIDADE · O SOBERANO AGUARDA",3);}
  }
  function die(fell){
@@ -226,7 +226,7 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
   for(const trial of layout.trials){
    const near=activeInDimension(layout.cores[trial.core])&&Math.hypot(s.x-trial.x,s.y-trial.y)<55;
    if(!near)s.trialContacts.delete(trial.id);
-   if(s.secrets.has(trial.id)||s.pocketCooldown>0)continue;
+   if(s.secrets.has(trial.id)||s.failedTrials.has(trial.id)||s.pocketCooldown>0)continue;
    if(near&&!s.trialContacts.has(trial.id)){s.trialContacts.add(trial.id);enterPocket("trial",trial);return;}
   }
   if(!s.chaseDone&&s.x>=CHASE.start&&s.boss.mode==="dormant"){
@@ -263,6 +263,7 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
    }
   });
   for(const shot of s.shots){
+   if(shot.orb)steerRiftOrb(shot,s,dt);
    shot.x+=shot.vx*dt;shot.y+=shot.vy*dt;shot.life-=dt;
    if(activeInDimension(shot)&&Math.hypot(s.x-shot.x,s.y-shot.y)<RIFT_RADIUS+(shot.orb?17:7)){if(shot.orb){enterPocket("exile");return;}if(empowered)burst(shot.x,shot.y,"#ff6486",5);else damage();shot.life=0;}
   }
@@ -336,7 +337,7 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
   b.minions=b.minions.filter(m=>!m.dead).slice(-3);
   if(b.mode==="dormant"||b.defeated)return;
   if(Math.hypot(s.x-b.x,s.y-b.y)<65){
-   if(hitSovereign(b,s)){if(b.mode!=="chase")s.crystals+=3;onSound("boss-hit");burst(b.x,b.y,"#fff0ac",25);s.invincible=.8;s.vx=-s.facing*210;
+   if(hitSovereign(b,s)){onSound("boss-hit");burst(b.x,b.y,"#fff0ac",25);s.invincible=.8;s.vx=-s.facing*210;
     announce("SOBERANO · "+b.hp+"/"+b.maxHp+" · NÚCLEO ATINGIDO");
     if(b.hp<=0){
      if(b.mode==="chase"){s.chaseDone=true;b.mode="dormant";s.shots=[];s.beams=[];announce("A BARREIRA CAIU · ALICIA ESTÁ NA CATEDRAL",5);onSound("boss-collapse");}
@@ -346,7 +347,7 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
    }else if(b.mode!=="invincible")damage();
   }
  }
- function info(){return {...s,rubro:rubroState.active,transformTime:rubroState.transformTime,defeated:s.defeated.size,broken:s.broken.size,collected:s.collected.size,
+ function info(){return {...s,failedTrials:[...s.failedTrials],rubro:rubroState.active,transformTime:rubroState.transformTime,defeated:s.defeated.size,broken:s.broken.size,collected:s.collected.size,
   runes:[...s.runes],runCores:[...s.runCores],secrets:[...s.secrets],trials:[...s.trials].map(([id,t])=>({id,...t})),boss:{...s.boss},seen:[...s.seen],visitedSectors:[...s.visitedSectors],progress:s.finished?100:Math.round(clamp(s.distance/RIFT_FINISH_X,0,1)*100),
   sector:riftSectorAt(s.x).name};}
  return {start,resumeStory,stop(){s.active=false;},respawn,update,info,
