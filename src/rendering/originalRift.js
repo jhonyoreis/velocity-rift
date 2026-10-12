@@ -97,7 +97,7 @@ export function drawOriginalRift(ctx,s,layout,{W=960,H=540,drawFlux=null,drawSov
    drawMemoryCore(ctx,Math.cos(a)*62,Math.sin(a)*52-115,t,.43,!s.coreSlots[i]);
   }
   ctx.textAlign="center";ctx.fillStyle="#f2ddff";ctx.font="bold 17px system-ui";
-  drawMemoryCore(ctx,-26,-40,t,.5);ctx.fillText(s.cores+"/9",12,-35);
+  drawMemoryCore(ctx,-26,-115,t,.5);ctx.fillText(s.cores+"/9",12,-110);
 
   ctx.restore();
  }
