@@ -45,3 +45,12 @@ test("final-stage Rubro boosts speed and destroys otherwise unblockable enemy sh
  s.shots.push({x:s.x+s.vx/120,y:s.y,vx:0,vy:0,life:2,unblockable:true});
  r.update(1/120,new Set(["arrowright","shift"]));s=r.info();assert.equal(s.damageCount,0);assert.equal(s.crystals,held);assert.equal(s.shots.length,0);
 });
+
+test("Rubro also reduces the pursuit barrier impact while base Flux still loses all crystals",()=>{
+ for(const empowered of [false,true]){
+  const form=createRubroState();let inject=true;
+  const r=createOriginalRift({rubroState:form,onFrame:s=>{if(inject){s.crystals=100;s.boss.mode="chase";s.boss.barrierX=s.x-10;form.active=empowered;inject=false;}}});r.start(9);
+  r.update(1/120,new Set());r.update(1/120,new Set());
+  assert.equal(r.info().crystals,empowered?90:0);assert.equal(r.info().damageCount,1);assert.equal(r.info().rubro,empowered);
+ }
+});
