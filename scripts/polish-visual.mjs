@@ -43,6 +43,13 @@ try{
    await page.evaluate(stage=>window.__riftQA.setupScenario({stage,x:180,crystals:100,vx:600,completed:true}),stage);
    s=await page.evaluate(()=>{window.__riftQA.addShot();return window.__riftQA.stepGame(["arrowright","shift"]);});assert.ok(s.crystals<100,"base Flux still takes shot damage during Boost");
   }
+  for(const stage of [1,2,3]){
+   await page.evaluate(stage=>{window.__riftQA.setupScenario({stage,crystals:0});window.__riftQA.takeHit();},stage);
+   assert.equal(await page.locator("#deathMenu").isVisible(),false,"defeat must animate before the death menu");
+   let death=await page.evaluate(()=>window.__riftQA.stepGame([],45));assert.ok(death.defeat.elapsed>0);assert.equal(death.time,0);
+   await page.screenshot({path:`${folder}/${prefix}-stage${stage}-defeat.png`});
+   await page.evaluate(()=>window.__riftQA.stepGame([],90));await page.locator("#deathMenu").waitFor({state:"visible"});
+  }
   // Standing is blocked, Slide crosses the complete roof and ramp using normal physics.
   await page.evaluate(()=>window.__riftQA.setupScenario({stage:2,x:3420,crystals:100,completed:true,vx:300}));
   let s=await page.evaluate(()=>window.__riftQA.stepGame(["arrowright"],120));assert.ok(s.x<3500,"roof blocks standing Flux");

@@ -1,4 +1,26 @@
-# Velocity Rift — Uma Flor, Enfim (versão 4.1.0)
+# Velocity Rift — Uma Flor, Enfim (versão 4.1.1)
+
+## 4.1.1 — A energia da Ruptura (APK R22)
+
+- Ao entrar na arena final, Flux retorna à forma base, preservando cristais.
+  O botão Rubro pós-jogo fica bloqueado durante o encontro; a ressonância da
+  história mantém sua própria transformação e regras de combate.
+- Rubro ativável e Rubro da história compartilham a aura escarlate, com seis
+  descargas giratórias. Boost, rastros, brilho e partículas Rubro são vermelhos.
+- As quatro fases compartilham o mesmo desenho de rastro contínuo do Boost.
+- A última forma do Soberano mantém o tamanho da transformação e pulsa energia
+  violeta das fendas. Projéteis próprios têm formato de fragmento e rastro violeta.
+- Os raios do Soberano esvaziam todos os cristais, inclusive na forma Rubro.
+  Um acerto com cristais preserva a proteção temporária; um novo dano sem
+  cristais é fatal. Lasers de outros inimigos mantêm seu dano anterior.
+- A barreira da perseguição corre a 390 u/s, contra 245 u/s anteriormente.
+  A travessia é validada com desvio de raios e Dash nos lacaios resistentes.
+- Flux tem 1,05s de animação de impacto, queda e perda de energia antes da
+  tela de morte, nas quatro fases. O tempo da corrida para durante a derrota.
+- Desafios da Fenda Original iniciam ao encostar no farol, sem exigir Slide.
+  O comando antigo continua funcionando; ficar encostado não reinicia o
+  cronômetro. Faróis da outra dimensão indicam a mudança necessária.
+
 
 ## 4.1.0 — Memórias e Flux Rubro (APK R21)
 

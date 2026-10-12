@@ -1,4 +1,4 @@
-# Velocity Rift 4.1.0 — APK R21
+# Velocity Rift 4.1.1 — APK R22
 
 A quarta fase encerra a campanha. O portão inicial continua exigindo nove
 núcleos distintos das primeiras três regiões da campanha atual. Há retorno
@@ -87,14 +87,14 @@ invertida. Capturas ficam em `test-artifacts/visual/` no workflow de validação
 
 A validação de navegador não substitui jogar no aparelho físico. No APK:
 
-1. Conferir **v4.1.0 · APK R21** e a coleção anterior após instalar.
+1. Conferir **v4.1.1 · APK R22** e a coleção anterior após instalar.
 2. Testar Pular, segunda pressão para Dash, Boost e Slide simultâneos.
 3. Alternar os pedestais e conferir legibilidade dos sinais em tela pequena.
 4. Ouvir os movimentos e ajustar volumes de música/efeitos conforme desejado.
 5. Conferir desempenho e áudio numa luta longa, fundo/retorno do aplicativo,
    créditos, flor recebida e campanha salva após reiniciar.
 
-## Polimento e Rubro — R21
+## Polimento e Rubro — R22
 
 - Comparar o núcleo roxo/dourado no coletável, altar e cena Nove Corações.
   No altar parcial, verificar silhuetas pretas exatamente nos slots faltantes.
@@ -109,3 +109,19 @@ A validação de navegador não substitui jogar no aparelho físico. No APK:
   Rubro destrói os tiros durante Boost/Dash e que Flux base continua sofrendo dano.
 - Receber impactos até zero cristais: Rubro se desfaz. Recarregar o jogo e
   começar outra campanha: o desbloqueio histórico permanece.
+
+## Ruptura — R22
+
+- Entrar na arena final com Rubro pós-jogo: deve retornar à base, manter
+  os cristais e impedir reativação pelo botão/F durante o encontro.
+- Comparar aura Rubro ativável e da ressonância: seis traços giratórios.
+  Conferir rastros, brilho e partículas vermelhos do Boost em todas as fases.
+- Confirmar última forma grande, energia pulsante e núcleo exposto legível.
+  Rajadas do Soberano são fragmentos violetas; tiros dos lacaios não mudam.
+- Receber raio com cristais: zero cristais, breve proteção e retorno à base.
+  Outro acerto depois da proteção deve iniciar a animação de derrota.
+- Conferir pressão do muro na perseguição e terminar os três encontros.
+- Morrer nas quatro fases: animação no cenário primeiro; tela de morte depois.
+  Recomeçar no checkpoint e verificar que a animação não reaparece.
+- Encostar nos três faróis sem Slide na dimensão correta: cronômetro inicia
+  uma vez. Ficar encostado não renova o tempo; concluir as três rotas.

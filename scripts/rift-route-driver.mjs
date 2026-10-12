@@ -38,6 +38,11 @@ export function createRiftRouteDriver({collectExtras=false}={}){
     }
    }
   }
+  // Read the telegraph and leave the ray corridor before its lethal pulse.
+  const ray=s.beams.find(b=>b.drainsAll&&b.life>0&&Math.abs(s.x-b.x1)<180);
+  if(ray&&["arena","scarlet"].includes(boss.mode)){target=s.x+(s.x>=ray.x1?1:-1)*260;speed=440;needJump=needDash=false;}
+  const dangerMinion=["arena","scarlet"].includes(boss.mode)&&boss.minions.find(m=>!m.dead&&Math.abs(m.x-s.x)<200&&Math.abs(m.y-s.y)<90);
+  if(dangerMinion){target=dangerMinion.x;needJump=s.grounded;needDash=!s.grounded&&s.dashReady;}
   const delta=target-s.x,dir=delta>=0?1:-1,keys=new Set();
   if(Math.abs(delta)>20){
    if(s.vx*dir>speed)keys.add(dir>0?"arrowleft":"arrowright");
@@ -59,7 +64,7 @@ export function createRiftRouteDriver({collectExtras=false}={}){
   needDash ||= (enemy||wall)&&!anchor;
   needJump ||= wall&&!anchor&&s.grounded;
   needJump ||= !extra&&!extraExit&&boss.mode==="dormant"&&(gap||rise||hazard||((enemy||wall)&&!anchor));
-  if(s.grounded&&needJump&&jumpAge>.35){keys.delete("arrowdown");keys.add(" ");jumpAge=0;dashed=false;fastJump=!extra&&(enemy||wall||needDash||(rune&&Math.abs(s.x-rune.x)<125));}
+  if(s.grounded&&needJump&&jumpAge>.35){keys.delete("arrowdown");keys.add(" ");jumpAge=0;dashed=false;fastJump=!extra&&(dangerMinion||enemy||wall||needDash||(rune&&Math.abs(s.x-rune.x)<125));}
   else if(jumpAge<(extraJump?.34:fastJump?.025:boss.mode==="dormant"?.3:.2))keys.add(" ");
   else if(!extra&&!extraExit&&!s.grounded&&s.dashReady&&!dashed&&((needDash&&jumpAge>(fastJump?.06:.24))||(boss.mode==="dormant"&&jumpAge>(fastJump?.06:.36)))){
    // Horizontal Dash continues in the approach direction rather than braking.

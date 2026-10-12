@@ -1,3 +1,4 @@
+import {createDefeat,sampleDefeat} from "./defeat.js";
 import {RUBRO,createRubroState,updateRubro,resetRubro,rubroCanBreak} from "./rubro.js";
 import {calculateCrystalDamage} from "./crystals.js";
 import {createVictorySequence,sampleVictorySequence} from "./victorySequence.js";
@@ -35,7 +36,7 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
    deaths:0,shots:[],beams:[],shotTimers:new Map(),particles:[],visitedSectors:new Set(),
    distance:0,topSpeed:0,lastDamageLost:0,damageCount:0,scarlet:0,boss:createSovereign(),
    runes:new Set(),runCores:new Set(),secrets:new Set(),trials:new Map(),interactHeld:false,
-   story:null,storyNext:null,chaseDone:false,arenaStarted:false,awakened:false,gravityWarning:0,animationPhase:0,ghosts:[],ghostTimer:0,ground:null,fx:{run:0,boost:0,turn:0,landing:0,takeoff:0,hit:0},previousFacing:1};
+   story:null,storyNext:null,chaseDone:false,arenaStarted:false,awakened:false,gravityWarning:0,animationPhase:0,ghosts:[],ghostTimer:0,ground:null,boostTrail:[],boostSpark:0,trialContacts:new Set(),defeat:null,fx:{run:0,boost:0,turn:0,landing:0,takeoff:0,hit:0},previousFacing:1};
   return info();
  }
  start();
@@ -62,13 +63,14 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
  }
  function die(fell){
   if(s.dead||isDebug())return;
+  s.defeat=createDefeat({x:s.x,y:clamp(s.y,s.cameraY+70,s.cameraY+475),facing:s.facing,rubro:rubroState.active||s.scarlet>0,fall:fell,lost:s.crystals});
   s.lastDamageLost=s.crystals;s.crystals=0;s.dead=true;s.deaths++;s.damageCount++;
-  resetRubro(rubroState);s.vx=0;s.vy=0;s.boosting=false;s.dash=0;onSound("hit");onDeath(fell,s.lastDamageLost);
+  resetRubro(rubroState);s.vx=0;s.vy=0;s.boosting=false;s.dash=0;onSound("hit");
  }
- function damage(all=false){
+ function damage(all=false,absolute=false){
   if(s.invincible>0||isDebug()||s.dead)return;
   if(s.crystals===0){die(false);return;}
-  s.damageCount++;s.crystals=all&&!rubroState.active?0:calculateCrystalDamage(s.crystals,{rubro:rubroState.active}).remaining;
+  s.damageCount++;s.crystals=all&&(absolute||!rubroState.active)?0:calculateCrystalDamage(s.crystals,{rubro:rubroState.active}).remaining;
   if(s.crystals===0)resetRubro(rubroState);
   s.fx.hit=1;s.invincible=1.25;s.vy=-260*s.gravity;s.grounded=false;s.dash=0;
   burst(s.x,s.y,"#ffa68b");onSound("hit");
@@ -76,10 +78,10 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
  function respawn(){
   if(!s.active)return;
   resetRubro(rubroState);
-  Object.assign(s,s.checkpoint,{vx:0,vy:0,grounded:false,dead:false,dash:0,
+  Object.assign(s,s.checkpoint,{vx:0,vy:0,grounded:false,dead:false,defeat:null,dash:0,
    dashReady:true,boost:0,invincible:1.8,portalCooldown:.5,jumpHeld:false,jumpBuffer:0,
    boosting:false,sliding:false,phaseFlash:.4});
-  s.shots=[];s.beams=[];s.shotTimers.clear();s.trials.clear();
+  s.shots=[];s.beams=[];s.boostTrail=[];s.trialContacts.clear();s.shotTimers.clear();s.trials.clear();
   if(s.checkpoint.x>=43000){s.boss=createSovereign();s.boss.mode=s.awakened?"scarlet":"arena";s.boss.hp=s.boss.maxHp=s.awakened?6:5;s.boss.resonanceClock=4.5;s.scarlet=s.awakened?7.5:0;}
   else if(!s.chaseDone&&s.checkpoint.x>=20000){s.boss=createSovereign();s.boss.mode="chase";s.boss.barrierX=s.x-500;}
   else s.boss=createSovereign();
@@ -91,7 +93,8 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
   announce("CHECKPOINT · REALIDADE RESTAURADA");
  }
  function update(dt,keys){
-  if(!s.active||s.dead||s.story)return;
+  if(!s.active||s.story)return;
+  if(s.dead){if(s.defeat&&!s.defeat.notified){s.defeat.elapsed+=Math.min(.1,Math.max(0,dt));if(sampleDefeat(s.defeat).done){s.defeat.notified=true;onDeath(s.defeat.fall,s.defeat.lost);}}return;}
   // Semi-fixed substeps prevent tunnelling during fast slides and air dashes.
   let remaining=Math.min(Math.max(dt,0),.1);
   while(remaining>0){const step=Math.min(remaining,1/120);tick(step,keys);remaining-=step;if(s.dead||!s.active||s.story)break;}
@@ -206,7 +209,11 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
   for(const trial of layout.trials){
    if(s.secrets.has(trial.id))continue;
    let running=s.trials.get(trial.id);
-   if(interact&&Math.hypot(s.x-trial.x,s.y-trial.y)<125){running={elapsed:0};s.trials.set(trial.id,running);onSound("secret-start");announce(trial.name+" · ALCANCE O NÚCLEO EM "+trial.limit+"s",4);}
+   const available=activeInDimension(layout.cores[trial.core]);
+   const near=available&&Math.abs(s.x-trial.x)<85&&Math.abs(s.y-trial.y)<110;
+   const touchEntry=near&&!s.trialContacts.has(trial.id);
+   if(near)s.trialContacts.add(trial.id);else s.trialContacts.delete(trial.id);
+   if(!running&&available&&(touchEntry||(interact&&Math.hypot(s.x-trial.x,s.y-trial.y)<125))){running={elapsed:0};s.trials.set(trial.id,running);onSound("secret-start");announce(trial.name+" · ALCANCE O NÚCLEO EM "+trial.limit+"s",4);}
    if(running){running.elapsed+=dt;if(running.elapsed>trial.limit){s.trials.delete(trial.id);announce("TEMPO ESGOTADO · VOLTE AO FAROL PARA TENTAR NOVAMENTE");}}
   }
   for(const core of layout.cores)if(!s.runCores.has(core.id)&&activeInDimension(core)&&Math.hypot(s.x-core.x,s.y-core.y)<38){
@@ -219,6 +226,7 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
    s.boss.mode="chase";s.boss.barrierX=s.x-500;story("sovereignChase",()=>announce("5 ACERTOS COM DASH · A BARREIRA CONSOME TODOS OS CRISTAIS",5));return;
   }
   if(!s.arenaStarted&&s.x>=SOVEREIGN_ARENA.left){
+   resetRubro(rubroState);s.rubro=false;
    s.arenaStarted=true;s.checkpoint={x:43250,y:632,gravity:1,dimension:0};s.checkpointIndex=10;
    s.boss=createSovereign();s.boss.mode="arena";s.boost=s.capacity;
    story("arenaIntro",()=>announce("DESVIE DO ATAQUE · DASH NO NÚCLEO QUANDO ELE ABRIR",5));return;
@@ -252,7 +260,7 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
    if(activeInDimension(shot)&&Math.hypot(s.x-shot.x,s.y-shot.y)<RIFT_RADIUS+7){if(empowered)burst(shot.x,shot.y,"#ff6486",5);else damage();shot.life=0;}
   }
   s.shots=s.shots.filter(p=>p.life>0);
-  for(const beam of s.beams){beam.life-=dt;beam.warning=Math.max(0,beam.warning-dt);if(!beam.warning&&activeInDimension(beam)&&distanceToBeam(s.x,s.y,beam)<24){if(empowered)beam.life=0;else damage();}}
+  for(const beam of s.beams){beam.life-=dt;beam.warning=Math.max(0,beam.warning-dt);if(!beam.warning&&activeInDimension(beam)&&distanceToBeam(s.x,s.y,beam)<24){if(beam.drainsAll)damage(true,true);else if(empowered)beam.life=0;else damage();}}
   s.beams=s.beams.filter(b=>b.life>0);
   if(s.dead)return;
   for(const h of layout.hazards){
@@ -270,11 +278,16 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
     else s.crystals++;
    }
   }
+  for(const dot of s.boostTrail)dot.life-=dt;
+  s.boostTrail=s.boostTrail.filter(dot=>dot.life>0).slice(-24);
+  if(s.boosting)s.boostTrail.push({x:s.x,y:s.y,life:.24,rubro:s.rubro||s.scarlet>0});
+  s.boostSpark-=dt;
+  if(s.boosting&&s.boostSpark<=0){burst(s.x-s.facing*15,s.y+5,s.rubro||s.scarlet>0?"#ff456d":"#79ffff",2);s.boostSpark=.065;}
   for(const ghost of s.ghosts)ghost.life-=dt;
   s.ghosts=s.ghosts.filter(g=>g.life>0).slice(-10);
   s.ghostTimer-=dt;
   if((Math.abs(s.vx)>415||s.boosting)&&s.ghostTimer<=0){
-   s.ghosts.push({x:s.x,y:s.y,facing:s.facing,sliding:s.sliding,boosting:s.boosting,life:.25});
+   s.ghosts.push({x:s.x,y:s.y,facing:s.facing,sliding:s.sliding,boosting:s.boosting,rubro:s.rubro||s.scarlet>0,life:.25});
    s.ghostTimer=s.boosting?.045:.075;
   }
   s.animationPhase+=Math.abs(s.vx)*dt*.049;
@@ -321,7 +334,7 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
     if(b.hp<=0){
      if(b.mode==="chase"){s.chaseDone=true;b.mode="dormant";s.shots=[];s.beams=[];announce("A BARREIRA CAIU · ALICIA ESTÁ NA CATEDRAL",5);onSound("boss-collapse");}
      else if(b.mode==="arena"){b.mode="invincible";b.clock=0;b.vulnerable=false;announce("SEGUNDA FORMA · O NÚCLEO NÃO RESPONDE",4);onSound("boss-enter");}
-     else{b.defeated=true;b.mode="defeated";s.victory=createVictorySequence(s);s.scarlet=0;s.vx=s.vy=0;s.shots=[];s.beams=[];b.minions=[];b.resonance=null;s.ghosts=[];s.particles=[];s.invincible=0;s.phaseFlash=0;s.gravityWarning=0;s.messageTime=0;Object.assign(s.fx,{boost:0,hit:0,landing:0,takeoff:0,turn:0});onSound("boss-collapse");}
+     else{b.defeated=true;b.mode="defeated";s.victory=createVictorySequence(s);s.scarlet=0;s.vx=s.vy=0;s.shots=[];s.beams=[];b.minions=[];b.resonance=null;s.boostTrail=[];s.ghosts=[];s.particles=[];s.invincible=0;s.phaseFlash=0;s.gravityWarning=0;s.messageTime=0;Object.assign(s.fx,{boost:0,hit:0,landing:0,takeoff:0,turn:0});onSound("boss-collapse");}
     }
    }else if(b.mode!=="invincible")damage();
   }
@@ -331,7 +344,7 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
   sector:riftSectorAt(s.x).name};}
  return {start,resumeStory,stop(){s.active=false;},respawn,update,info,
   draw(ctx,W=960,H=540){drawOriginalRift(ctx,s,layout,{W,H,drawFlux,drawSovereign,drawAlicia,ghost:ghostAt(s.time)});},
-  get active(){return s.active;},get crystals(){return s.crystals;},get ending(){return Boolean(s.victory);},get musicSection(){return s.finished||s.victory?8:s.boss.mode==="scarlet"?7:s.boss.mode==="arena"||s.boss.mode==="invincible"?6:s.boss.mode==="chase"?4:riftSectorAt(s.x).music;}};
+  get active(){return s.active;},get crystals(){return s.crystals;},get ending(){return Boolean(s.victory);},get rubroLocked(){return s.arenaStarted&&!s.finished;},get musicSection(){return s.finished||s.victory?8:s.boss.mode==="scarlet"?7:s.boss.mode==="arena"||s.boss.mode==="invincible"?6:s.boss.mode==="chase"?4:riftSectorAt(s.x).music;}};
 }
 export function enemyPosition(e,i,time){
  const x=e.x+Math.sin(time*1.9+i)*e.range;

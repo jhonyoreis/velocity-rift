@@ -1,6 +1,6 @@
 // Deterministic, telegraphed three-encounter finale. Rendering lives elsewhere.
 export const SOVEREIGN_ARENA={left:43200,right:47200,floor:650,ceiling:150};
-export const CHASE={start:20200,end:32600,hits:5};
+export const CHASE={start:20200,end:32600,hits:5,barrierSpeed:390};
 export function createSovereign(){return {mode:"dormant",hp:5,maxHp:5,clock:0,cycle:-1,
  x:0,y:0,hitCooldown:0,vulnerable:false,warning:null,barrierX:19700,
  shots:[],beams:[],minions:[],attackSerial:0,resonance:null,resonanceClock:0,
@@ -46,14 +46,14 @@ export function advanceSovereign(b,s,dt,hooks){
  }
  if(phase>=1&&!b.volleyFired){
   b.volleyFired=true;
-  b.shots.push(...shotFan(b.x,b.y,b.target,rage?5:3,rage?455:390));
+  b.shots.push(...shotFan(b.x,b.y,b.target,rage?5:3,rage?455:390).map(shot=>({...shot,sovereign:true})));
   if(!chase&&cycle>0)hooks.flipGravity(-s.gravity);
  }
  if(phase>=1.75&&!b.beamFired&&!chase){
   b.beamFired=true;
   const x=b.x+(cycle%2?200:-200);
-  b.beams.push({x1:x,y1:150,x2:x,y2:650,warning:.8,life:1.65,unblockable:true});
-  if(rage)b.beams.push({x1:x+(cycle%2?-390:390),y1:150,x2:x+(cycle%2?-390:390),y2:650,warning:1,life:1.8,unblockable:true});
+  b.beams.push({x1:x,y1:150,x2:x,y2:650,warning:.8,life:1.65,unblockable:true,sovereign:true,drainsAll:true});
+  if(rage)b.beams.push({x1:x+(cycle%2?-390:390),y1:150,x2:x+(cycle%2?-390:390),y2:650,warning:1,life:1.8,unblockable:true,sovereign:true,drainsAll:true});
   if(b.minions.filter(m=>!m.dead).length<3){
    b.minions.push({id:b.attackSerial,x:SOVEREIGN_ARENA.left+650+(cycle%3)*1050,
     y:s.gravity===1?600:195,type:cycle%2?"rift-triple":"wraith",gravity:s.gravity,dead:false,timer:1.7});
@@ -66,7 +66,7 @@ export function advanceSovereign(b,s,dt,hooks){
   b.y=s.gravity===1?(chase?hooks.surfaceAt(b.x)-80:560):240;
  }
  if(chase){
-  b.barrierX+=245*dt;
+  b.barrierX+=CHASE.barrierSpeed*dt;
   if(b.barrierX>s.x-18){hooks.barrierHit();b.barrierX=s.x-550;}
  }
  if(rage){

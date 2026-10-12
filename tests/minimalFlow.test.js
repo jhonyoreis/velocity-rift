@@ -30,6 +30,6 @@ test("full test is separate from DEBUG, does not change saved collections",()=>{
  assert.ok(main.includes("function toggleFullTestMode()"));
  assert.ok(main.includes("function boostCapacity(){return fullTestMode?170:boostUpgrades.capacity;}"));
  assert.ok(main.includes("debugUsedThisRun = debugMode||fullTestMode"));
- assert.ok(main.includes("if(debugMode||(player.invulnerable>0"));
+ assert.ok(main.includes("if(defeat||debugMode||(player.invulnerable>0"));
  assert.ok(!main.includes("progress.secrets=allSecrets"));
 });

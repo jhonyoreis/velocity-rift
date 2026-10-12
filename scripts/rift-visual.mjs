@@ -55,7 +55,7 @@ try{
   assert.ok(continuity.colors.includes("#aaffdf"),"stage 4 keeps permanent upgrade core color");
   for(const mode of ["boost","dash"]){assert.ok(continuity[mode].rings<100);assert.ok(continuity[mode].invulnerable>0);}
   assert.equal(continuity.dash.dashActive,false,"enemy shot interrupts Dash");
-  await page.evaluate(async()=>{const {createRiftRouteDriver}=await import("/scripts/rift-route-driver.mjs");window.riftInputs=createRiftRouteDriver({collectExtras:true});window.riftPoses=new Set();});
+  await page.evaluate(async()=>{const {createRiftRouteDriver}=await import("/scripts/rift-route-driver.mjs");window.riftInputs=createRiftRouteDriver({collectExtras:true});window.riftPoses=new Set();window.riftBeacons=(await import("/src/levels/originalRift.js")).createOriginalRiftLayout().trials;});
   const snapshots=new Set();let ended=false,checkedRoutes=false;
   for(let batch=0;batch<120;batch++){
    const state=await page.evaluate(()=>{
@@ -67,7 +67,8 @@ try{
       if(!window.riftPoses.has("rescue-"+phase)){window.riftPoses.add("rescue-"+phase);api.step([],true);return {...api.info(),pose:"rescue-"+phase};}
      }
      if(s.boss.vulnerable&&Math.hypot(s.x-s.boss.x,s.y-s.boss.y)<180&&!window.riftPoses.has(s.boss.mode)){window.riftPoses.add(s.boss.mode);return {...s,pose:s.boss.mode+"-exposed"};}
-     api.step([...window.riftInputs(s)],false);
+     const inputs=window.riftInputs(s);if(window.riftBeacons.some(t=>Math.abs(s.x-t.x)<125&&Math.abs(s.y-t.y)<125))inputs.delete("arrowdown");
+     api.step([...inputs],false);
     }return api.info();
    });
    assert.equal(state.dead,false,prefix+" player-input route died at "+state.x);
@@ -105,6 +106,9 @@ try{
    const api=window.__riftQA,d=createRiftRouteDriver();
    for(let i=0;i<5000&&api.info().checkpointIndex<2;i++)api.step([...d(api.info())],false);
    for(let i=0;i<2000&&!api.info().dead;i++)api.step(["arrowleft"],false);
+   if(!api.info().defeat)throw Error("death must begin an in-world defeat animation");
+   if(!document.querySelector("#deathMenu").hidden)throw Error("death menu appeared before the defeat animation");
+   for(let i=0;i<130;i++)api.step([],true);
   });
   await page.locator("#deathMenu").waitFor({state:"visible"});await page.screenshot({path:folder+"/"+prefix+"-death.png"});
   await page.locator("#deathRestartButton").click();

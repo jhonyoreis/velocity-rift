@@ -1,3 +1,5 @@
+import {drawBoostTrail} from "./rendering/boostTrail.js";
+import {createDefeat,sampleDefeat} from "./game/defeat.js";
 import {drawMemoryCore,drawBoostEnergy,drawBreakWall} from "./rendering/collectibles.js";
 import {drawRubroAura} from "./rendering/rubro.js";
 import {RUBRO,createRubroState,activateRubro,updateRubro,resetRubro,rubroCanBreak} from "./game/rubro.js";
@@ -134,9 +136,10 @@ const campaign=loadCampaign();
 let boostUpgrades=secretUpgradeStats(progress.secrets);
 let riftQAFrozen=false;
 const rubro=createRubroState();
+let defeat=null;
 const rubroButton=document.querySelector("#rubroButton");
 const riftPreview=createOriginalRift({onExit:()=>showStageMenu(),
-  onDeath:showDeathScreen,onFinish:finishRiftCampaign,drawFlux:(actor,fx,clock)=>drawFluxBody({...actor,campaignAppearance:true},fx,clock),
+  onDeath:openDeathScreen,onFinish:finishRiftCampaign,drawFlux:(actor,fx,clock)=>drawFluxBody({...actor,campaignAppearance:true},fx,clock),
   drawSovereign:(...args)=>cinemaSovereign(...args),drawAlicia:(...args)=>cinemaAlicia(...args),
   onStory:key=>launchCinematic(key,()=>{riftPreview.resumeStory();resumeRiftScreen();}),
   onCore:id=>{if(!debugUsedThisRun)recordCampaignCore(4,id);},
@@ -396,7 +399,7 @@ function drawDashAltarOverlay(){
 function drawAirDashFX(){
   if(!airDash.active&&airDash.trail<=0)return;
   ctx.save();ctx.globalAlpha=.12+airDash.trail*.25;
-  ctx.strokeStyle="#b5fff0";ctx.lineWidth=16;
+  ctx.strokeStyle=rubro.active?"#ff456d":"#b5fff0";ctx.lineWidth=16;
   ctx.beginPath();ctx.moveTo(player.x-airDash.dx*80,player.y-airDash.dy*80);
   ctx.lineTo(player.x,player.y);ctx.stroke();ctx.restore();
 }
@@ -1295,7 +1298,12 @@ function showScreen(target) {
   target.querySelector?.('button:not([disabled]),input')?.focus?.();
 }
 
-function showDeathScreen(fell, lost){
+function showDeathScreen(fell,lost){
+ if(defeat)return;
+ defeat=createDefeat({x:player.x,y:clamp(player.y,cameraY+70,cameraY+475),facing:player.facing,rubro:player.rubroAtDefeat||rubro.active,fall:fell,lost});
+ player.vx=player.vy=0;player.boosting=false;airDash.active=false;keys.clear();syncRubroButton();
+}
+function openDeathScreen(fell, lost){
   // End the current run; permanent campaign progress is not reset.
   gameStarted=false;gameCleared=false;paused=false;accumulator=0;
   airDash.active=false;airDash.time=0;
@@ -1313,6 +1321,7 @@ function showDeathScreen(fell, lost){
   showScreen(deathMenu);
 }
 function restartAfterDeath(){
+  defeat=null;
   resetRubro(rubro);
   if(riftPreview.active){
     riftPreview.respawn();gameStarted=true;gameCleared=false;paused=false;accumulator=0;
@@ -1430,10 +1439,10 @@ function rubroUnlocked(){return progress.stage4.completed||campaign.stage4Comple
 function syncRubroButton(){
  const crystals=riftPreview.active?riftPreview.crystals:player.rings;
  rubroButton.hidden=!(gameStarted&&!paused&&!gameCleared&&!cinematic.active&&!stageArrival.active&&
-  !(riftPreview.active&&riftPreview.ending)&&rubroUnlocked()&&crystals>=RUBRO.threshold&&!rubro.active&&!rubro.transformTime);
+  !defeat&&!(riftPreview.active&&(riftPreview.ending||riftPreview.rubroLocked))&&rubroUnlocked()&&crystals>=RUBRO.threshold&&!rubro.active&&!rubro.transformTime);
 }
 function transformRubro(){
- if(!gameStarted||paused||gameCleared||cinematic.active||stageArrival.active||(riftPreview.active&&riftPreview.ending))return false;
+ if(!gameStarted||paused||gameCleared||cinematic.active||stageArrival.active||defeat||(riftPreview.active&&(riftPreview.ending||riftPreview.rubroLocked)))return false;
  const crystals=riftPreview.active?riftPreview.crystals:player.rings;
  const started=activateRubro(rubro,rubroUnlocked(),crystals);
  if(started){keys.clear();playSfx("secret-win");syncRubroButton();}return started;
@@ -1648,6 +1657,7 @@ function drawStageArrivalOverlay(){
   ctx.restore();
 }
 function resetGame() {
+  defeat=null;player.rubroAtDefeat=false;
   resetRubro(rubro);
   ghostRun=[];
   dashAltar.active=false;dashAltar.elapsed=0;dashAltar.usedThisRun=false;
@@ -1926,7 +1936,7 @@ function updateArchitectGroundRifts(dt){
    if(circleRect(player.x,player.y,PLAYER_RADIUS,
      {x:rift.x-rift.width/2,y:317,w:rift.width,h:96})){
      damagePlayer(false);
-     if(!gameStarted)return;
+     if(!gameStarted||defeat)return;
    }
  }
  cityBoss.rifts=cityBoss.rifts.filter(rift=>architectRiftState(rift.age)!=="expired");
@@ -1992,7 +2002,7 @@ function updateCityBoss(dt){
  }
  cityBoss.timer+=dt;
  updateArchitectGroundRifts(dt);
- if(!gameStarted)return;
+ if(!gameStarted||defeat)return;
  const phase=architectPhase(cityBoss.hp);
  if(cityBoss.state==="intro"&&cityBoss.timer>=2.55){
    beginCityBossTelegraph();
@@ -2643,6 +2653,7 @@ function drawGuardian(){
 
 function update(dt) {
   if(riftQAFrozen)return;
+  if(defeat){defeat.elapsed+=dt;visualTime+=dt;updateParticles(dt);if(!defeat.notified&&sampleDefeat(defeat).done){defeat.notified=true;openDeathScreen(defeat.fall,defeat.lost);}return;}
   if(riftPreview.active){riftPreview.update(dt,keys);syncRubroButton();return;}
   updateRubro(rubro,dt,player.rings);syncRubroButton();
   if(rubro.transformTime>0){visualTime+=dt;return;}
@@ -2703,7 +2714,7 @@ function update(dt) {
   if (boosting) {
     player.vx += player.facing * BOOST_ACCELERATION * boostPower() * (rubro.active?RUBRO.boost:1) * dt;
     player.boost = debugMode?boostCapacity():Math.max(0, player.boost - FLUX_MOTION.boostDrain * dt);
-    player.trail.push({ x: player.x, y: player.y, life: 0.24 });
+    player.trail.push({ x: player.x, y: player.y, life: 0.24,rubro:rubro.active });
   }
 
   // Downhill means velocity follows the track's slope (either direction).
@@ -2789,19 +2800,19 @@ function update(dt) {
   resolveCityRiftGates();
   updateCheckpoints();
   updateEnemies(dt);
-  if(!gameStarted)return;
+  if(!gameStarted||defeat)return;
   updateSentryShots(dt);
-  if(!gameStarted)return;
+  if(!gameStarted||defeat)return;
   updateCityBoss(dt);
-  if(!gameStarted)return;
+  if(!gameStarted||defeat)return;
   updateCityBossFX(dt);
   collectItems();
   collectStoryEchoes();
   collectCityDashCore();
   handleHazards();
-  if(!gameStarted)return;
+  if(!gameStarted||defeat)return;
   handlePulseGates();
-  if(!gameStarted)return;
+  if(!gameStarted||defeat)return;
   handleBoostPads();
   handleSprings();
   updateGuardian(dt);
@@ -2814,7 +2825,7 @@ function update(dt) {
   updateTrail(dt);
   updateParticles(dt);
   if ((player.boosting || (player.sliding && Math.abs(player.vx) > 140)) && sparkleCooldown === 0) {
-    const color = player.boosting ? "#65f8ff" : "#fbc66d";
+    const color = player.boosting ? rubro.active?"#ff456d":"#65f8ff" : "#fbc66d";
     emitParticles(player.x - player.facing * 13, player.y + 14, color, 2, 68);
     sparkleCooldown = player.boosting ? 0.045 : 0.075;
   }
@@ -2827,7 +2838,7 @@ function update(dt) {
     player.x=guardian.arenaRight-PLAYER_RADIUS;player.vx=Math.min(0,player.vx);
   }
 
-  if(!debugMode&&player.y>720){damagePlayer(true);if(!gameStarted)return;}
+  if(!debugMode&&player.y>720){damagePlayer(true);if(!gameStarted||defeat)return;}
 
   // Stage 1 keeps its original exit. Stage 2 requires entering a fully open
   // dimensional portal; touching the inactive spawn point cannot win.
@@ -3494,7 +3505,7 @@ function updateCheckpoints() {
   });
 }
 function damagePlayer(fall) {
- if(debugMode||(player.invulnerable>0&&!fall)||!gameStarted)return;
+ if(defeat||debugMode||(player.invulnerable>0&&!fall)||!gameStarted)return;
  if(airDash.active){airDash.active=false;airDash.time=0;}
  runDamageCount++;
  interruptSecretTrials();
@@ -3504,6 +3515,7 @@ function damagePlayer(fall) {
  triggerFluxFx("hurt");
  emitParticles(player.x,player.y,"#ff896d",13,155);
  playSfx("hurt");
+ player.rubroAtDefeat=rubro.active;
  const result=calculateCrystalDamage(player.rings,{fall,rubro:rubro.active});
  player.rings=result.remaining;
  if(player.rings===0)resetRubro(rubro);
@@ -4056,7 +4068,7 @@ function triggerFluxFx(kind,impact=0) {
     if(impact>410)emitParticles(player.x,player.y+16,"#f8e3b9",6,105);
   }else if(kind==="boost"){
     fluxFx.boost=1;
-    fluxWave(player.x,player.y,"#7cfff9",44,.9);
+    fluxWave(player.x,player.y,rubro.active?"#ff456d":"#7cfff9",44,.9);
   }else if(kind==="slide"){
     fluxFx.slide=1;
     fluxWave(player.x,player.y+10,"#ffd48a",25,.22);
@@ -4091,7 +4103,7 @@ function updateFluxFx(dt){
     fluxFx.ghostTimer-=dt;
     if(fluxFx.ghostTimer<=0){
       fluxFx.ghosts.push({x:player.x,y:player.y,facing:player.facing,
-        slide:player.sliding,boost:Boolean(player.boosting),life:.25,maxLife:.25});
+        slide:player.sliding,boost:Boolean(player.boosting),rubro:rubro.active,life:.25,maxLife:.25});
       if(fluxFx.ghosts.length>(document.documentElement.classList.contains("mobile-game")?5:FLUX_GHOST_LIMIT))fluxFx.ghosts.shift();
       fluxFx.ghostTimer=player.boosting?.045:.075;
     }
@@ -4108,7 +4120,7 @@ function updateFluxFx(dt){
       "#ffc778",3,80);
     fluxFx.sparkTimer=.075;
   }else if(player.boosting&&fluxFx.sparkTimer<=0){
-    emitParticles(player.x-player.facing*15,player.y+5,"#79ffff",2,75);
+    emitParticles(player.x-player.facing*15,player.y+5,rubro.active?"#ff456d":"#79ffff",2,75);
     fluxFx.sparkTimer=.065;
   }
 }
@@ -4132,10 +4144,10 @@ function drawFluxGhosts(){
     ctx.save();
     ctx.globalAlpha=life*life*(g.boost?.34:.20);
     ctx.translate(g.x,g.y);ctx.scale(g.facing,1);
-    ctx.fillStyle=g.boost?"#70fff8":"#b8edf1";
+    ctx.fillStyle=g.rubro?"#ff456d":g.boost?"#70fff8":"#b8edf1";
     ctx.beginPath();ctx.ellipse(0,g.slide?0:-3,g.slide?24:17,
       g.slide?8:18,-.12,0,Math.PI*2);ctx.fill();
-    ctx.strokeStyle="#b5ffff";ctx.lineWidth=2;
+    ctx.strokeStyle=g.rubro?"#ff9ab0":"#b5ffff";ctx.lineWidth=2;
     ctx.beginPath();ctx.moveTo(-17,-7);ctx.lineTo(-34,-6);ctx.stroke();
     ctx.restore();
   }
@@ -4149,21 +4161,22 @@ function drawFluxBody(actor,fx,clock){
   const fast=clamp(Math.abs(actor.vx)/SLIDE_DOWNHILL_CAP,0,1);
 
   ctx.save();
-  if(actor.rubro)ctx.filter="hue-rotate(170deg) saturate(1.7)";
+
   ctx.translate(actor.x, actor.y);
+  if(actor.defeat){ctx.rotate(actor.defeat.rotation);ctx.globalAlpha*=actor.defeat.alpha;}
   ctx.scale(actor.facing, 1);
   if (actor.invulnerable > 0 && Math.floor(clock * 12) % 2 === 0) {
     ctx.globalAlpha = 0.42;
   }
 
   // Ground shadow, engine glow and momentum streaks.
-  ctx.fillStyle = actor.boosting ? "rgba(71,242,255,.44)" : "rgba(64,209,202,.20)";
+  ctx.fillStyle = actor.rubro?"rgba(255,69,109,.44)":actor.boosting ? "rgba(71,242,255,.44)" : "rgba(64,209,202,.20)";
   ctx.beginPath();
   ctx.ellipse(-9 - fast * 7, actor.sliding ? -2 : 3,
     25 + fast * 20, actor.sliding ? 8 : 18, 0, 0, Math.PI * 2);
   ctx.fill();
   if (actor.boosting || fx.boost>.1) {
-    ctx.strokeStyle = "rgba(94,243,250,.8)";
+    ctx.strokeStyle = actor.rubro?"rgba(255,69,109,.8)":"rgba(94,243,250,.8)";
     ctx.lineWidth = 3;
     for (let i = 0; i < 3; i += 1) {
       ctx.beginPath();
@@ -4173,6 +4186,7 @@ function drawFluxBody(actor,fx,clock){
     }
   }
 
+  if(actor.rubro)ctx.filter="hue-rotate(170deg) saturate(1.7)";
   if (actor.sliding) {
     // Collider center remains at ground - PLAYER_RADIUS. The sprite bounds
     // stay within [-8,+7] of that center, above the 19px ground stroke.
@@ -4277,17 +4291,10 @@ function drawPlayer() {
   const moving = Math.abs(player.vx) > 40;
   const airborne = !player.onGround;
   const fast = clamp(Math.abs(player.vx) / SLIDE_DOWNHILL_CAP, 0, 1);
-  for (const dot of player.trail) {
-    ctx.globalAlpha = clamp(dot.life / 0.24, 0, 0.65);
-    ctx.fillStyle = boostCapacity()>100?"#a9ffcc":"#59f4e6";
-    ctx.beginPath();
-    ctx.arc(dot.x, dot.y, 16 * dot.life / 0.24, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.globalAlpha = 1;
-
-  drawFluxBody({...player,campaignAppearance:true,rubro:rubro.active},fluxFx,visualTime);
-  drawRubroAura(ctx,player.x,player.y,visualTime,rubro);
+  drawBoostTrail(ctx,player.trail,rubro.active);
+  const pose=defeat?sampleDefeat(defeat):null;
+  drawFluxBody({...player,x:pose?pose.x:player.x,y:pose?pose.y:player.y,invulnerable:pose?0:player.invulnerable,campaignAppearance:true,rubro:pose?defeat.rubro:rubro.active,defeat:pose},fluxFx,visualTime);
+  if(!defeat)drawRubroAura(ctx,player.x,player.y,visualTime,rubro);
 }
 function updateParticles(dt) {
   for (const p of particles) {
@@ -5161,7 +5168,7 @@ if(import.meta.env.DEV&&new URLSearchParams(location.search).has("rift-qa")){
       startRiftPreview(true);riftQAFrozen=true;for(let i=0;i<100;i++)riftPreview.update(1/120,new Set());draw();
       return riftPreview.info();
     },
-    gameInfo:()=>({stage:activeStage,x:player.x,y:player.y,vx:player.vx,vy:player.vy,crystals:player.rings,onGround:player.onGround,sliding:player.sliding,boosting:player.boosting,dash:{...airDash},rubro:{...rubro},time:gameTime,damage:runDamageCount,walls:walls.map(w=>({...w})),tunnels:tunnels.map(w=>({...w}))}),
+    gameInfo:()=>({defeat:defeat?{...defeat}:null,stage:activeStage,x:player.x,y:player.y,vx:player.vx,vy:player.vy,crystals:player.rings,onGround:player.onGround,sliding:player.sliding,boosting:player.boosting,dash:{...airDash},rubro:{...rubro},time:gameTime,damage:runDamageCount,walls:walls.map(w=>({...w})),tunnels:tunnels.map(w=>({...w}))}),
     stepGame(inputs=[],frames=1){
       const wasJump=keys.has(" ");keys.clear();for(const key of inputs)keys.add(key);
       if(keys.has(" ")&&!wasJump){if(!player.onGround&&dashUnlocked())startAirDash();else jumpBuffer=.13;}
