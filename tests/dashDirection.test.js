@@ -21,6 +21,6 @@ test("main dash entry point only uses the facing direction, never a cursor",()=>
   const main=readFileSync(new URL("../src/main.js",import.meta.url),"utf8");
   assert.match(main,/const direction=resolveAirDashDirection\(player\.facing\);/);
   assert.doesNotMatch(main,/airDash\.(?:aimX|aimY|hasAim|pointerMovedAt)|clearAirDashAim|pointermove/);
-  assert.match(main,/player\.vx=airDash\.dx\*DASH_SPEED;/);
-  assert.match(main,/player\.vy=airDash\.dy\*DASH_SPEED;/);
+  assert.match(main,/player\.vx=airDash\.dx\*DASH_SPEED\*\(rubro\.active\?RUBRO\.dash:1\);/);
+  assert.match(main,/player\.vy=airDash\.dy\*DASH_SPEED\*\(rubro\.active\?RUBRO\.dash:1\);/);
 });

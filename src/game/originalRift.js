@@ -1,3 +1,6 @@
+import {RUBRO,createRubroState,updateRubro,resetRubro,rubroCanBreak} from "./rubro.js";
+import {calculateCrystalDamage} from "./crystals.js";
+import {createVictorySequence,sampleVictorySequence} from "./victorySequence.js";
 import {FLUX_MOTION as M} from "./fluxMotion.js";
 import {createOriginalRiftLayout,platformSurface,laserState,RIFT_WORLD_WIDTH,RIFT_FINISH_X,riftSectorAt} from "../levels/originalRift.js";
 import {createSovereign,advanceSovereign,hitSovereign,enemyCanBeDestroyed,shotFan,distanceToBeam,CHASE,SOVEREIGN_ARENA} from "../bosses/sovereign.js";
@@ -15,17 +18,18 @@ export function countRiftKeys(campaign,fullTest=false){
 }
 export function riftGateOpen(keys){return keys>=RIFT_CORE_REQUIREMENT;}
 export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{},drawFlux=null,
- isDebug=()=>false,boostCapacity=()=>100,boostPower=()=>1,onSound=()=>{},onStory=null,onCore=()=>{},onSecret=()=>{},onFrame=()=>{},drawSovereign=null,drawAlicia=null,ghostAt=()=>null}={}){
+ isDebug=()=>false,boostCapacity=()=>100,boostPower=()=>1,onSound=()=>{},onStory=null,onCore=()=>{},onSecret=()=>{},onFrame=()=>{},drawSovereign=null,drawAlicia=null,ghostAt=()=>null,rubroState=createRubroState(),coreSlots=()=>null}={}){
  const layout=createOriginalRiftLayout();
  let s;
  const announce=(message,duration=2.5)=>{s.message=message;s.messageTime=duration;};
  function start(coreCount=0,bypass=false){
   s={active:true,cores:clamp(coreCount,0,9),bypass,gateOpened:riftGateOpen(coreCount)||bypass,
+   coreSlots:coreSlots()||Array.from({length:9},(_,i)=>i<coreCount),victory:null,
    x:180,y:422,vx:0,vy:0,facing:1,gravity:1,dimension:0,grounded:false,
    jumpHeld:false,jumpBuffer:0,coyote:0,dashReady:true,dash:0,boosting:false,sliding:false,
    crystals:0,capacity:boostCapacity(),boost:boostCapacity()*.95,time:0,cameraX:0,cameraY:0,portalCooldown:0,
    invincible:0,checkpointIndex:-1,checkpoint:{x:180,y:422,gravity:1,dimension:0},
-   message:"ALTAR DOS NOVE NÚCLEOS · "+clamp(coreCount,0,9)+"/9",messageTime:4,
+   message:"",messageTime:0,
    defeated:new Set(),broken:new Set(),collected:new Set(),seen:new Set(),
    finished:false,dead:false,finishedTime:0,apparitionTime:0,phaseFlash:0,gateTime:0,
    deaths:0,shots:[],beams:[],shotTimers:new Map(),particles:[],visitedSectors:new Set(),
@@ -59,17 +63,19 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
  function die(fell){
   if(s.dead||isDebug())return;
   s.lastDamageLost=s.crystals;s.crystals=0;s.dead=true;s.deaths++;s.damageCount++;
-  s.vx=0;s.vy=0;s.boosting=false;s.dash=0;onSound("hit");onDeath(fell,s.lastDamageLost);
+  resetRubro(rubroState);s.vx=0;s.vy=0;s.boosting=false;s.dash=0;onSound("hit");onDeath(fell,s.lastDamageLost);
  }
  function damage(all=false){
   if(s.invincible>0||isDebug()||s.dead)return;
   if(s.crystals===0){die(false);return;}
-  s.damageCount++;s.crystals=all?0:Math.max(0,s.crystals-Math.min(s.crystals,Math.max(8,Math.ceil(s.crystals*.35))));
+  s.damageCount++;s.crystals=all?0:calculateCrystalDamage(s.crystals,{rubro:rubroState.active}).remaining;
+  if(s.crystals===0)resetRubro(rubroState);
   s.fx.hit=1;s.invincible=1.25;s.vy=-260*s.gravity;s.grounded=false;s.dash=0;
   burst(s.x,s.y,"#ffa68b");onSound("hit");
  }
  function respawn(){
   if(!s.active)return;
+  resetRubro(rubroState);
   Object.assign(s,s.checkpoint,{vx:0,vy:0,grounded:false,dead:false,dash:0,
    dashReady:true,boost:0,invincible:1.8,portalCooldown:.5,jumpHeld:false,jumpBuffer:0,
    boosting:false,sliding:false,phaseFlash:.4});
@@ -92,6 +98,16 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
  }
  function tick(dt,keys){
   if(s.finished){s.finishedTime+=dt;return;}
+  if(s.victory){
+   s.victory.elapsed+=dt;const pose=sampleVictorySequence(s.victory);
+   s.x=pose.x;s.y=pose.y;s.vx=pose.moving?pose.facing*420:0;s.vy=0;s.facing=pose.facing;s.gravity=1;s.grounded=s.y>=632;
+   s.animationPhase+=Math.abs(s.vx)*dt*.049;s.fx.run=Number(pose.moving);s.boosting=false;s.sliding=false;s.dash=0;
+   s.cameraX+=(clamp(s.x-365,0,RIFT_WORLD_WIDTH-960)-s.cameraX)*Math.min(1,5*dt);s.cameraY+=(clamp(s.y-297,0,280)-s.cameraY)*Math.min(1,5*dt);
+   if(pose.done){s.finished=true;onFinish(info());}return;
+  }
+  updateRubro(rubroState,dt,s.crystals);
+  if(rubroState.transformTime>0){s.transformClock=(s.transformClock||0)+dt;return;}
+  s.rubro=rubroState.active;
   s.time+=dt;s.capacity=boostCapacity();if(isDebug())s.boost=s.capacity;
   for(const key of ["messageTime","portalCooldown","invincible","apparitionTime","phaseFlash","scarlet","gravityWarning"])
    s[key]=Math.max(0,s[key]-dt);
@@ -114,24 +130,24 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
    const priorSpeed=Math.abs(s.vx);
    if(left!==right)s.vx+=(left?-1:1)*accel*dt;
    else if(s.grounded){const friction=(s.sliding?M.slideFriction:M.groundFriction)*dt;s.vx=Math.sign(s.vx)*Math.max(0,Math.abs(s.vx)-friction);}
-   if(s.boosting){s.vx+=s.facing*M.boostAcceleration*dt*boostPower();s.boost=Math.max(0,s.boost-M.boostDrain*dt);}
+   if(s.boosting){s.vx+=s.facing*M.boostAcceleration*dt*boostPower()*(s.rubro?RUBRO.boost:1);s.boost=Math.max(0,s.boost-M.boostDrain*dt);}
    const slope=under?(under.p.y2-under.p.y1)/(under.p.x2-under.p.x1)*s.gravity:0;
    const downhill=s.sliding&&s.grounded&&slope*s.vx>0.001;
-   if(downhill){const rate=.62+Math.min(Math.abs(slope),.35)*2.4;s.vx=Math.sign(s.vx)*Math.min(M.slideCap,Math.abs(s.vx)*Math.exp(rate*dt));}
-   const cap=s.boosting?M.boostSpeed*boostPower():M.normalSpeed;
+   if(downhill){const rate=.62+Math.min(Math.abs(slope),.35)*2.4;s.vx=Math.sign(s.vx)*Math.min(M.slideCap*(s.rubro?RUBRO.speed:1),Math.abs(s.vx)*Math.exp(rate*dt));}
+   const cap=s.boosting?M.boostSpeed*boostPower()*(s.rubro?RUBRO.boost:1):M.normalSpeed*(s.rubro?RUBRO.speed:1);
    if(!downhill&&Math.abs(s.vx)>cap){const braking=s.sliding?880:1800;s.vx=Math.sign(s.vx)*Math.min(Math.abs(s.vx),Math.max(cap,priorSpeed-braking*dt));}
   }
   if(pressed){
    if(s.grounded||s.coyote>0){s.jumpBuffer=.12;}
-   else if(s.dashReady){s.dashFacing=s.facing;s.dash=M.dashSeconds;s.dashReady=false;s.vy=0;s.vx=s.facing*M.dashSpeed;onSound("air-dash");}
+   else if(s.dashReady){s.dashFacing=s.facing;s.dash=M.dashSeconds;s.dashReady=false;s.vy=0;s.vx=s.facing*M.dashSpeed*(s.rubro?RUBRO.dash:1);onSound("air-dash");}
    else s.jumpBuffer=.12;
   }
   if(s.jumpBuffer>0&&(s.grounded||s.coyote>0)){
-   s.fx.takeoff=1;s.vy=-(M.jumpSpeed+Math.min(90,Math.abs(s.vx)*.09))*s.gravity;s.grounded=false;s.coyote=0;s.jumpBuffer=0;onSound("jump");
+   s.fx.takeoff=1;s.vy=-(M.jumpSpeed+Math.min(90,Math.abs(s.vx)*.09))*(s.rubro?RUBRO.jump:1)*s.gravity;s.grounded=false;s.coyote=0;s.jumpBuffer=0;onSound("jump");
   }
   const wasGrounded=s.grounded,prevX=s.x,prevY=s.y;
   s.ground=null;
-  if(s.dash>0){s.facing=s.dashFacing;s.vx=s.dashFacing*M.dashSpeed;s.vy=0;}
+  if(s.dash>0){s.facing=s.dashFacing;s.vx=s.dashFacing*M.dashSpeed*(s.rubro?RUBRO.dash:1);s.vy=0;}
   const wasDashing=s.dash>0;
   s.dash=Math.max(0,s.dash-dt);
   if(wasDashing&&!s.dash)s.vx=s.dashFacing*M.dashExitSpeed;
@@ -207,11 +223,12 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
    s.boss=createSovereign();s.boss.mode="arena";s.boost=s.capacity;
    story("arenaIntro",()=>announce("DESVIE DO ATAQUE · DASH NO NÚCLEO QUANDO ELE ABRIR",5));return;
   }
-  bossTick(dt);if(s.story||s.finished||s.dead)return;
-  const offensive=s.dash>0||(s.boosting&&Math.abs(s.vx)>470);
+  bossTick(dt);if(s.story||s.finished||s.dead||s.victory)return;
+  const empowered=rubroCanBreak(rubroState,s.boosting,s.dash>0);
+  const offensive=empowered||s.dash>0||(s.boosting&&Math.abs(s.vx)>470);
   layout.barricades.forEach((b,i)=>{
    if(s.broken.has(i)||s.x+RIFT_RADIUS<b.x||s.x-RIFT_RADIUS>b.x+b.w||s.y+RIFT_RADIUS<b.y||s.y-RIFT_RADIUS>b.y+b.h)return;
-   if(b.type==="membrane"?s.dash>0:offensive){s.broken.add(i);burst(b.x,b.y+50,"#ffb7df",14);onSound("gate");}
+   if(empowered||(b.type==="membrane"?s.dash>0:offensive)){s.broken.add(i);burst(b.x,b.y+50,"#ffb7df",14);onSound("gate");}
    else{s.x=s.vx>0?b.x-RIFT_RADIUS:b.x+b.w+RIFT_RADIUS;s.vx=0;}
   });
   layout.enemies.forEach((e,i)=>{
@@ -226,16 +243,16 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
     }s.shotTimers.set(i,timer);
    }
    if(Math.hypot(s.x-point.x,s.y-point.y)<RIFT_RADIUS+(e.type==="crusher"?27:22)){
-    if(enemyCanBeDestroyed(e,s)){s.defeated.add(i);s.crystals+=2;burst(point.x,point.y,"#ffbd8a",12);onSound("gate");}
+    if(empowered||enemyCanBeDestroyed(e,s)){s.defeated.add(i);s.crystals+=2;burst(point.x,point.y,"#ffbd8a",12);onSound("gate");}
     else damage();
    }
   });
   for(const shot of s.shots){
    shot.x+=shot.vx*dt;shot.y+=shot.vy*dt;shot.life-=dt;
-   if(activeInDimension(shot)&&Math.hypot(s.x-shot.x,s.y-shot.y)<RIFT_RADIUS+7){damage();shot.life=0;}
+   if(activeInDimension(shot)&&Math.hypot(s.x-shot.x,s.y-shot.y)<RIFT_RADIUS+7){if(empowered)burst(shot.x,shot.y,"#ff6486",5);else damage();shot.life=0;}
   }
   s.shots=s.shots.filter(p=>p.life>0);
-  for(const beam of s.beams){beam.life-=dt;beam.warning=Math.max(0,beam.warning-dt);if(!beam.warning&&activeInDimension(beam)&&distanceToBeam(s.x,s.y,beam)<24)damage();}
+  for(const beam of s.beams){beam.life-=dt;beam.warning=Math.max(0,beam.warning-dt);if(!beam.warning&&activeInDimension(beam)&&distanceToBeam(s.x,s.y,beam)<24){if(empowered)beam.life=0;else damage();}}
   s.beams=s.beams.filter(b=>b.life>0);
   if(s.dead)return;
   for(const h of layout.hazards){
@@ -295,7 +312,7 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
   s.shots.push(...b.shots.splice(0));s.beams.push(...b.beams.splice(0));
   for(const m of b.minions){if(m.dead)continue;m.timer-=dt;
    if(m.timer<=0&&m.type==="rift-triple"){s.shots.push(...shotFan(m.x,m.y,s));m.timer=2.5;}
-   if(Math.hypot(s.x-m.x,s.y-m.y)<42){if(enemyCanBeDestroyed(m,s)){m.dead=true;burst(m.x,m.y,"#ff9dda");s.crystals+=3;}else damage();}}
+   if(Math.hypot(s.x-m.x,s.y-m.y)<42){if(rubroCanBreak(rubroState,s.boosting,s.dash>0)||enemyCanBeDestroyed(m,s)){m.dead=true;burst(m.x,m.y,"#ff9dda");s.crystals+=3;}else damage();}}
   b.minions=b.minions.filter(m=>!m.dead).slice(-3);
   if(b.mode==="dormant"||b.defeated)return;
   if(Math.hypot(s.x-b.x,s.y-b.y)<65){
@@ -304,17 +321,17 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
     if(b.hp<=0){
      if(b.mode==="chase"){s.chaseDone=true;b.mode="dormant";s.shots=[];s.beams=[];announce("A BARREIRA CAIU · ALICIA ESTÁ NA CATEDRAL",5);onSound("boss-collapse");}
      else if(b.mode==="arena"){b.mode="invincible";b.clock=0;b.vulnerable=false;announce("SEGUNDA FORMA · O NÚCLEO NÃO RESPONDE",4);onSound("boss-enter");}
-     else{b.defeated=true;b.mode="defeated";s.finished=true;s.scarlet=0;s.vx=s.vy=0;s.shots=[];s.beams=[];onSound("boss-win");onFinish(info());}
+     else{b.defeated=true;b.mode="defeated";s.victory=createVictorySequence(s);s.scarlet=0;s.vx=s.vy=0;s.shots=[];s.beams=[];b.minions=[];b.resonance=null;s.ghosts=[];s.particles=[];s.invincible=0;s.phaseFlash=0;s.gravityWarning=0;s.messageTime=0;Object.assign(s.fx,{boost:0,hit:0,landing:0,takeoff:0,turn:0});onSound("boss-collapse");}
     }
    }else if(b.mode!=="invincible")damage();
   }
  }
- function info(){return {...s,defeated:s.defeated.size,broken:s.broken.size,collected:s.collected.size,
+ function info(){return {...s,rubro:rubroState.active,transformTime:rubroState.transformTime,defeated:s.defeated.size,broken:s.broken.size,collected:s.collected.size,
   runes:[...s.runes],runCores:[...s.runCores],secrets:[...s.secrets],trials:[...s.trials].map(([id,t])=>({id,...t})),boss:{...s.boss},seen:[...s.seen],visitedSectors:[...s.visitedSectors],progress:s.finished?100:Math.round(clamp(s.distance/RIFT_FINISH_X,0,1)*100),
   sector:riftSectorAt(s.x).name};}
  return {start,resumeStory,stop(){s.active=false;},respawn,update,info,
   draw(ctx,W=960,H=540){drawOriginalRift(ctx,s,layout,{W,H,drawFlux,drawSovereign,drawAlicia,ghost:ghostAt(s.time)});},
-  get active(){return s.active;},get musicSection(){return s.finished?8:s.boss.mode==="scarlet"?7:s.boss.mode==="arena"||s.boss.mode==="invincible"?6:s.boss.mode==="chase"?4:riftSectorAt(s.x).music;}};
+  get active(){return s.active;},get crystals(){return s.crystals;},get ending(){return Boolean(s.victory);},get musicSection(){return s.finished||s.victory?8:s.boss.mode==="scarlet"?7:s.boss.mode==="arena"||s.boss.mode==="invincible"?6:s.boss.mode==="chase"?4:riftSectorAt(s.x).music;}};
 }
 export function enemyPosition(e,i,time){
  const x=e.x+Math.sin(time*1.9+i)*e.range;

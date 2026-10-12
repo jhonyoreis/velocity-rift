@@ -1,3 +1,4 @@
+import {drawMemoryCore} from "./collectibles.js";
 // Native Canvas compositions; all characters keep their established designs.
 export function drawFinaleFrame(ctx,art,t,p,a){
  const {cinemaLandscape,cinemaPortal,cinemaFlux,cinemaAlicia,cinemaFlower,cinemaSovereign,cinemaCanyon,cinemaMetropolis,cinemaForest}=a;
@@ -34,7 +35,7 @@ export function drawFinaleFrame(ctx,art,t,p,a){
    }else if(art==="awaken"){
     ctx.save();ctx.filter="hue-rotate(170deg) saturate(1.6)";cinemaFlux(285,415,1.3,t);ctx.restore();
     for(let i=0;i<9;i++){const angle=i*Math.PI*2/9+t*.6,x=285+Math.cos(angle)*90,y=355+Math.sin(angle)*90;
-     ctx.strokeStyle="#ff6486";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(285+(x-285)*.45+Math.sin(t*9+i)*12,355+(y-355)*.45);ctx.lineTo(285,355);ctx.stroke();ctx.fillStyle="#ffe4aa";ctx.fillRect(x-4,y-4,8,8);}
+     ctx.strokeStyle="#ff6486";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(285+(x-285)*.45+Math.sin(t*9+i)*12,355+(y-355)*.45);ctx.lineTo(285,355);ctx.stroke();drawMemoryCore(ctx,x,y,t+i,.55);}
    }else cinemaFlux(270,415,1.2,t,art==="chase");
   }
  }

@@ -1,3 +1,6 @@
+import {drawMemoryCore,drawBoostEnergy,drawBreakWall} from "./collectibles.js";
+import {drawRubroAura} from "./rubro.js";
+import {sampleVictorySequence} from "../game/victorySequence.js";
 import {platformSurface,laserState,riftSectorAt,RIFT_FINISH_X} from "../levels/originalRift.js";
 import {speedometer} from "../game/speedometer.js";
 const visible=(o,s)=>o.dimension===undefined||o.dimension===-1||o.dimension===s.dimension;
@@ -16,7 +19,7 @@ function portal(ctx,x,y,color,t,size=1){
 function panel(ctx,x,y,w,h){ctx.fillStyle="rgba(6,12,31,.82)";ctx.beginPath();ctx.roundRect(x,y,w,h,10);ctx.fill();}
 export function drawOriginalRift(ctx,s,layout,{W=960,H=540,drawFlux=null,drawSovereign=null,drawAlicia=null,ghost=null}={}){
  if(!s.active)return;
- const t=s.time,cx=s.cameraX,cy=s.cameraY,echo=s.dimension===1;
+ const t=s.time+(s.victory?.elapsed||0),cx=s.cameraX,cy=s.cameraY,echo=s.dimension===1;
  const gradient=ctx.createLinearGradient(0,0,0,H);
  gradient.addColorStop(0,echo?"#210b38":"#060c24");
  gradient.addColorStop(.6,echo?"#372254":"#1c294c");gradient.addColorStop(1,"#080d22");
@@ -91,12 +94,11 @@ export function drawOriginalRift(ctx,s,layout,{W=960,H=540,drawFlux=null,drawSov
   ctx.fillStyle="#192b47";ctx.fillRect(-82,-25,164,25);
   for(let i=0;i<9;i++){
    const a=i*Math.PI*2/9-t*.22;
-   ctx.fillStyle=i<s.cores?"#9affde":"#554569";
-   ctx.beginPath();ctx.arc(Math.cos(a)*62,Math.sin(a)*52-115,6,0,Math.PI*2);ctx.fill();
+   drawMemoryCore(ctx,Math.cos(a)*62,Math.sin(a)*52-115,t,.43,!s.coreSlots[i]);
   }
   ctx.textAlign="center";ctx.fillStyle="#f2ddff";ctx.font="bold 17px system-ui";
-  ctx.fillText("ALTAR "+s.cores+"/9",0,-270);
-  if(!s.gateOpened){ctx.font="13px system-ui";ctx.fillText("FALTAM "+(9-s.cores)+" NÚCLEOS",0,-247);}
+  drawMemoryCore(ctx,-26,-40,t,.5);ctx.fillText(s.cores+"/9",12,-35);
+
   ctx.restore();
  }
  for(const cp of layout.checkpoints){
@@ -139,16 +141,14 @@ export function drawOriginalRift(ctx,s,layout,{W=960,H=540,drawFlux=null,drawSov
  }
  for(const core of layout.cores){
   if(s.runCores.has(core.id)||!visible(core,s)||core.x<cx-40||core.x>cx+W+40)continue;
-  ctx.save();ctx.translate(core.x,core.y);ctx.rotate(t*.7);ctx.strokeStyle="#fff2bc";ctx.fillStyle="#e6bc61";ctx.lineWidth=3;ctx.fillRect(-10,-10,20,20);ctx.strokeRect(-16,-16,32,32);ctx.restore();
+  drawMemoryCore(ctx,core.x,core.y,t);
  }
  for(const item of layout.items){
   if(s.collected.has(item.id)||!visible(item,s)||item.x<cx-40||item.x>cx+W+40)continue;
   const y=item.y+(item.motion?Math.sin(t*1.6+item.platform)*item.motion:0);
   ctx.save();ctx.translate(item.x,y);
   if(item.type==="boost"){
-   ctx.fillStyle="#8bffe8";ctx.beginPath();ctx.arc(0,0,12,0,Math.PI*2);ctx.fill();
-   ctx.strokeStyle="#c8fff5";ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,18+Math.sin(t*4)*2,0,Math.PI*2);ctx.stroke();
-   ctx.fillStyle="#153b4c";ctx.beginPath();ctx.moveTo(3,-8);ctx.lineTo(-5,1);ctx.lineTo(0,1);ctx.lineTo(-2,8);ctx.lineTo(6,-2);ctx.lineTo(1,-2);ctx.closePath();ctx.fill();
+   drawBoostEnergy(ctx,0,0,t);
   }else{
    ctx.rotate(.15*Math.sin(t*3+item.id));ctx.fillStyle="#ff956a";
    ctx.beginPath();ctx.moveTo(0,-11);ctx.lineTo(7,-3);ctx.lineTo(0,12);ctx.lineTo(-7,-3);ctx.closePath();ctx.fill();
@@ -157,13 +157,7 @@ export function drawOriginalRift(ctx,s,layout,{W=960,H=540,drawFlux=null,drawSov
  }
  layout.barricades.forEach((b,i)=>{
   if(s.broken.has(i)||b.x<cx-60||b.x>cx+W+60)return;
-  ctx.fillStyle=b.type==="membrane"?"#985ee5aa":"#ac507a";ctx.fillRect(b.x,b.y,b.w,b.h);
-  if(b.type==="membrane"){
-   ctx.strokeStyle="#c2a0ff";ctx.lineWidth=2;
-   for(let y=b.y+10;y<b.y+b.h;y+=20){ctx.beginPath();ctx.moveTo(b.x,y);ctx.lineTo(b.x+b.w,y+8);ctx.stroke();}
-  }
-  ctx.strokeStyle="#ffd4df";ctx.lineWidth=2;ctx.strokeRect(b.x,b.y,b.w,b.h);
-  ctx.beginPath();ctx.moveTo(b.x,b.y);ctx.lineTo(b.x+b.w*.6,b.y+b.h*.4);ctx.lineTo(b.x+5,b.y+b.h*.65);ctx.lineTo(b.x+b.w,b.y+b.h);ctx.stroke();
+  drawBreakWall(ctx,b);
  });
  layout.enemies.forEach((e,i)=>{
   if(s.defeated.has(i)||!visible(e,s)||e.x<cx-100||e.x>cx+W+100)return;
@@ -216,6 +210,13 @@ export function drawOriginalRift(ctx,s,layout,{W=960,H=540,drawFlux=null,drawSov
   ctx.lineTo(27,5);ctx.lineTo(0,65);ctx.lineTo(-27,5);ctx.lineTo(-64,40);ctx.lineTo(-100,-120);ctx.lineTo(-28,-75);ctx.closePath();ctx.fill();ctx.stroke();
   ctx.fillStyle="#edabff";ctx.fillRect(-14,-70,28,8);ctx.beginPath();ctx.arc(0,-20,12,0,Math.PI*2);ctx.fill();ctx.restore();
  }
+ const victory=s.victory?sampleVictorySequence(s.victory):null;
+ if(victory&&drawSovereign&&victory.bossOpacity>0){
+  const v=s.victory,age=v.elapsed;
+  ctx.save();ctx.globalAlpha=victory.bossOpacity;ctx.translate(v.bossX,v.bossY);ctx.rotate(Math.sin(age*28)*.06);ctx.translate(-v.bossX,-v.bossY);
+  drawSovereign(v.bossX,v.bossY+42,t+age,.42);ctx.restore();
+  for(let i=0;i<28;i++){const angle=i*2.4,r=age*110;ctx.save();ctx.globalAlpha=victory.bossOpacity;ctx.translate(v.bossX+Math.cos(angle)*r,v.bossY+Math.sin(angle)*r);ctx.rotate(angle+age);ctx.fillStyle=i%2?"#d597ff":"#ffdfa1";ctx.beginPath();ctx.moveTo(0,-9);ctx.lineTo(7,7);ctx.lineTo(-7,7);ctx.closePath();ctx.fill();ctx.restore();}
+ }
  const boss=s.boss;
  if(boss.mode==="chase"){
   const wall=ctx.createLinearGradient(boss.barrierX-90,0,boss.barrierX+15,0);wall.addColorStop(0,"#150d26");wall.addColorStop(1,"#ed659dcc");ctx.fillStyle=wall;ctx.fillRect(boss.barrierX-960,-170,970,1050);
@@ -240,10 +241,10 @@ export function drawOriginalRift(ctx,s,layout,{W=960,H=540,drawFlux=null,drawSov
   if(!beam.warning){ctx.strokeStyle="#ffe3ed";ctx.lineWidth=3;ctx.stroke();}
  }
  if(s.x>43200&&drawAlicia){
-  drawAlicia(46650,570,.95,t,Math.sin(t)*8);ctx.strokeStyle="#d68dff";ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(46650,515,55,90,0,0,Math.PI*2);ctx.stroke();
+  drawAlicia(46650,victory?570+80*(1-victory.barrierOpacity):570,.95,t,victory?0:Math.sin(t)*8);ctx.save();ctx.globalAlpha=victory?victory.barrierOpacity:1;ctx.strokeStyle="#d68dff";ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(46650,515,55,90,0,0,Math.PI*2);ctx.stroke();ctx.restore();
  }
  for(const p of s.particles){ctx.globalAlpha=p.life*2;ctx.fillStyle=p.color;ctx.fillRect(p.x,p.y,4,4);}ctx.globalAlpha=1;
- if(ghost&&drawFlux&&(ghost.dimension===undefined||ghost.dimension===s.dimension)&&Math.abs(ghost.x-s.x)<900){ctx.save();ctx.globalAlpha=.25;ctx.translate(ghost.x,ghost.y);ctx.scale(1,ghost.gravity||1);drawFlux({...ghost,x:0,y:0,vx:400,vy:0,onGround:true,sliding:false,boosting:false,invulnerable:0,animationPhase:t*15},{boost:0,turn:0,landing:0,takeoff:0,hit:0,run:1},t);ctx.restore();}
+ if(!s.victory&&ghost&&drawFlux&&(ghost.dimension===undefined||ghost.dimension===s.dimension)&&Math.abs(ghost.x-s.x)<900){ctx.save();ctx.globalAlpha=.25;ctx.translate(ghost.x,ghost.y);ctx.scale(1,ghost.gravity||1);drawFlux({...ghost,x:0,y:0,vx:400,vy:0,onGround:true,sliding:false,boosting:false,invulnerable:0,animationPhase:t*15},{boost:0,turn:0,landing:0,takeoff:0,hit:0,run:1},t);ctx.restore();}
  if(s.scarlet>0){ctx.save();ctx.strokeStyle="#ff456d";ctx.fillStyle="#ff466e22";ctx.lineWidth=3;ctx.beginPath();ctx.arc(s.x,s.y,31+Math.sin(t*15)*4,0,Math.PI*2);ctx.fill();ctx.stroke();for(let i=0;i<6;i++){const a=t*3+i*Math.PI/3;ctx.beginPath();ctx.moveTo(s.x+Math.cos(a)*41,s.y+Math.sin(a)*41);ctx.lineTo(s.x+Math.cos(a+.4)*22,s.y+Math.sin(a+.4)*22);ctx.lineTo(s.x+Math.cos(a)*12,s.y+Math.sin(a)*12);ctx.stroke();}ctx.restore();}
  for(const g of s.ghosts){
   ctx.save();ctx.globalAlpha=(g.life/.25)**2*(g.boosting?.34:.20);
@@ -255,7 +256,7 @@ export function drawOriginalRift(ctx,s,layout,{W=960,H=540,drawFlux=null,drawSov
  ctx.save();ctx.translate(s.x,s.y);ctx.scale(1,s.gravity);
  if(s.scarlet>0)ctx.filter="hue-rotate(170deg) saturate(1.7)";
  if(drawFlux)drawFlux({x:0,y:0,vx:s.vx,vy:s.vy,facing:s.facing,onGround:s.grounded,ground:s.ground,
-  sliding:s.sliding,boosting:s.boosting,invulnerable:s.invincible,animationPhase:s.animationPhase},
+  sliding:s.sliding,boosting:s.boosting,invulnerable:s.invincible,animationPhase:s.animationPhase,rubro:s.rubro},
   s.fx,t);
  else{
   ctx.fillStyle="#dff9ff";ctx.beginPath();ctx.arc(0,-3,17,0,Math.PI*2);ctx.fill();
@@ -263,7 +264,9 @@ export function drawOriginalRift(ctx,s,layout,{W=960,H=540,drawFlux=null,drawSov
   ctx.fillStyle="#ffb66b";ctx.fillRect(-22,0,11,6);
  }
  if(s.dash>0){ctx.strokeStyle="#9cfff5";ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(-25*s.facing,0);ctx.lineTo(-65*s.facing,0);ctx.stroke();}
- ctx.restore();ctx.restore();
+ ctx.restore();
+ drawRubroAura(ctx,s.x,s.y,t+(s.transformClock||0),{active:s.rubro,transformTime:s.transformTime});
+ ctx.restore();
  // Match the existing sparse HUD; lower edges remain free for mobile controls.
  panel(ctx,14,12,185,47);ctx.font="bold 20px system-ui";ctx.fillStyle="#effffa";ctx.fillText("◆ "+s.crystals,27,42);
  panel(ctx,W-157,12,140,47);ctx.fillStyle="#effffa";ctx.textAlign="right";ctx.fillText(s.time.toFixed(1)+" s",W-31,42);ctx.textAlign="left";

@@ -7,7 +7,7 @@ export function createSovereign(){return {mode:"dormant",hp:5,maxHp:5,clock:0,cy
  defeated:false,forcedDefeat:false,phaseHits:0};}
 export function canDamageSovereign(boss,player){
  if(boss.defeated||boss.hitCooldown>0||!boss.vulnerable)return false;
- if(boss.mode==="scarlet")return player.scarlet>0&&(player.dash>0||player.boosting);
+ if(boss.mode==="scarlet")return (player.scarlet>0||player.rubro)&&(player.dash>0||player.boosting);
  return (boss.mode==="chase"||boss.mode==="arena")&&player.dash>0;
 }
 export function hitSovereign(boss,player){

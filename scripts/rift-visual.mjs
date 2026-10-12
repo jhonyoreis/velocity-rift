@@ -62,6 +62,10 @@ try{
     const api=window.__riftQA;
     for(let i=0;i<240;i++){
      const s=api.info();if(s.dead||s.finished||s.story)break;
+     if(s.victory){
+      const phase=s.victory.elapsed<1?"destruction":s.victory.elapsed<3.2?"barrier":"reunion";
+      if(!window.riftPoses.has("rescue-"+phase)){window.riftPoses.add("rescue-"+phase);api.step([],true);return {...api.info(),pose:"rescue-"+phase};}
+     }
      if(s.boss.vulnerable&&Math.hypot(s.x-s.boss.x,s.y-s.boss.y)<180&&!window.riftPoses.has(s.boss.mode)){window.riftPoses.add(s.boss.mode);return {...s,pose:s.boss.mode+"-exposed"};}
      api.step([...window.riftInputs(s)],false);
     }return api.info();
@@ -75,6 +79,7 @@ try{
    }
    const tag=state.pose||(state.boss.mode!=="dormant"?state.boss.mode:state.sector);
    if(!snapshots.has(tag)){snapshots.add(tag);await page.screenshot({path:folder+"/"+prefix+"-"+tag.normalize("NFD").replace(/[^a-zA-Z]/g,"")+".png"});}
+   if(state.victory&&!state.finished)assert.equal(await page.locator("#cinematicMenu").isVisible(),false,"rescue plays in the actual arena before the final cinematic");
    if(state.story){await advanceScene(page,prefix);continue;}
    if(state.finished){await advanceScene(page,prefix);ended=true;break;}
   }
@@ -83,6 +88,7 @@ try{
   assert.match(await page.locator("#resultHeading").innerText(),/Fenda Original/);
   assert.equal(await page.locator("#resultSecrets").innerText(),"3/3");
   const saved=await page.evaluate(()=>({campaign:JSON.parse(localStorage.getItem("velocity-rift-campaign-v3")),ghost:JSON.parse(localStorage.getItem("velocity-rift-ghost-records-v1"))}));
+  assert.equal(await page.evaluate(()=>window.__riftQA.rubroInfo().unlocked),true,"winning unlocks Rubro");
   assert.equal(saved.campaign.stage4Completed,true);assert.equal(saved.campaign.extras.cores.stage4.length,3);assert.equal(saved.campaign.extras.secrets.stage4.length,3);
   assert.ok(saved.campaign.scenesSeen.includes("ending"));assert.ok(saved.ghost.stage4.frames.length>100);
   await page.screenshot({path:folder+"/"+prefix+"-results.png"});

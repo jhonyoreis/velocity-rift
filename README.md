@@ -1,4 +1,30 @@
-# Velocity Rift — Uma Flor, Enfim (versão 4.0.3)
+# Velocity Rift — Uma Flor, Enfim (versão 4.1.0)
+
+## 4.1.0 — Memórias e Flux Rubro (APK R21)
+
+- Núcleos compartilham o desenho roxo/dourado nos coletáveis, altar, contador
+  e transformação. O altar identifica cada núcleo faltante por silhueta preta.
+- Energias de Boost e muros destrutíveis usam o desenho da Fenda Original nas
+  quatro fases. Muros de Boost têm 190 unidades de altura e colisão correspondente.
+- Tetos de Slide acompanham rampas, mantendo 26 unidades de espaço sobre o
+  chão; cristais do túnel são posicionados fora do teto.
+- A derrota final do Soberano inicia uma sequência no cenário: destruição,
+  dissolução da barreira e caminhada do Flux até Alicia. A cutscene final só
+  começa depois do reencontro; esse intervalo não aumenta o tempo da corrida.
+- Flux Rubro é desbloqueado permanentemente ao concluir o jogo, incluindo
+  saves que já registravam a vitória. Com 20 cristais, toque no núcleo ou use F.
+  A transformação leva 0,9s, não gasta cristais nem tem limite de duração.
+- Rubro tem corrida 40% mais rápida, salto 22% mais forte, Boost 50% mais
+  potente e Dash 30% mais rápido. Boost/Dash destroem disparos e inimigos
+  resistentes; impactos custam 10% dos cristais (mínimo 2). Ao chegar a zero,
+  retorna à forma base. Quedas continuam encerrando a tentativa.
+- A transformação do confronto final mantém as regras de ressonância; o
+  Rubro pós-jogo usa seus próprios atributos e não consome poder por tempo.
+
+Validação automatizada inclui desktop e Android horizontal, formas base e
+Rubro nas primeiras três fases, Rubro na quarta fase, desbloqueio persistente,
+túnel com rampa, altar incompleto/completo e sequência de resgate antes do final.
+
 
 ## 4.0.3 — Continuidade do Flux (APK R20)
 

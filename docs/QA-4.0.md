@@ -1,4 +1,4 @@
-# Velocity Rift 4.0.3 — APK R20
+# Velocity Rift 4.1.0 — APK R21
 
 A quarta fase encerra a campanha. O portão inicial continua exigindo nove
 núcleos distintos das primeiras três regiões da campanha atual. Há retorno
@@ -87,9 +87,25 @@ invertida. Capturas ficam em `test-artifacts/visual/` no workflow de validação
 
 A validação de navegador não substitui jogar no aparelho físico. No APK:
 
-1. Conferir **v4.0.3 · APK R20** e a coleção anterior após instalar.
+1. Conferir **v4.1.0 · APK R21** e a coleção anterior após instalar.
 2. Testar Pular, segunda pressão para Dash, Boost e Slide simultâneos.
 3. Alternar os pedestais e conferir legibilidade dos sinais em tela pequena.
 4. Ouvir os movimentos e ajustar volumes de música/efeitos conforme desejado.
 5. Conferir desempenho e áudio numa luta longa, fundo/retorno do aplicativo,
    créditos, flor recebida e campanha salva após reiniciar.
+
+## Polimento e Rubro — R21
+
+- Comparar o núcleo roxo/dourado no coletável, altar e cena Nove Corações.
+  No altar parcial, verificar silhuetas pretas exatamente nos slots faltantes.
+- Conferir energia com raio e muros altos em Floresta, Cânion e Cidade.
+- No primeiro túnel do Cânion, passar com Slide pela rampa sem atravessar
+  visualmente o teto. Ficar em pé deve bloquear a entrada.
+- Derrotar o Soberano: conferir destruição, dissolução da prisão e caminhada
+  até Alicia no cenário. Apenas depois aparece a cutscene; tempo fica parado.
+- Depois da vitória, testar 19 cristais (botão oculto) e 20 (núcleo visível).
+  Ativar com toque/F; conferir nove núcleos orbitando durante 0,9s.
+- Comparar salto, corrida, Boost e Dash em todas as fases. Confirmar que
+  Rubro destrói os tiros durante Boost/Dash e que Flux base continua sofrendo dano.
+- Receber impactos até zero cristais: Rubro se desfaz. Recarregar o jogo e
+  começar outra campanha: o desbloqueio histórico permanece.

@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Velocity Rift 4.0.3 — Uma Flor, Enfim</title>
+    <title>Velocity Rift 4.1.0 — Uma Flor, Enfim</title>
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <link rel="stylesheet" href="./src/styles.css" />
   </head>
   <body>
     <main class="shell">
-      <section class="game-panel" aria-label="Velocity Rift 4.0.3">
+      <section class="game-panel" aria-label="Velocity Rift 4.1.0">
         <canvas id="game" width="960" height="540"></canvas>
         <div id="overlay" class="overlay" role="region" aria-label="Menu do Velocity Rift">
           <section id="mainMenu" class="menu-screen v3-main v4-home" aria-labelledby="menuHeading">
@@ -43,7 +43,7 @@
             <div class="v4-home-art" aria-hidden="true">
               <img src="./menu-hero.svg" alt="" width="850" height="760" decoding="async" />
             </div>
-            <small class="v4-home-version">v4.0.3 · <span class="vr-build-id">APK R20</span></small>
+            <small class="v4-home-version">v4.1.0 · <span class="vr-build-id">APK R21</span></small>
 
             <!-- Keep existing progress anchors for saves and other menus,
                  without showing a statistics dashboard on the home screen. -->
@@ -464,6 +464,7 @@
         <!-- Menu overlay ends here. HUD buttons MUST NOT be descendants of
              the overlay: it is hidden and pointer-events:none during gameplay. -->
         </div>
+        <button id="rubroButton" class="rubro-button" type="button" aria-label="Transformar em Flux Rubro" title="Flux Rubro (F)" hidden><svg viewBox="0 0 44 44" aria-hidden="true"><path d="M22 3 41 22 22 41 3 22Z" fill="#a86ff6" stroke="#ffdf9a" stroke-width="3"/><path d="M22 17 27 22 22 27 17 22Z" fill="#fff3ce"/></svg></button>
         <button id="pauseButton" class="v31-in-game-pause" type="button" aria-label="Pausar o jogo" hidden>Ⅱ PAUSA</button>
         <div class="touch-controls" aria-label="Controles de toque">
           <button type="button" data-key="arrowleft" aria-label="Esquerda">◀</button>

@@ -1,3 +1,7 @@
+import {drawMemoryCore,drawBoostEnergy,drawBreakWall} from "./rendering/collectibles.js";
+import {drawRubroAura} from "./rendering/rubro.js";
+import {RUBRO,createRubroState,activateRubro,updateRubro,resetRubro,rubroCanBreak} from "./game/rubro.js";
+import {tunnelFloorAt,tunnelProfile,polishWorldObstacles} from "./game/tunnelProfile.js";
 import {fluxAppearance} from "./game/fluxAppearance.js";
 import {FLUX_MOTION} from "./game/fluxMotion.js";
 import {FINAL_SCORE,finalScoreStep} from "./audio/finalScore.js";
@@ -129,6 +133,8 @@ const campaign=loadCampaign();
 // Final chapter owns gravity, seals and Soberano encounters; campaign state remains shared.
 let boostUpgrades=secretUpgradeStats(progress.secrets);
 let riftQAFrozen=false;
+const rubro=createRubroState();
+const rubroButton=document.querySelector("#rubroButton");
 const riftPreview=createOriginalRift({onExit:()=>showStageMenu(),
   onDeath:showDeathScreen,onFinish:finishRiftCampaign,drawFlux:(actor,fx,clock)=>drawFluxBody({...actor,campaignAppearance:true},fx,clock),
   drawSovereign:(...args)=>cinemaSovereign(...args),drawAlicia:(...args)=>cinemaAlicia(...args),
@@ -137,7 +143,8 @@ const riftPreview=createOriginalRift({onExit:()=>showStageMenu(),
   onSecret:recordRiftSecret,
   onFrame:s=>{if(!debugUsedThisRun)recordGhostFrame(ghostRun,s.time,s);},
   ghostAt:t=>ghostVisible?ghostFrameAt(ghostArchive.stage4,t):null,
-  boostPower:()=>fullTestMode?1.15:boostUpgrades.powerMultiplier,
+  boostPower:()=>boostPower(),rubroState:rubro,
+ coreSlots:()=>[1,2,3].flatMap(stage=>[0,1,2].map(id=>fullTestMode||campaign.extras.cores["stage"+stage].includes(id))),
   isDebug:()=>debugMode,boostCapacity:()=>boostCapacity(),onSound:playSfx});
 // Permanently owned via historical route records (independent of New Game).
 function boostCapacity(){return fullTestMode?170:boostUpgrades.capacity;}
@@ -302,8 +309,8 @@ function startAirDash(){
   airDash.dx=direction.dx;airDash.dy=direction.dy;
   airDash.active=true;airDash.available=false;
   airDash.time=DASH_SECONDS;airDash.trail=1;
-  player.vx=airDash.dx*DASH_SPEED;
-  player.vy=airDash.dy*DASH_SPEED;
+  player.vx=airDash.dx*DASH_SPEED*(rubro.active?RUBRO.dash:1);
+  player.vy=airDash.dy*DASH_SPEED*(rubro.active?RUBRO.dash:1);
   triggerFluxFx("boost");
   emitParticles(player.x,player.y,"#fff2aa",17,185);
   playSfx("air-dash");
@@ -312,8 +319,8 @@ function startAirDash(){
 function updateAirDash(dt){
   if(airDash.active){
     airDash.time=Math.max(0,airDash.time-dt);
-    player.vx=airDash.dx*DASH_SPEED;
-    player.vy=airDash.dy*DASH_SPEED;
+    player.vx=airDash.dx*DASH_SPEED*(rubro.active?RUBRO.dash:1);
+    player.vy=airDash.dy*DASH_SPEED*(rubro.active?RUBRO.dash:1);
     if(airDash.time===0){
       airDash.active=false;
       player.vx=airDash.dx*FLUX_MOTION.dashExitSpeed;
@@ -505,6 +512,7 @@ const STAGES={1:stageOneWorld,2:createStageTwoWorld({...levelApi,guardian}),3:cr
 installSecretRoutes(STAGES[1],1,{track,PLAYER_RADIUS});
 installSecretRoutes(STAGES[2],2,{track,PLAYER_RADIUS});
 installSecretRoutes(STAGES[3],3,{track,PLAYER_RADIUS});
+for(const world of Object.values(STAGES))polishWorldObstacles(world);
 
 function activateStage(stage=1) {
   if(!STAGES[stage])throw new Error("Unknown level "+stage);
@@ -1305,6 +1313,7 @@ function showDeathScreen(fell, lost){
   showScreen(deathMenu);
 }
 function restartAfterDeath(){
+  resetRubro(rubro);
   if(riftPreview.active){
     riftPreview.respawn();gameStarted=true;gameCleared=false;paused=false;accumulator=0;
     keys.clear();jumpHeld=false;
@@ -1399,6 +1408,7 @@ function showResults(time, crystals, cores = 0, recorded=null) {
     : (result.improvedTime ? "Novo recorde!" : "Missão concluída!") +
       " Núcleos " + cores + "/3 · Nesta campanha " +
       campaign.extras.cores["stage"+activeStage].length + "/3.";
+  if(activeStage===4&&!debugUsedThisRun)document.querySelector("#resultMessage").textContent+=" Flux Rubro desbloqueado em todas as fases: reúna 20 cristais e toque no núcleo (F).";
   if(!debugUsedThisRun)grantClearAchievements(result.grade,cores);
   document.querySelector("#resultSecrets").textContent=(activeStage===4?riftPreview.info().secrets.length:secretTrials.filter(t=>t.completed).length)+"/3";
   const nextStageButton=document.querySelector("#nextStageButton");
@@ -1416,10 +1426,24 @@ function showResults(time, crystals, cores = 0, recorded=null) {
   showScreen(resultMenu);
 }
 
+function rubroUnlocked(){return progress.stage4.completed||campaign.stage4Completed||fullTestMode;}
+function syncRubroButton(){
+ const crystals=riftPreview.active?riftPreview.crystals:player.rings;
+ rubroButton.hidden=!(gameStarted&&!paused&&!gameCleared&&!cinematic.active&&!stageArrival.active&&
+  !(riftPreview.active&&riftPreview.ending)&&rubroUnlocked()&&crystals>=RUBRO.threshold&&!rubro.active&&!rubro.transformTime);
+}
+function transformRubro(){
+ if(!gameStarted||paused||gameCleared||cinematic.active||stageArrival.active||(riftPreview.active&&riftPreview.ending))return false;
+ const crystals=riftPreview.active?riftPreview.crystals:player.rings;
+ const started=activateRubro(rubro,rubroUnlocked(),crystals);
+ if(started){keys.clear();playSfx("secret-win");syncRubroButton();}return started;
+}
+rubroButton.addEventListener("click",transformRubro);
 function syncPauseButton(){
   const playing=gameStarted&&!paused&&!gameCleared&&!cinematic.active;
   document.querySelector(".game-panel").classList.toggle("gameplay-active",playing);
   pauseButton.hidden=!playing;
+  syncRubroButton();
   pauseButton.textContent="Ⅱ PAUSA";
   pauseButton.setAttribute("aria-label","Pausar o jogo");
   pauseButton.setAttribute("aria-pressed",String(paused));
@@ -1432,7 +1456,7 @@ function showPauseMenu(){
     "Fenda Original · "+riftPreview.info().sector:
     ["","Primeiro Impulso","Cânion Prisma","Cidade das Fendas","Fenda Original"][activeStage];
   document.querySelector("#pauseStatTime").textContent=formatTime(riftPreview.active?riftPreview.info().time:gameTime);
-  document.querySelector("#pauseStatCrystals").textContent=String(riftPreview.active?riftPreview.info().crystals:player.rings);
+  document.querySelector("#pauseStatCrystals").textContent=String(riftPreview.active?riftPreview.crystals:player.rings);
   document.querySelector("#pauseStatCores").textContent=riftPreview.active?riftPreview.info().runCores.length+"/3":(fullTestMode?3:player.cores)+"/3";
   document.querySelector("#pauseStatSecrets").textContent=riftPreview.active?riftPreview.info().secrets.length+"/3":
     (fullTestMode?3:secretTrials.filter(trial=>trial.completed).length)+"/3";
@@ -1624,6 +1648,7 @@ function drawStageArrivalOverlay(){
   ctx.restore();
 }
 function resetGame() {
+  resetRubro(rubro);
   ghostRun=[];
   dashAltar.active=false;dashAltar.elapsed=0;dashAltar.usedThisRun=false;
   stageExit.active=false;stageExit.elapsed=0;
@@ -1764,7 +1789,7 @@ function startRiftPreview(skipCinematic=false){
  if(skipCinematic!==true&&!testUnlocked()&&!campaign.scenesSeen.includes("intro4")){
   riftPreview.stop();launchCinematic("intro4",()=>startRiftPreview(true));return;
  }
- unlockAudio();activeStage=4;debugUsedThisRun=debugMode||fullTestMode;ghostRun=[];runDamageCount=0;
+ resetRubro(rubro);unlockAudio();activeStage=4;debugUsedThisRun=debugMode||fullTestMode;ghostRun=[];runDamageCount=0;
  if(!testUnlocked()){campaign.started=true;campaign.lastStage=4;saveCampaign();}
  riftPreview.start(countRiftKeys(campaign,fullTestMode),testUnlocked());
  gameCleared=false;resumeRiftScreen();
@@ -2618,7 +2643,9 @@ function drawGuardian(){
 
 function update(dt) {
   if(riftQAFrozen)return;
-  if(riftPreview.active){riftPreview.update(dt,keys);return;}
+  if(riftPreview.active){riftPreview.update(dt,keys);syncRubroButton();return;}
+  updateRubro(rubro,dt,player.rings);syncRubroButton();
+  if(rubro.transformTime>0){visualTime+=dt;return;}
   if(stageArrival.active){updateStageArrival(dt);return;}
   if(dashAltar.active){updateDashAltar(dt);return;}
   if(activeStage===3&&cityBoss.active&&cityBoss.state==="intro"){
@@ -2652,8 +2679,9 @@ function update(dt) {
   player.animationPhase += Math.abs(player.vx) * dt * 0.049;
   const accel = player.onGround ? (player.sliding ? FLUX_MOTION.slideAcceleration : FLUX_MOTION.groundAcceleration) : FLUX_MOTION.airAcceleration;
   const friction = player.onGround ? (player.sliding ? FLUX_MOTION.slideFriction : FLUX_MOTION.groundFriction) : 110;
-  const normalMax = FLUX_MOTION.normalSpeed;
-  const boostMax = BOOST_MAX_SPEED*boostPower();
+  const slideCap=SLIDE_DOWNHILL_CAP*(rubro.active?RUBRO.speed:1);
+  const normalMax = FLUX_MOTION.normalSpeed*(rubro.active?RUBRO.speed:1);
+  const boostMax = BOOST_MAX_SPEED*boostPower()*(rubro.active?RUBRO.boost:1);
   const speedBeforeInput = Math.abs(player.vx);
 
   if (left&&!airDash.active) {
@@ -2673,7 +2701,7 @@ function update(dt) {
   player.boosting = boosting;
   if (boosting && !wasBoosting) { playSfx("boost"); triggerFluxFx("boost"); }
   if (boosting) {
-    player.vx += player.facing * BOOST_ACCELERATION * boostPower() * dt;
+    player.vx += player.facing * BOOST_ACCELERATION * boostPower() * (rubro.active?RUBRO.boost:1) * dt;
     player.boost = debugMode?boostCapacity():Math.max(0, player.boost - FLUX_MOTION.boostDrain * dt);
     player.trail.push({ x: player.x, y: player.y, life: 0.24 });
   }
@@ -2687,11 +2715,11 @@ function update(dt) {
   if (downhill) {
     const rate = 0.62 + Math.min(Math.abs(slope), 0.35) * 2.4;
     player.vx = Math.sign(player.vx) *
-      Math.min(SLIDE_DOWNHILL_CAP, Math.abs(player.vx) * Math.exp(rate * dt));
+      Math.min(slideCap, Math.abs(player.vx) * Math.exp(rate * dt));
   }
   const maxSpeed = boosting ? boostMax : normalMax;
   if (downhill) {
-    player.vx = clamp(player.vx, -SLIDE_DOWNHILL_CAP, SLIDE_DOWNHILL_CAP);
+    player.vx = clamp(player.vx, -slideCap, slideCap);
   } else if (!airDash.active&&Math.abs(player.vx) > maxSpeed) {
     // Preserve momentum inherited from a downhill slide, but never generate
     // speed above the boost cap through input/boost acceleration alone.
@@ -2708,7 +2736,7 @@ function update(dt) {
     const springJump=player.ground?.behavior==="spring"&&
       secretTrials.some(t=>t.active&&t.id===player.ground.secretId);
     player.sliding = false;
-    player.vy = -FLUX_MOTION.jumpSpeed - Math.min(90, Math.abs(player.vx) * 0.09) -
+    player.vy = -(FLUX_MOTION.jumpSpeed + Math.min(90, Math.abs(player.vx) * 0.09))*(rubro.active?RUBRO.jump:1) -
       (springJump?95:0);
     player.onGround = false;
     player.ground = null;
@@ -2730,7 +2758,7 @@ function update(dt) {
     player.downhillSliding=false;
   }else{
     if(airDash.active){
-      player.vx=airDash.dx*DASH_SPEED;player.vy=airDash.dy*DASH_SPEED;
+      player.vx=airDash.dx*DASH_SPEED*(rubro.active?RUBRO.dash:1);player.vy=airDash.dy*DASH_SPEED*(rubro.active?RUBRO.dash:1);
       player.x+=player.vx*dt;player.y+=player.vy*dt;
     }else{
     if(!jump&&player.vy<-160)player.vy+=FLUX_MOTION.jumpCut*dt;
@@ -2900,7 +2928,8 @@ function resolveTunnels() {
     if (player.x + PLAYER_RADIUS < tunnel.x || player.x - PLAYER_RADIUS > tunnel.x + tunnel.w) continue;
     if (player.onGround && player.sliding) continue;
     // The solid roof also prevents jumping or flying through the tunnel.
-    const ceiling = { x: tunnel.x, y: tunnel.ground - 165, w: tunnel.w, h: 139 };
+    const floor=tunnelFloorAt(tunnel,tracks,clamp(player.x,tunnel.x,tunnel.x+tunnel.w));
+    const ceiling = { x: tunnel.x, y: floor - 165, w: tunnel.w, h: 139 };
     if (!circleRect(player.x, player.y, PLAYER_RADIUS, ceiling)) continue;
     const fromLeft = player.prevX <= tunnel.x ? true :
       player.prevX >= tunnel.x + tunnel.w ? false :
@@ -2914,7 +2943,7 @@ function resolveWalls() {
   for (const wall of walls) {
     if (!wall.active || !circleRect(player.x, player.y, PLAYER_RADIUS, wall)) continue;
     if (wall.kind === "break-gate") {
-      if (player.boosting && Math.abs(player.vx) > BOOST_GATE_MIN_SPEED) {
+      if (rubroCanBreak(rubro,player.boosting,airDash.active)||(player.boosting && Math.abs(player.vx) > BOOST_GATE_MIN_SPEED)) {
         wall.active = false;
         emitParticles(wall.x + wall.w / 2, wall.y + wall.h / 2, "#ffa55c", 30, 195);
         playSfx("gate");
@@ -2943,7 +2972,8 @@ function updateSentryShots(dt){
     // Projectiles damage Flux even while Boost or Dash is active.
     if(distance(shot.x,shot.y,player.x,player.y)<PLAYER_RADIUS+shot.r){
       shot.life=0;
-      damagePlayer(false);
+      if(rubroCanBreak(rubro,player.boosting,airDash.active))emitParticles(shot.x,shot.y,"#ff6486",6,80);
+      else damagePlayer(false);
     }
   }
   sentryShots=sentryShots.filter(p=>p.life>0&&p.x>cameraX-240
@@ -3010,7 +3040,7 @@ function updateEnemies(dt) {
     const smash=player.boosting&&!cityEnemy&&
       Math.abs(player.vx)>BOOST_SMASH_MIN_SPEED;
     const cut=airDash.active;
-    if(stomp||smash||cut){
+    if(stomp||smash||cut||rubroCanBreak(rubro,player.boosting,airDash.active)){
       bad.alive = false;
       emitParticles(bad.x, bad.y - 12, "#ff956f", 12, 145);
       playSfx("hit");
@@ -3148,7 +3178,8 @@ function updateSecretTrialEnemies(trial,dt){
       clamp(((player.x-oldX)*vx+(player.y-oldY)*vy)/length2,0,1):0;
     if(Math.hypot(player.x-(oldX+vx*amount),
       player.y-(oldY+vy*amount))<PLAYER_RADIUS+9){
-      failSecretTrial(trial);return;
+      if(rubroCanBreak(rubro,player.boosting,airDash.active)){shot.life=0;emitParticles(shot.x,shot.y,"#ff6486",5,65);}
+      else{failSecretTrial(trial);return;}
     }
   }
   trial.shots=trial.shots.filter(shot=>shot.life>0).slice(-10);
@@ -3473,8 +3504,9 @@ function damagePlayer(fall) {
  triggerFluxFx("hurt");
  emitParticles(player.x,player.y,"#ff896d",13,155);
  playSfx("hurt");
- const result=calculateCrystalDamage(player.rings,{fall});
+ const result=calculateCrystalDamage(player.rings,{fall,rubro:rubro.active});
  player.rings=result.remaining;
+ if(player.rings===0)resetRubro(rubro);
  if(result.dead){
    showDeathScreen(fall,result.lost);
    return;
@@ -3793,31 +3825,21 @@ function drawTracks() {
   }
   for (const wall of walls) {
     if (!wall.active || wall.x < cameraX - 80 || wall.x > cameraX + VIEW_W + 80) continue;
-    ctx.fillStyle = wall.kind === "break-gate" ? "#f6ac43" : "#324d59";
-    roundRect(wall.x, wall.y, wall.w, wall.h, 6);
-    ctx.fill();
-    if (wall.kind === "break-gate") {
-      ctx.fillStyle = "#101c36";
-      ctx.font = "bold 12px system-ui";
-      ctx.fillText("BOOST", wall.x + 1, wall.y + 39);
-    }
+    if(wall.kind==="break-gate")drawBreakWall(ctx,wall);
+    else{ctx.fillStyle="#324d59";roundRect(wall.x,wall.y,wall.w,wall.h,6);ctx.fill();}
   }
 }
 function drawTunnels() {
   for (const tunnel of tunnels) {
     if (tunnel.x > cameraX + VIEW_W + 80 || tunnel.x + tunnel.w < cameraX - 80) continue;
-    ctx.fillStyle = "#1a384e";
-    roundRect(tunnel.x, tunnel.ground - 165, tunnel.w, 139, 9);
-    ctx.fill();
-    ctx.strokeStyle = "#f6ac43";
-    ctx.lineWidth = 5;
-    ctx.beginPath();
-    ctx.moveTo(tunnel.x, tunnel.ground - 26);
-    ctx.lineTo(tunnel.x + tunnel.w, tunnel.ground - 26);
-    ctx.stroke();
-    ctx.fillStyle = "#ffe0a6";
-    ctx.font = "bold 14px system-ui";
-    ctx.fillText("↓ SLIDE", tunnel.x + 22, tunnel.ground - 59);
+    const profile=tunnelProfile(tunnel,tracks);
+    ctx.fillStyle="#1a384e";ctx.beginPath();
+    profile.forEach((p,i)=>i?ctx.lineTo(p.x,p.y-165):ctx.moveTo(p.x,p.y-165));
+    for(const p of [...profile].reverse())ctx.lineTo(p.x,p.y-26);
+    ctx.closePath();ctx.fill();ctx.strokeStyle="#f6ac43";ctx.lineWidth=5;ctx.beginPath();
+    profile.forEach((p,i)=>i?ctx.lineTo(p.x,p.y-26):ctx.moveTo(p.x,p.y-26));ctx.stroke();
+    ctx.fillStyle="#ffe0a6";ctx.font="bold 14px system-ui";
+    ctx.fillText("↓ SLIDE",tunnel.x+22,tunnelFloorAt(tunnel,tracks,tunnel.x+22)-59);
   }
 }
 function drawSigns() {
@@ -3872,12 +3894,7 @@ function drawPulseGates() {
 function drawMemoryCores() {
   for (const core of memoryCores) {
     if (!core.active || core.x < cameraX-60 || core.x > cameraX+VIEW_W+60) continue;
-    ctx.save();ctx.translate(core.x,core.y+Math.sin(visualTime*5+core.id)*3);
-    ctx.rotate(visualTime*.6);
-    ctx.fillStyle="#a86ff6";ctx.strokeStyle="#ffdf9a";ctx.lineWidth=3;
-    ctx.beginPath();ctx.moveTo(0,-18);ctx.lineTo(18,0);ctx.lineTo(0,18);ctx.lineTo(-18,0);ctx.closePath();
-    ctx.fill();ctx.stroke();
-    ctx.fillStyle="#fff3ce";ctx.fillRect(-3,-3,6,6);ctx.restore();
+    drawMemoryCore(ctx,core.x,core.y+Math.sin(visualTime*5+core.id)*3,visualTime);
   }
 }
 
@@ -3944,14 +3961,7 @@ function drawObjects() {
 
   for (const boostOrb of boostOrbs) {
     if (!boostOrb.active) continue;
-    ctx.fillStyle = "rgba(72, 224, 239, 0.28)";
-    ctx.beginPath();
-    ctx.arc(boostOrb.x, boostOrb.y, boostOrb.r + 8, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "#48e0ef";
-    ctx.beginPath();
-    ctx.arc(boostOrb.x, boostOrb.y, boostOrb.r, 0, Math.PI * 2);
-    ctx.fill();
+    drawBoostEnergy(ctx,boostOrb.x,boostOrb.y,visualTime);
   }
 
   for (const bad of enemies) {
@@ -4139,6 +4149,7 @@ function drawFluxBody(actor,fx,clock){
   const fast=clamp(Math.abs(actor.vx)/SLIDE_DOWNHILL_CAP,0,1);
 
   ctx.save();
+  if(actor.rubro)ctx.filter="hue-rotate(170deg) saturate(1.7)";
   ctx.translate(actor.x, actor.y);
   ctx.scale(actor.facing, 1);
   if (actor.invulnerable > 0 && Math.floor(clock * 12) % 2 === 0) {
@@ -4275,7 +4286,8 @@ function drawPlayer() {
   }
   ctx.globalAlpha = 1;
 
-  drawFluxBody(player,fluxFx,visualTime);
+  drawFluxBody({...player,campaignAppearance:true,rubro:rubro.active},fluxFx,visualTime);
+  drawRubroAura(ctx,player.x,player.y,visualTime,rubro);
 }
 function updateParticles(dt) {
   for (const p of particles) {
@@ -5004,6 +5016,7 @@ window.addEventListener("keydown",(event)=>{
       &&event.target?.tagName!=="INPUT")event.preventDefault();
     return;
   }
+  if(key==="f"&&!event.repeat){event.preventDefault();transformRubro();return;}
   if(key==="m"&&!event.repeat){toggleSound();return;}
   if(key==="n"&&!event.repeat){toggleMusic();return;}
   if(key==="f3"&&!event.repeat){toggleDebugMode();event.preventDefault();return;}
@@ -5133,7 +5146,32 @@ draw();
 
 if(import.meta.env.DEV&&new URLSearchParams(location.search).has("rift-qa")){
   window.__riftQA={freeze(){riftQAFrozen=true;},info:()=>riftPreview.info(),
-    step(inputs,render=true){riftPreview.update(1/120,new Set(inputs));if(render){if(cinematic.active)drawCinematic();else draw();}},
+    step(inputs,render=true){riftPreview.update(1/120,new Set(inputs));syncRubroButton();if(render){if(cinematic.active)drawCinematic();else draw();}},
+    setupScenario({stage=1,x=180,crystals=0,completed=false,vx=0}={}){
+      riftPreview.stop();activateStage(stage);resetGame();debugMode=false;fullTestMode=false;debugUsedThisRun=false;
+      progress.stage4.completed=completed;campaign.stage4Completed=completed;campaign.aerialDash=true;
+      player.x=x;player.prevX=x;player.y=(groundY(x)??420)-PLAYER_RADIUS;player.prevY=player.y;
+      player.onGround=true;player.ground=tracks.find(p=>x>=p.x1&&x<=p.x2&&!p.secretId);player.rings=crystals;player.boost=boostCapacity();player.vx=vx;
+      cameraX=clamp(x-360,0,WORLD_W-VIEW_W);cameraY=clamp(player.y-295,0,WORLD_H-VIEW_H);
+      gameCleared=false;resumeRiftScreen();riftQAFrozen=true;draw();syncRubroButton();
+    },
+    altarScenario(coreIds){
+      campaign.stage1Completed=campaign.stage2Completed=campaign.stage3Completed=true;
+      for(let i=0;i<3;i++)campaign.extras.cores["stage"+(i+1)]=coreIds[i];
+      startRiftPreview(true);riftQAFrozen=true;for(let i=0;i<100;i++)riftPreview.update(1/120,new Set());draw();
+      return riftPreview.info();
+    },
+    gameInfo:()=>({stage:activeStage,x:player.x,y:player.y,vx:player.vx,vy:player.vy,crystals:player.rings,onGround:player.onGround,sliding:player.sliding,boosting:player.boosting,dash:{...airDash},rubro:{...rubro},time:gameTime,damage:runDamageCount,walls:walls.map(w=>({...w})),tunnels:tunnels.map(w=>({...w}))}),
+    stepGame(inputs=[],frames=1){
+      const wasJump=keys.has(" ");keys.clear();for(const key of inputs)keys.add(key);
+      if(keys.has(" ")&&!wasJump){if(!player.onGround&&dashUnlocked())startAirDash();else jumpBuffer=.13;}
+      for(let i=0;i<frames;i++){riftQAFrozen=false;update(1/120);riftQAFrozen=true;}
+      draw();syncRubroButton();return this.gameInfo();
+    },
+    addShot(){sentryShots.push({x:player.x,y:player.y,vx:0,vy:0,life:2,r:9,unblockable:true});},
+    takeHit(){player.invulnerable=0;damagePlayer(false);syncRubroButton();return this.gameInfo();},
+    saveQAProgress(){storeProgress();saveCampaign();},
+    transformRubro, rubroInfo:()=>({...rubro,unlocked:rubroUnlocked()}),
     projectileDamage(mode){
       const savedPlayer={...player},savedDash={...airDash},savedStarted=gameStarted,savedDebug=debugMode,
         savedShots=sentryShots,savedParticles=particles.slice(),savedFx={...fluxFx,waves:fluxFx.waves.slice()},savedDamage=runDamageCount,savedShake=shakeTime;
