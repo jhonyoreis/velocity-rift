@@ -1,3 +1,4 @@
+import {createPocketReality,updatePocketReality} from "./pocketReality.js";
 import {createDefeat,sampleDefeat} from "./defeat.js";
 import {RUBRO,createRubroState,updateRubro,resetRubro,rubroCanBreak} from "./rubro.js";
 import {calculateCrystalDamage} from "./crystals.js";
@@ -19,13 +20,13 @@ export function countRiftKeys(campaign,fullTest=false){
 }
 export function riftGateOpen(keys){return keys>=RIFT_CORE_REQUIREMENT;}
 export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{},drawFlux=null,
- isDebug=()=>false,boostCapacity=()=>100,boostPower=()=>1,onSound=()=>{},onStory=null,onCore=()=>{},onSecret=()=>{},onFrame=()=>{},drawSovereign=null,drawAlicia=null,ghostAt=()=>null,rubroState=createRubroState(),coreSlots=()=>null}={}){
+ isDebug=()=>false,boostCapacity=()=>100,boostPower=()=>1,boostDrain=()=>1,onSound=()=>{},onStory=null,onCore=()=>{},onSecret=()=>{},onFrame=()=>{},drawSovereign=null,drawAlicia=null,ghostAt=()=>null,rubroState=createRubroState(),coreSlots=()=>null}={}){
  const layout=createOriginalRiftLayout();
  let s;
  const announce=(message,duration=2.5)=>{s.message=message;s.messageTime=duration;};
  function start(coreCount=0,bypass=false){
   s={active:true,cores:clamp(coreCount,0,9),bypass,gateOpened:riftGateOpen(coreCount)||bypass,
-   coreSlots:coreSlots()||Array.from({length:9},(_,i)=>i<coreCount),victory:null,
+   coreSlots:coreSlots()||Array.from({length:9},(_,i)=>i<coreCount),victory:null,pocket:null,pocketCooldown:0,
    x:180,y:422,vx:0,vy:0,facing:1,gravity:1,dimension:0,grounded:false,
    jumpHeld:false,jumpBuffer:0,coyote:0,dashReady:true,dash:0,boosting:false,sliding:false,
    crystals:0,capacity:boostCapacity(),boost:boostCapacity()*.95,time:0,cameraX:0,cameraY:0,portalCooldown:0,
@@ -61,9 +62,24 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
   s.cameraX=clamp(s.x-365,0,RIFT_WORLD_WIDTH-960);
   s.cameraY=clamp(s.y-285,0,280);
  }
+ function enterPocket(kind,trial=null){
+  const returnPose={x:s.x,y:s.y,vx:0,vy:0,facing:s.facing,gravity:s.gravity,dimension:s.dimension,grounded:s.grounded};
+  s.pocket=createPocketReality(kind,{trial,returnPose,rubro:s.rubro||s.scarlet>0});
+  s.boosting=false;s.dash=0;s.shots=[];s.beams=[];s.boostTrail=[];s.ghosts=[];
+  if(trial)s.trials.set(trial.id,{elapsed:0});onSound("portal-enter");
+ }
+ function updatePocket(dt,keys){
+  const p=s.pocket;s.invincible=Math.max(0,s.invincible-dt);p.rubro=rubroState.active||s.scarlet>0;s.time+=dt;const result=updatePocketReality(p,dt,keys);
+  if(p.trial)s.trials.set(p.trial.id,{elapsed:p.elapsed});
+  if(result.hit){damage();if(s.dead)return;}
+  if(!result.done)return;
+  Object.assign(s,p.returnPose,{invincible:Math.max(s.invincible,1),pocketCooldown:1.2,phaseFlash:.65});s.pocket=null;
+  if(p.trial){s.trials.delete(p.trial.id);if(result.won){s.secrets.add(p.trial.id);s.runCores.add(p.trial.core);onCore(p.trial.core);onSecret(p.trial.id,p.elapsed);onSound("secret-win");announce("DESAFIO CONCLUÍDO · CONSUMO DE BOOST −8%",4);}else{onSound("portal-enter");announce("DESAFIO ENCERRADO · VOLTE AO FAROL PARA TENTAR NOVAMENTE",3);}}
+  else{onSound("portal-enter");announce("DE VOLTA À REALIDADE · O SOBERANO AGUARDA",3);}
+ }
  function die(fell){
   if(s.dead||isDebug())return;
-  s.defeat=createDefeat({x:s.x,y:clamp(s.y,s.cameraY+70,s.cameraY+475),facing:s.facing,rubro:rubroState.active||s.scarlet>0,fall:fell,lost:s.crystals});
+  s.defeat=createDefeat({x:s.pocket?s.pocket.x:s.x,y:s.pocket?s.pocket.y:clamp(s.y,s.cameraY+70,s.cameraY+475),facing:s.facing,rubro:rubroState.active||s.scarlet>0,fall:fell,lost:s.crystals});
   s.lastDamageLost=s.crystals;s.crystals=0;s.dead=true;s.deaths++;s.damageCount++;
   resetRubro(rubroState);s.vx=0;s.vy=0;s.boosting=false;s.dash=0;onSound("hit");
  }
@@ -77,7 +93,7 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
  }
  function respawn(){
   if(!s.active)return;
-  resetRubro(rubroState);
+  resetRubro(rubroState);s.pocket=null;
   Object.assign(s,s.checkpoint,{vx:0,vy:0,grounded:false,dead:false,defeat:null,dash:0,
    dashReady:true,boost:0,invincible:1.8,portalCooldown:.5,jumpHeld:false,jumpBuffer:0,
    boosting:false,sliding:false,phaseFlash:.4});
@@ -109,10 +125,11 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
    if(pose.done){s.finished=true;onFinish(info());}return;
   }
   updateRubro(rubroState,dt,s.crystals);
-  if(rubroState.transformTime>0){s.transformClock=(s.transformClock||0)+dt;return;}
-  s.rubro=rubroState.active;
+  if(rubroState.transformTime>0){s.transformClock=(s.transformClock||0)+dt;s.transformTime=rubroState.transformTime;return;}
+  s.rubro=rubroState.active;s.transformTime=0;
+  if(s.pocket){updatePocket(dt,keys);return;}
   s.time+=dt;s.capacity=boostCapacity();if(isDebug())s.boost=s.capacity;
-  for(const key of ["messageTime","portalCooldown","invincible","apparitionTime","phaseFlash","scarlet","gravityWarning"])
+  for(const key of ["messageTime","portalCooldown","invincible","apparitionTime","phaseFlash","scarlet","gravityWarning","pocketCooldown"])
    s[key]=Math.max(0,s[key]-dt);
   s.gateTime=Math.min(1,s.gateTime+(s.gateOpened?dt*.6:0));
   for(const p of s.particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;}
@@ -133,7 +150,7 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
    const priorSpeed=Math.abs(s.vx);
    if(left!==right)s.vx+=(left?-1:1)*accel*dt;
    else if(s.grounded){const friction=(s.sliding?M.slideFriction:M.groundFriction)*dt;s.vx=Math.sign(s.vx)*Math.max(0,Math.abs(s.vx)-friction);}
-   if(s.boosting){s.vx+=s.facing*M.boostAcceleration*dt*boostPower()*(s.rubro?RUBRO.boost:1);s.boost=Math.max(0,s.boost-M.boostDrain*dt);}
+   if(s.boosting){s.vx+=s.facing*M.boostAcceleration*dt*boostPower()*(s.rubro?RUBRO.boost:1);s.boost=Math.max(0,s.boost-M.boostDrain*boostDrain()*dt);}
    const slope=under?(under.p.y2-under.p.y1)/(under.p.x2-under.p.x1)*s.gravity:0;
    const downhill=s.sliding&&s.grounded&&slope*s.vx>0.001;
    if(downhill){const rate=.62+Math.min(Math.abs(slope),.35)*2.4;s.vx=Math.sign(s.vx)*Math.min(M.slideCap*(s.rubro?RUBRO.speed:1),Math.abs(s.vx)*Math.exp(rate*dt));}
@@ -207,21 +224,11 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
    if(s.messageTime<.4)announce(gate.label+" · ATIVE OS DOIS SÍMBOLOS COM DASH",4);
   }
   for(const trial of layout.trials){
-   if(s.secrets.has(trial.id))continue;
-   let running=s.trials.get(trial.id);
-   const available=activeInDimension(layout.cores[trial.core]);
-   const near=available&&Math.abs(s.x-trial.x)<85&&Math.abs(s.y-trial.y)<110;
-   const touchEntry=near&&!s.trialContacts.has(trial.id);
-   if(near)s.trialContacts.add(trial.id);else s.trialContacts.delete(trial.id);
-   if(!running&&available&&(touchEntry||(interact&&Math.hypot(s.x-trial.x,s.y-trial.y)<125))){running={elapsed:0};s.trials.set(trial.id,running);onSound("secret-start");announce(trial.name+" · ALCANCE O NÚCLEO EM "+trial.limit+"s",4);}
-   if(running){running.elapsed+=dt;if(running.elapsed>trial.limit){s.trials.delete(trial.id);announce("TEMPO ESGOTADO · VOLTE AO FAROL PARA TENTAR NOVAMENTE");}}
+   const near=activeInDimension(layout.cores[trial.core])&&Math.hypot(s.x-trial.x,s.y-trial.y)<55;
+   if(!near)s.trialContacts.delete(trial.id);
+   if(s.secrets.has(trial.id)||s.pocketCooldown>0)continue;
+   if(near&&!s.trialContacts.has(trial.id)){s.trialContacts.add(trial.id);enterPocket("trial",trial);return;}
   }
-  for(const core of layout.cores)if(!s.runCores.has(core.id)&&activeInDimension(core)&&Math.hypot(s.x-core.x,s.y-core.y)<38){
-   s.runCores.add(core.id);onCore(core.id);onSound("secret-win");burst(core.x,core.y,"#ffe29d",22);announce("MEMÓRIA DA ORIGEM · "+s.runCores.size+"/3");
-  }
-  // A timed route may still be retried after its memory was collected.
-  for(const trial of layout.trials){const run=s.trials.get(trial.id),core=layout.cores[trial.core];
-   if(run&&activeInDimension(core)&&Math.hypot(s.x-core.x,s.y-core.y)<38){s.secrets.add(trial.id);s.trials.delete(trial.id);onSecret(trial.id,run.elapsed);onSound("secret-win");announce("ROTA SECRETA · "+trial.name+" · "+run.elapsed.toFixed(2)+"s",4);}}
   if(!s.chaseDone&&s.x>=CHASE.start&&s.boss.mode==="dormant"){
    s.boss.mode="chase";s.boss.barrierX=s.x-500;story("sovereignChase",()=>announce("5 ACERTOS COM DASH · A BARREIRA CONSOME TODOS OS CRISTAIS",5));return;
   }
@@ -257,7 +264,7 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
   });
   for(const shot of s.shots){
    shot.x+=shot.vx*dt;shot.y+=shot.vy*dt;shot.life-=dt;
-   if(activeInDimension(shot)&&Math.hypot(s.x-shot.x,s.y-shot.y)<RIFT_RADIUS+7){if(empowered)burst(shot.x,shot.y,"#ff6486",5);else damage();shot.life=0;}
+   if(activeInDimension(shot)&&Math.hypot(s.x-shot.x,s.y-shot.y)<RIFT_RADIUS+(shot.orb?17:7)){if(shot.orb){enterPocket("exile");return;}if(empowered)burst(shot.x,shot.y,"#ff6486",5);else damage();shot.life=0;}
   }
   s.shots=s.shots.filter(p=>p.life>0);
   for(const beam of s.beams){beam.life-=dt;beam.warning=Math.max(0,beam.warning-dt);if(!beam.warning&&activeInDimension(beam)&&distanceToBeam(s.x,s.y,beam)<24){if(beam.drainsAll)damage(true,true);else if(empowered)beam.life=0;else damage();}}
@@ -344,7 +351,7 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
   sector:riftSectorAt(s.x).name};}
  return {start,resumeStory,stop(){s.active=false;},respawn,update,info,
   draw(ctx,W=960,H=540){drawOriginalRift(ctx,s,layout,{W,H,drawFlux,drawSovereign,drawAlicia,ghost:ghostAt(s.time)});},
-  get active(){return s.active;},get crystals(){return s.crystals;},get ending(){return Boolean(s.victory);},get rubroLocked(){return s.arenaStarted&&!s.finished;},get musicSection(){return s.finished||s.victory?8:s.boss.mode==="scarlet"?7:s.boss.mode==="arena"||s.boss.mode==="invincible"?6:s.boss.mode==="chase"?4:riftSectorAt(s.x).music;}};
+  get active(){return s.active;},get crystals(){return s.crystals;},get ending(){return Boolean(s.victory);},get rubroLocked(){return Boolean(s.pocket)||s.arenaStarted&&!s.finished;},get musicSection(){return s.finished||s.victory?8:s.boss.mode==="scarlet"?7:s.boss.mode==="arena"||s.boss.mode==="invincible"?6:s.boss.mode==="chase"?4:riftSectorAt(s.x).music;}};
 }
 export function enemyPosition(e,i,time){
  const x=e.x+Math.sin(time*1.9+i)*e.range;

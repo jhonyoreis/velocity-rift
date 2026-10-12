@@ -1,3 +1,4 @@
+import {drawPocketReality} from "./pocketReality.js";
 import {drawBoostTrail} from "./boostTrail.js";
 import {sampleDefeat} from "../game/defeat.js";
 import {drawSovereignProjectile,drawSovereignEnergy} from "./sovereignEnergy.js";
@@ -22,6 +23,7 @@ function portal(ctx,x,y,color,t,size=1){
 function panel(ctx,x,y,w,h){ctx.fillStyle="rgba(6,12,31,.82)";ctx.beginPath();ctx.roundRect(x,y,w,h,10);ctx.fill();}
 export function drawOriginalRift(ctx,s,layout,{W=960,H=540,drawFlux=null,drawSovereign=null,drawAlicia=null,ghost=null}={}){
  if(!s.active)return;
+ if(s.pocket){drawPocketReality(ctx,s.pocket,{W,H,drawFlux,defeat:s.defeat,crystals:s.crystals});return;}
  const t=s.time+(s.victory?.elapsed||0)+(s.defeat?.elapsed||0),cx=s.cameraX,cy=s.cameraY,echo=s.dimension===1;
  const gradient=ctx.createLinearGradient(0,0,0,H);
  gradient.addColorStop(0,echo?"#210b38":"#060c24");
@@ -143,7 +145,7 @@ export function drawOriginalRift(ctx,s,layout,{W=960,H=540,drawFlux=null,drawSov
   ctx.fillStyle="#ffdd9a";ctx.textAlign="center";ctx.font="bold 10px system-ui";ctx.fillText((visible(layout.cores[trial.core],s)?"ENCOSTE · ":layout.cores[trial.core].dimension?"MUDE PARA ECO · ":"MUDE PARA ORIGEM · ")+trial.limit+"s",trial.x,trial.y-40);ctx.textAlign="left";
  }
  for(const core of layout.cores){
-  if(s.runCores.has(core.id)||!visible(core,s)||core.x<cx-40||core.x>cx+W+40)continue;
+  if(layout.trials.some(trial=>trial.core===core.id)||s.runCores.has(core.id)||!visible(core,s)||core.x<cx-40||core.x>cx+W+40)continue;
   drawMemoryCore(ctx,core.x,core.y,t);
  }
  for(const item of layout.items){

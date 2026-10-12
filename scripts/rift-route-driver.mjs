@@ -5,6 +5,13 @@ export function createRiftRouteDriver({collectExtras=false}={}){
  const world=createOriginalRiftLayout();let jumpAge=99,dashed=false,interactAge=99,fastJump=false,extra=null,extraStep=0,extraExit=null,extraJump=false;
  return function inputs(s,dt=1/120){
   jumpAge+=dt;interactAge+=dt;
+  if(s.pocket){const p=s.pocket,keys=new Set();
+   const floor=p.platforms.find(f=>p.x>=f.x1-18&&p.x<=f.x2+18&&Math.abs(p.y+18-f.y)<35);
+   if(p.kind==="exile"){const beam=p.lasers.find(b=>Math.abs(p.x-b.x)<150);const dir=beam?(p.x>=beam.x?1:-1):(p.x<480?1:-1);keys.add(p.x<65?"arrowright":p.x>895?"arrowleft":dir>0?"arrowright":"arrowleft");return keys;}
+   const beam=p.lasers.find(b=>b.x>p.x+35&&b.x-p.x<170&&b.warning<.4);
+   if(beam||p.vx>310)keys.add("arrowleft");else keys.add("arrowright");
+   if(p.grounded&&floor&&floor.x2-p.x<65&&jumpAge>.4){keys.add(" ");jumpAge=0;}else if(jumpAge<.32)keys.add(" ");return keys;
+  }
   let target=48000,speed=440,needJump=false,needDash=false;
   const rune=world.runes.find(r=>!s.runes.includes(r.id));
   if(rune&&s.x>rune.x-600&&s.x<rune.x+600&&s.gravity===rune.gravity&&activeFor(rune,s.dimension)){
@@ -30,7 +37,7 @@ export function createRiftRouteDriver({collectExtras=false}={}){
     extraExit=null;
     extra ||= world.trials.find(t=>!s.secrets.includes(t.id)&&s.dimension===world.cores[t.core].dimension&&s.x>t.x-550&&s.x<t.x+850&&(t.core!==2||s.runes.includes(5)));
     if(extra){
-     const base=extra.x-30,heights=[390,430,450],top=heights[extra.core]-extraStep*90;
+     const base=world.cores[extra.core].x-490,heights=[390,430,450],top=heights[extra.core]-extraStep*90;
      if(s.grounded&&s.y<=top-8&&extraStep<2)extraStep++;
      target=extraStep===2?world.cores[extra.core].x:base+75+extraStep*215;speed=380;
      needJump=s.grounded&&s.y>heights[extra.core]-extraStep*90-25&&Math.abs(s.x-target)<240;

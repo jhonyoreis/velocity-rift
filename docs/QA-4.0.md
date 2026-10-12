@@ -1,4 +1,4 @@
-# Velocity Rift 4.1.1 — APK R22
+# Velocity Rift 4.2.0 — APK R23
 
 A quarta fase encerra a campanha. O portão inicial continua exigindo nove
 núcleos distintos das primeiras três regiões da campanha atual. Há retorno
@@ -87,7 +87,7 @@ invertida. Capturas ficam em `test-artifacts/visual/` no workflow de validação
 
 A validação de navegador não substitui jogar no aparelho físico. No APK:
 
-1. Conferir **v4.1.1 · APK R22** e a coleção anterior após instalar.
+1. Conferir **v4.2.0 · APK R23** e a coleção anterior após instalar.
 2. Testar Pular, segunda pressão para Dash, Boost e Slide simultâneos.
 3. Alternar os pedestais e conferir legibilidade dos sinais em tela pequena.
 4. Ouvir os movimentos e ajustar volumes de música/efeitos conforme desejado.
@@ -125,3 +125,12 @@ A validação de navegador não substitui jogar no aparelho físico. No APK:
   Recomeçar no checkpoint e verificar que a animação não reaparece.
 - Encostar nos três faróis sem Slide na dimensão correta: cronômetro inicia
   uma vez. Ficar encostado não renova o tempo; concluir as três rotas.
+
+## Realidades estilhaçadas — R23
+
+- Validar frequência crescente de rajadas após cada acerto no Soberano Rubro.
+- Colisão da Orbe inicia exílio de 5 segundos; laser causa dano, pausa congela contagem e retorno preserva estado da arena.
+- Os três faróis elevados transportam a mapas exclusivos; núcleo antigo não concede recompensa.
+- Laser ou queda no desafio devolve ao farol sem morte; reentrada exige afastar e encostar novamente.
+- Vitória concede núcleo e eficiência uma única vez; consumo reduzido persiste no save.
+- Núcleos orbitam visivelmente durante a transformação na fase 4.

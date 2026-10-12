@@ -146,11 +146,12 @@ const riftPreview=createOriginalRift({onExit:()=>showStageMenu(),
   onSecret:recordRiftSecret,
   onFrame:s=>{if(!debugUsedThisRun)recordGhostFrame(ghostRun,s.time,s);},
   ghostAt:t=>ghostVisible?ghostFrameAt(ghostArchive.stage4,t):null,
-  boostPower:()=>boostPower(),rubroState:rubro,
+  boostPower:()=>boostPower(),boostDrain:()=>boostDrain(),rubroState:rubro,
  coreSlots:()=>[1,2,3].flatMap(stage=>[0,1,2].map(id=>fullTestMode||campaign.extras.cores["stage"+stage].includes(id))),
   isDebug:()=>debugMode,boostCapacity:()=>boostCapacity(),onSound:playSfx});
 // Permanently owned via historical route records (independent of New Game).
 function boostCapacity(){return fullTestMode?170:boostUpgrades.capacity;}
+function boostDrain(){return fullTestMode?.92**3:boostUpgrades.consumptionMultiplier;}
 function boostPower(){return fullTestMode?1.15:boostUpgrades.powerMultiplier;}
 function testUnlocked(){return debugMode||fullTestMode;}
 const secretTrials=[];
@@ -1474,7 +1475,7 @@ function showPauseMenu(){
     Math.round(100*clamp(player.x/goal.x,0,1))+"%";
   document.querySelector("#pauseBoostUpgrades").textContent=
     "BOOST "+boostCapacity()+" · FORÇA +"+
-    Math.round((boostPower()-1)*100)+"% · "+
+    Math.round((boostPower()-1)*100)+"% · CONSUMO −"+Math.round((1-boostDrain())*100)+"% · "+
     (fullTestMode?12:boostUpgrades.collected)+"/12 MELHORIAS"+(fullTestMode?" · TESTE":"");
   for(const id of ["pauseAudioDetails","pauseControlsDetails","pauseDebugDetails"])
     document.querySelector("#"+id).open=false;
@@ -2713,7 +2714,7 @@ function update(dt) {
   if (boosting && !wasBoosting) { playSfx("boost"); triggerFluxFx("boost"); }
   if (boosting) {
     player.vx += player.facing * BOOST_ACCELERATION * boostPower() * (rubro.active?RUBRO.boost:1) * dt;
-    player.boost = debugMode?boostCapacity():Math.max(0, player.boost - FLUX_MOTION.boostDrain * dt);
+    player.boost = debugMode?boostCapacity():Math.max(0, player.boost - FLUX_MOTION.boostDrain * boostDrain() * dt);
     player.trail.push({ x: player.x, y: player.y, life: 0.24,rubro:rubro.active });
   }
 

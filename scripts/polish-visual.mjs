@@ -68,10 +68,16 @@ try{
   assert.ok(fourth.crystals>=20,"collect twenty real crystals in stage 4");assert.equal(fourth.dead,false);
   assert.equal(await page.locator("#rubroButton").isVisible(),true);await page.locator("#rubroButton").click();
   await page.evaluate(()=>{for(let i=0;i<25;i++)window.__riftQA.step([],true);});
+  assert.ok(await page.evaluate(()=>window.__riftQA.info().transformTime>0));
   await page.screenshot({path:`${folder}/${prefix}-stage4-transform.png`});
   await page.evaluate(()=>{for(let i=0;i<100;i++)window.__riftQA.step([],false);});
   const rubroFourth=await page.evaluate(()=>window.__riftQA.info());assert.equal(rubroFourth.rubro,true);
   await page.evaluate(()=>window.__riftQA.step([],true));await page.screenshot({path:`${folder}/${prefix}-stage4-rubro.png`});
+  const exileHome=await page.evaluate(()=>{const api=window.__riftQA,s=api.info();s.shots.push({x:s.x,y:s.y,vx:0,vy:0,life:1,orb:true});api.step([],true);return {x:api.info().x,crystals:api.info().crystals};});
+  assert.equal(await page.evaluate(()=>window.__riftQA.info().pocket?.kind),"exile");
+  await page.screenshot({path:`${folder}/${prefix}-orb-reality.png`});
+  const returned=await page.evaluate(async()=>{const {createRiftRouteDriver}=await import("/scripts/rift-route-driver.mjs"),d=createRiftRouteDriver(),api=window.__riftQA;for(let i=0;i<610&&api.info().pocket;i++)api.step([...d(api.info())],false);api.step([],true);return api.info();});
+  assert.equal(returned.pocket,null);assert.equal(returned.dead,false);assert.ok(Math.abs(returned.x-exileHome.x)<10);assert.equal(returned.crystals,exileHome.crystals);
   await page.evaluate(()=>{window.__riftQA.setupScenario({stage:1,crystals:20,completed:true});window.__riftQA.saveQAProgress();});
   await page.reload({waitUntil:"networkidle"});assert.equal(await page.evaluate(()=>window.__riftQA.rubroInfo().unlocked),true,"Rubro unlock persists after reloading");
   assert.deepEqual(errors,[]);await context.close();

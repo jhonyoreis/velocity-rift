@@ -12,14 +12,14 @@ test("all nine routes award a bounded permanent boost upgrade",()=>{
  const all={stage1:SECRET_DEFS[1].map(r=>r.id),
    stage2:SECRET_DEFS[2].map(r=>r.id),stage3:SECRET_DEFS[3].map(r=>r.id)};
  const stats=secretUpgradeStats(all);
- assert.deepEqual(stats,{capacity:150,capacityLevels:5,powerLevels:4,powerMultiplier:1.12,collected:9});
+ assert.deepEqual(stats,{capacity:150,capacityLevels:5,powerLevels:4,efficiencyLevels:0,consumptionMultiplier:1,powerMultiplier:1.12,collected:9});
 });
 test("legacy records, invalid ids and duplicates never grant extra powers",()=>{
  assert.deepEqual(secretUpgradeStats(null),secretUpgradeStats(base));
  const inputs={stage1:["canopy","canopy","unknown",3],
    stage2:["prism","prism"],stage3:[]};
  assert.deepEqual(secretUpgradeStats(inputs),{
-   capacity:110,capacityLevels:1,powerLevels:1,powerMultiplier:1.03,collected:2});
+   capacity:110,capacityLevels:1,powerLevels:1,efficiencyLevels:0,consumptionMultiplier:1,powerMultiplier:1.03,collected:2});
  assert.equal(secretUpgradeReward("unknown"),null);
 });
 test("boost level changes are applied in game, not only on the HUD",()=>{

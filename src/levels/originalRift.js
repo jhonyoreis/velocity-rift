@@ -78,9 +78,9 @@ export function createOriginalRiftLayout(){
   {x:41450,requires:[4,5],label:"SELO DA ORIGEM"}];
  // Platforms to reach the elevated origin rune and three optional ascents.
  track(14000,14200,440,440,0);track(14200,14500,415,415,0);
- const trials=[{id:"origin",name:"Memória da Origem",x:12330,y:400,limit:24,core:0},
-  {id:"paradox",name:"Paradoxo Suspenso",x:33130,y:400,limit:25,core:1},
-  {id:"lastlight",name:"A Última Luz",x:41080,y:400,limit:25,core:2}];
+ const trials=[{id:"origin",name:"Memória da Origem",x:12790,y:178,limit:24,core:0},
+  {id:"paradox",name:"Paradoxo Suspenso",x:33590,y:218,limit:25,core:1},
+  {id:"lastlight",name:"A Última Luz",x:41540,y:238,limit:25,core:2}];
  for(const [x,base,dim] of [[12300,390,1],[33100,430,0],[41050,450,0]]){
   track(x,x+150,base,base,dim);track(x+200,x+355,base-90,base-90,dim);
   track(x+400,x+585,base-180,base-180,dim);

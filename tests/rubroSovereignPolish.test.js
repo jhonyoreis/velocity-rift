@@ -28,9 +28,9 @@ test("pursuit wall runs materially faster than before, leaving ordinary movement
  assert.equal(b.barrierX,CHASE.barrierSpeed);
 });
 test("touching a stage-4 beacon starts a trial without Slide and holding contact cannot reset its clock",()=>{
- for(const [id,x,y,dimension] of [["origin",12330,372,1],["paradox",33130,412,0],["lastlight",41080,432,0]]){
+ for(const [id,x,y,dimension] of [["origin",12790,178,1],["paradox",33590,218,0],["lastlight",41540,238,0]]){
   let first=true;const sounds=[];const r=createOriginalRift({onSound:k=>sounds.push(k),onFrame:s=>{if(first){first=false;Object.assign(s,{x,y,dimension,gravity:1,vx:0,vy:0,grounded:true,chaseDone:true});}}});r.start(9);tick(r);let s=tick(r);
-  assert.equal(s.trials[0]?.id,id);assert.equal(sounds.filter(k=>k==="secret-start").length,1);s=tick(r,[],20);assert.ok(s.trials[0].elapsed>.15);assert.equal(sounds.filter(k=>k==="secret-start").length,1);
+  assert.equal(s.trials[0]?.id,id);assert.equal(sounds.filter(k=>k==="portal-enter").length,1);s=tick(r,[],20);assert.ok(s.trials[0].elapsed>.15);assert.equal(sounds.filter(k=>k==="portal-enter").length,1);
  }
 });
 test("defeat animates before its callback, freezes race time, and notifies only once",()=>{

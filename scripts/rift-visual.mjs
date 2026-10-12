@@ -57,11 +57,12 @@ try{
   assert.equal(continuity.dash.dashActive,false,"enemy shot interrupts Dash");
   await page.evaluate(async()=>{const {createRiftRouteDriver}=await import("/scripts/rift-route-driver.mjs");window.riftInputs=createRiftRouteDriver({collectExtras:true});window.riftPoses=new Set();window.riftBeacons=(await import("/src/levels/originalRift.js")).createOriginalRiftLayout().trials;});
   const snapshots=new Set();let ended=false,checkedRoutes=false;
-  for(let batch=0;batch<120;batch++){
+  for(let batch=0;batch<180;batch++){
    const state=await page.evaluate(()=>{
     const api=window.__riftQA;
     for(let i=0;i<240;i++){
      const s=api.info();if(s.dead||s.finished||s.story)break;
+     if(s.pocket&&!window.riftPoses.has("pocket-"+(s.pocket.trial?.id||s.pocket.kind))){const pose="pocket-"+(s.pocket.trial?.id||s.pocket.kind);window.riftPoses.add(pose);api.step([],true);return {...api.info(),pose};}
      if(s.victory){
       const phase=s.victory.elapsed<1?"destruction":s.victory.elapsed<3.2?"barrier":"reunion";
       if(!window.riftPoses.has("rescue-"+phase)){window.riftPoses.add("rescue-"+phase);api.step([],true);return {...api.info(),pose:"rescue-"+phase};}
@@ -122,7 +123,7 @@ try{
    await page.locator("#restartPauseButton").click();
    await page.evaluate(async()=>{window.__riftQA.freeze();const {createRiftRouteDriver}=await import("/scripts/rift-route-driver.mjs");window.riftInputs=createRiftRouteDriver({collectExtras:true});});
    let testFinished=false;
-   for(let batch=0;batch<120;batch++){
+   for(let batch=0;batch<180;batch++){
     const s=await page.evaluate(()=>{const api=window.__riftQA;for(let i=0;i<240;i++){const s=api.info();if(s.dead||s.finished||s.story)break;api.step([...window.riftInputs(s)],false);}return api.info();});
     assert.equal(s.dead,false,"TESTE 100% route died at "+s.x);
     if(s.story){await advanceScene(page,prefix+"-test100");continue;}

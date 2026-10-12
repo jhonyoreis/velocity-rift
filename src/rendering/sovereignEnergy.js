@@ -1,4 +1,5 @@
 export function drawSovereignProjectile(ctx,shot,t){
+ if(shot.orb){ctx.save();ctx.translate(shot.x,shot.y);ctx.rotate(t*3);ctx.shadowColor="#b46eff";ctx.shadowBlur=18;ctx.fillStyle="#19082f";ctx.strokeStyle="#d3a0ff";ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,0,17+Math.sin(t*8)*2,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.beginPath();ctx.moveTo(-8,-11);ctx.lineTo(3,-3);ctx.lineTo(-4,4);ctx.lineTo(9,12);ctx.stroke();ctx.restore();return;}
  ctx.save();ctx.translate(shot.x,shot.y);ctx.rotate(Math.atan2(shot.vy,shot.vx));
  ctx.strokeStyle="#b46eff";ctx.lineWidth=3;ctx.globalAlpha=.45;ctx.beginPath();ctx.moveTo(-7,0);ctx.lineTo(-31,0);ctx.stroke();ctx.globalAlpha=1;
  ctx.shadowColor="#b46eff";ctx.shadowBlur=8+4*Math.sin(t*12+shot.x*.02);ctx.fillStyle="#7c3de0";ctx.strokeStyle="#e9c5ff";ctx.lineWidth=1.5;

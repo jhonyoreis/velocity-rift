@@ -1,4 +1,12 @@
-# Velocity Rift — Uma Flor, Enfim (versão 4.1.1)
+# Velocity Rift — Uma Flor, Enfim (versão 4.2.0)
+
+## 4.2.0 — Realidades estilhaçadas (APK R23)
+
+- A última forma do Soberano aumenta a frequência das rajadas a cada acerto recebido, preservando a janela de vulnerabilidade.
+- A Orbe da Fenda leva Flux a uma realidade de cores invertidas por 5 segundos, com lasers sinalizados e retorno ao local da arena.
+- Os três desafios da fase 4 têm entradas elevadas e mapas exclusivos. Falhas devolvem Flux ao farol sem morte ou perda de cristais.
+- Núcleos e recompensas só são obtidos ao concluir o desafio; cada rota reduz permanentemente o consumo de Boost em 8%, acumulando cerca de 22% nas três. As melhorias anteriores continuam preservadas.
+- Transformação Rubro da fase 4 exibe os nove núcleos orbitando durante toda a animação.
 
 ## 4.1.1 — A energia da Ruptura (APK R22)
 

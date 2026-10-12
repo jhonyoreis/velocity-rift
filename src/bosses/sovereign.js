@@ -3,7 +3,7 @@ export const SOVEREIGN_ARENA={left:43200,right:47200,floor:650,ceiling:150};
 export const CHASE={start:20200,end:32600,hits:5,barrierSpeed:390};
 export function createSovereign(){return {mode:"dormant",hp:5,maxHp:5,clock:0,cycle:-1,
  x:0,y:0,hitCooldown:0,vulnerable:false,warning:null,barrierX:19700,
- shots:[],beams:[],minions:[],attackSerial:0,resonance:null,resonanceClock:0,
+ shots:[],beams:[],volleyClock:0,orbClock:0,minions:[],attackSerial:0,resonance:null,resonanceClock:0,
  defeated:false,forcedDefeat:false,phaseHits:0};}
 export function canDamageSovereign(boss,player){
  if(boss.defeated||boss.hitCooldown>0||!boss.vulnerable)return false;
@@ -33,6 +33,7 @@ export function advanceSovereign(b,s,dt,hooks){
  if(b.mode==="dormant"||b.defeated)return;
  b.clock+=dt;b.hitCooldown=Math.max(0,b.hitCooldown-dt);
  const rage=b.mode==="scarlet",chase=b.mode==="chase";
+ const wounds=Math.max(0,b.maxHp-b.hp);
  const period=chase?4.6:rage?4.8:5.8;
  const cycle=Math.floor(b.clock/period),phase=b.clock%period;
  const opening=chase?2.1:rage?3.2:3.5;
@@ -70,6 +71,10 @@ export function advanceSovereign(b,s,dt,hooks){
   if(b.barrierX>s.x-18){hooks.barrierHit();b.barrierX=s.x-550;}
  }
  if(rage){
+  if(phase<opening-.8)b.volleyClock+=dt;b.orbClock+=dt;
+  const volleyInterval=Math.max(.95,2.8-wounds*.35);
+  if(b.volleyClock>=volleyInterval&&phase<opening-.8){b.volleyClock=0;b.shots.push(...shotFan(b.x,b.y,s,3,400).map(shot=>({...shot,sovereign:true})));}
+  if(b.orbClock>=8){b.orbClock=0;const angle=Math.atan2(s.y-b.y,s.x-b.x);b.shots.push({x:b.x,y:b.y,vx:Math.cos(angle)*260,vy:Math.sin(angle)*260,life:5,r:17,sovereign:true,orb:true});}
   b.resonanceClock+=dt;
   if(!b.resonance&&b.resonanceClock>=4.5){
    const sites=[SOVEREIGN_ARENA.left+450,SOVEREIGN_ARENA.left+1850,SOVEREIGN_ARENA.right-450];
