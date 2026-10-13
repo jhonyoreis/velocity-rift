@@ -1,4 +1,15 @@
-# Velocity Rift — Uma Flor, Enfim (versão 4.2.4)
+# Velocity Rift — Uma Flor, Enfim (versão 4.3.0)
+
+## 4.3.0 — Floresta Neon 2 (APK R28 experimental)
+
+Branch: `experiment/neon-forest-2`. Instala separadamente como **Velocity Rift Neon 2**, mantendo o aplicativo principal e seu progresso. Acesso direto: Fases → Floresta Neon 2. A conclusão da Floresta Neon 1 também oferece a continuação; depois do Titã Helix, a fenda leva ao Cânion Prisma.
+
+- Árvores gigantes, fábrica abandonada Helix, passarelas e solo contínuo.
+- Robôs da primeira floresta com ferrugem, placas quebradas e vegetação.
+- Prensas sinalizadas, eletropulsos, Slide e barreiras de Boost. Sem núcleos ou desafios opcionais.
+- Titã Helix com impactos marcados, ondas saltáveis e reator exposto; checkpoint antes da arena.
+- Trilha Raízes do Amanhã (114 BPM), arranjo industrial dentro da fábrica e Pulso do Titã (132 BPM).
+- Registros experimentais separados dos tempos e fantasmas da Floresta Neon 1.
 
 ## 4.2.4 — Energia Rubra (APK R27)
 

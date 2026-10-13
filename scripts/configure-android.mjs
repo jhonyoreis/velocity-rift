@@ -48,7 +48,8 @@ export function setAndroidVersion(gradle,version){
 if(process.argv[1]&&pathToFileURL(process.argv[1]).href===import.meta.url){
   const path="android/app/src/main/AndroidManifest.xml";
   writeFileSync(path,setAndroidLandscape(readFileSync(path,"utf8")));
-  const activityPath="android/app/src/main/java/com/velocityrift/game/MainActivity.java";
+  const appId=JSON.parse(readFileSync("capacitor.config.json","utf8")).appId;
+  const activityPath="android/app/src/main/java/"+appId.replaceAll(".","/")+"/MainActivity.java";
   writeFileSync(activityPath,addImmersiveMainActivity(readFileSync(activityPath,"utf8")));
   const androidGradle="android/app/build.gradle";
   const version=JSON.parse(readFileSync("package.json","utf8")).version;

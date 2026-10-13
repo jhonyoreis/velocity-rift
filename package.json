@@ -1,6 +1,6 @@
 {
   "name": "velocity-rift",
-  "version": "4.2.4",
+  "version": "4.3.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -11,7 +11,7 @@
     "check": "npm run test && npm run build && npm run test:visual",
     "android:sync": "npm run build && npx cap sync android",
     "android:debug": "npm run android:sync && cd android && ./gradlew assembleDebug",
-    "test:visual": "node scripts/visual-smoke.mjs && node scripts/rift-visual.mjs && node scripts/polish-visual.mjs && node scripts/readability-visual.mjs"
+    "test:visual": "node scripts/visual-smoke.mjs && node scripts/rift-visual.mjs && node scripts/polish-visual.mjs && node scripts/readability-visual.mjs && node scripts/forest-two-visual.mjs"
   },
   "devDependencies": {
     "@capacitor/cli": "7.6.9",

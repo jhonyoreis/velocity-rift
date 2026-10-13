@@ -1,3 +1,7 @@
+import {createForestTwoWorld,FACTORY,pressState} from "./levels/forestTwo.js";
+import {createHelix,advanceHelix} from "./bosses/helix.js";
+import {forestTwoScore} from "./audio/forestTwoScore.js";
+import {drawForestTwoBackdrop,drawForestTwoGround,drawPresses,drawWornWalker,drawHelix} from "./rendering/forestTwo.js";
 import {architectCameraX,containArenaPlayer,dashIndicatorState} from "./game/combatReadability.js";
 import {drawDashCharge} from "./rendering/combatReadability.js";
 import {drawBoostTrail} from "./rendering/boostTrail.js";
@@ -127,6 +131,12 @@ const GRADE_ORDER=["C","B","A","S"];
 // Each optional ascent is hand-authored rather than a repeated tower.
 // Steps are [horizontal offset, rise, platform width, platform behavior].
 let activeStage = 1;
+let forestPart=1;
+const forestJourney={pending:false,completed:false,bestTime:0,clears:0};
+try{const j=JSON.parse(localStorage.getItem("velocity-rift-forest2-experiment")||"{}");forestJourney.pending=j.pending===true;forestJourney.completed=j.completed===true;forestJourney.bestTime=Number.isFinite(j.bestTime)&&j.bestTime>0?j.bestTime:0;forestJourney.clears=Number.isInteger(j.clears)&&j.clears>0?j.clears:0;}catch(_){}
+function saveForestJourney(){try{localStorage.setItem("velocity-rift-forest2-experiment",JSON.stringify(forestJourney));}catch(_){}}
+function isForestTwo(){return activeStage===1&&forestPart===2;}
+const helix=createHelix();
 let debugMode = false;
 let fullTestMode=false; // Session-only, preserves real campaign and archive.
 let debugUsedThisRun = false;
@@ -164,6 +174,7 @@ let echoesFound=new Set(),challengeBadges=new Set();
 try{echoesFound=new Set(sanitizeEchoArchive(JSON.parse(localStorage.getItem(ECHO_ARCHIVE_KEY)||"[]")))}catch(_){}
 try{challengeBadges=new Set(sanitizeBonusChallenges(JSON.parse(localStorage.getItem(BONUS_CHALLENGE_KEY)||"[]")))}catch(_){}
 function collectStoryEchoes(){
+ if(isForestTwo())return;
  if(debugUsedThisRun||fullTestMode)return;
  for(const echo of ALICIA_ECHOES){
   if(echo.stage!==activeStage||echoesFound.has(echo.id))continue;
@@ -177,6 +188,7 @@ function collectStoryEchoes(){
  }
 }
 function drawStoryEchoes(){
+ if(isForestTwo())return;
  for(const echo of ALICIA_ECHOES){
   if(echo.stage!==activeStage||echoesFound.has(echo.id)||fullTestMode||
     echo.x<cameraX-70||echo.x>cameraX+VIEW_W+70)continue;
@@ -420,6 +432,7 @@ let ghostVisible=true;
 try{ghostVisible=localStorage.getItem(GHOST_VISIBLE_KEY)!=="off"}catch(_){}
 let ghostRun=[];
 function saveBestGhost(time,improved){
+ if(isForestTwo())return;
  if(debugUsedThisRun)return;
  const key="stage"+activeStage;
  if(!improved&&ghostArchive[key])return;
@@ -430,6 +443,7 @@ function saveBestGhost(time,improved){
  try{localStorage.setItem(GHOST_ARCHIVE_KEY,JSON.stringify(ghostArchive));}catch(_){}
 }
 function drawRecordGhost(){
+ if(isForestTwo())return;
  if(!ghostVisible||!gameStarted||stageArrival.active)return;
  const ghost=ghostArchive["stage"+activeStage];
  if(!ghost)return;
@@ -514,6 +528,8 @@ const riftPortal={opening:false,open:false,time:0,particleTimer:0};
 const WORLD_KEYS=["tracks","chapters","signs","checkpoints","walls","tunnels",
   "enemies","rings","boostOrbs","springs","boostPads","spikes","pulseGates","memoryCores"];
 const levelApi={track,rect,enemy,orb,yOnTrack,PLAYER_RADIUS,WORLD_H};
+const forestTwoWorld=createForestTwoWorld(levelApi);
+polishWorldObstacles(forestTwoWorld);
 const STAGES={1:stageOneWorld,2:createStageTwoWorld({...levelApi,guardian}),3:createStageThreeWorld(levelApi)};
 installSecretRoutes(STAGES[1],1,{track,PLAYER_RADIUS});
 installSecretRoutes(STAGES[2],2,{track,PLAYER_RADIUS});
@@ -524,7 +540,7 @@ function activateStage(stage=1) {
   if(!STAGES[stage])throw new Error("Unknown level "+stage);
   activeStage=stage;
   syncTrackLabel();
-  const data=STAGES[stage];
+  const data=isForestTwo()?forestTwoWorld:STAGES[stage];
   WORLD_W=data.worldW;
   for(const [key,arr] of [
     ["tracks",tracks],["chapters",chapters],["signs",signs],["checkpoints",checkpoints],
@@ -535,7 +551,7 @@ function activateStage(stage=1) {
     arr.splice(0,arr.length,...data[key].map(item=>({...item})));
   }
   Object.assign(goal,data.goal);Object.assign(spawn,data.spawn);
-  bestTime=progress["stage"+stage].bestTime;
+  bestTime=isForestTwo()?forestJourney.bestTime:progress["stage"+stage].bestTime;
   secretTrials.splice(0,secretTrials.length,...data.secretTrials.map(t=>({
     ...t,
     platforms:t.platforms.map(p=>({...p})),
@@ -1038,6 +1054,7 @@ function saveCampaign(){
   try{localStorage.setItem(CAMPAIGN_KEY,JSON.stringify(campaign));}catch(_){}
 }
 function resetCampaign(){
+ Object.assign(forestJourney,{pending:false,completed:false,bestTime:0,clears:0});saveForestJourney();forestPart=1;
   Object.assign(campaign,{started:false,stage1Completed:false,
     stage2Completed:false,stage3Completed:false,stage4Completed:false,lastStage:1,aerialDash:false,
     records:emptyCampaignRecords(),extras:emptyCampaignExtras(),scenesSeen:[]});
@@ -1068,7 +1085,7 @@ function nextCampaignStage(){
 }
 function continueCampaign(){
   if(!campaign.started&&!fullTestMode)return;
-  startGame(nextCampaignStage());
+  if(forestJourney.pending)startGame(1,true,false,2);else startGame(nextCampaignStage(),false,false,1);
 }
 function askNewGame(){
   showScreen(newGameConfirm);
@@ -1128,6 +1145,13 @@ function storeProgress() {
 }
 
 function recordStageClear(time, crystals, cores = 0) {
+  if(isForestTwo()){
+    const improvedTime=!forestJourney.bestTime||time<forestJourney.bestTime;
+    if(improvedTime)forestJourney.bestTime=time;
+    forestJourney.completed=true;forestJourney.pending=false;forestJourney.clears++;saveForestJourney();
+    campaign.started=true;campaign.stage1Completed=true;campaign.lastStage=2;saveCampaign();
+    return {grade:gradeForTime(time,1),improvedTime,archiveRecord:false};
+  }
   const stage = progress["stage"+activeStage];
   const grade = gradeForTime(time,activeStage);
   const improvedTime = !stage.bestTime || time < stage.bestTime;
@@ -1136,7 +1160,7 @@ function recordStageClear(time, crystals, cores = 0) {
   stage.completed = true;
   stage.clears += 1;
   campaign.started=true;
-  if(activeStage===1){campaign.stage1Completed=true;campaign.lastStage=2;}
+  if(activeStage===1){campaign.stage1Completed=true;campaign.lastStage=2;forestJourney.pending=true;saveForestJourney();}
   else if(activeStage===2){
     campaign.stage1Completed=true;campaign.stage2Completed=true;campaign.lastStage=3;
   }else if(activeStage===3){
@@ -1258,7 +1282,7 @@ function refreshProgressView() {
   continueButton.disabled=!canContinue;
   continueButton.setAttribute("aria-disabled",String(!canContinue));
   const description=canContinue
-    ? "Retomar em "+(["","Primeiro Impulso","Cânion Prisma","Cidade das Fendas","Fenda Original"][nextCampaignStage()])
+    ? forestJourney.pending?"Retomar em Floresta Neon 2":"Retomar em "+(["","Primeiro Impulso","Cânion Prisma","Cidade das Fendas","Fenda Original"][nextCampaignStage()])
     : "Disponível depois de iniciar sua primeira campanha.";
   continueButton.title=description;
   document.querySelector("#continueDescription").textContent=description;
@@ -1312,6 +1336,7 @@ function openDeathScreen(fell, lost){
   airDash.active=false;airDash.time=0;
   document.querySelector("#deathStageLabel").textContent=
     ["","Floresta Neon","Cânion Prisma","Cidade das Fendas","Fenda Original"][activeStage];
+  if(isForestTwo())document.querySelector("#deathStageLabel").textContent="Floresta Neon 2";
   document.querySelector("#deathReason").textContent=fell
     ?"Flux caiu na fenda. Todos os cristais foram perdidos."
     :"Flux ficou sem cristais para resistir ao impacto.";
@@ -1367,6 +1392,7 @@ function restartAfterDeath(){
   boostOrbs.forEach(item=>{if(item.x>=target.x)item.active=true;});
   if(activeStage===3&&cityBoss.active&&!cityBoss.defeated)resetCityBoss();
   if(activeStage===2&&guardian.active&&!guardian.defeated)resetGuardian();
+  if(isForestTwo()&&!helix.defeated)Object.assign(helix,createHelix());
   cameraAnchorX=VIEW_W*CAMERA_IDLE_ANCHOR;
   cameraX=clamp(target.x-cameraAnchorX,0,Math.max(0,WORLD_W-VIEW_W));
   cameraY=clamp(target.y-VIEW_H*.56,0,WORLD_H-VIEW_H);
@@ -1403,7 +1429,7 @@ function showResults(time, crystals, cores = 0, recorded=null) {
   const result = recorded|| (debugUsedThisRun
     ? {grade:gradeForTime(time,activeStage),improvedTime:false}
     : recordStageClear(time,crystals,cores));
-  if(!debugUsedThisRun&&!recorded){
+  if(!debugUsedThisRun&&!recorded&&!isForestTwo()){
     saveBestGhost(time,result.archiveRecord);
     recordBonusChallengeClear(activeStage,{damage:runDamageCount,cores,grade:result.grade});
   }
@@ -1421,7 +1447,7 @@ function showResults(time, crystals, cores = 0, recorded=null) {
       " Núcleos " + cores + "/3 · Nesta campanha " +
       campaign.extras.cores["stage"+activeStage].length + "/3.";
   if(activeStage===4&&!debugUsedThisRun)document.querySelector("#resultMessage").textContent+=" Flux Rubro desbloqueado em todas as fases: reúna 20 cristais e toque no núcleo (F).";
-  if(!debugUsedThisRun)grantClearAchievements(result.grade,cores);
+  if(!debugUsedThisRun&&!isForestTwo())grantClearAchievements(result.grade,cores);
   document.querySelector("#resultSecrets").textContent=(activeStage===4?riftPreview.info().secrets.length:secretTrials.filter(t=>t.completed).length)+"/3";
   const nextStageButton=document.querySelector("#nextStageButton");
   const nextPlayable=activeStage<4&&(campaign["stage"+activeStage+"Completed"]||testUnlocked());
@@ -1434,6 +1460,17 @@ function showResults(time, crystals, cores = 0, recorded=null) {
   const retryButton=document.querySelector("#retryButton");
   retryButton.classList.toggle("primary-action",!nextPlayable);
   retryButton.classList.toggle("secondary-action",nextPlayable);
+  if(activeStage===1&&!isForestTwo()){
+    nextStageButton.textContent="Continuar: Floresta Neon 2 ➜";
+    nextStageButton.title="Entrar na fábrica Helix";
+  }
+  if(isForestTwo()){
+    document.querySelector("#resultHeading").textContent="Floresta Neon 2 · Fábrica Helix";
+    document.querySelector("#resultBest").textContent=formatTime(forestJourney.bestTime);
+    document.querySelector("#resultClears").textContent=String(forestJourney.clears);
+    document.querySelector("#resultSecrets").textContent="—";
+    document.querySelector("#resultMessage").textContent=debugUsedThisRun?"Teste concluído — progresso não salvo.":"Titã Helix derrotado. A fenda para o Cânion Prisma está livre.";
+  }
   playSfx("finish");
   showScreen(resultMenu);
 }
@@ -1479,6 +1516,7 @@ function showPauseMenu(){
     "BOOST "+boostCapacity()+" · FORÇA +"+
     Math.round((boostPower()-1)*100)+"% · CONSUMO −"+Math.round((1-boostDrain())*100)+"% · "+
     (fullTestMode?12:boostUpgrades.collected)+"/12 MELHORIAS"+(fullTestMode?" · TESTE":"");
+  if(isForestTwo()){document.querySelector("#pauseStageLabel").textContent="Floresta Neon 2 · Fábrica Helix";document.querySelector("#pauseStatCores").textContent="—";document.querySelector("#pauseStatSecrets").textContent="—";}
   for(const id of ["pauseAudioDetails","pauseControlsDetails","pauseDebugDetails"])
     document.querySelector("#"+id).open=false;
   if(debugToggle)debugToggle.hidden=false;
@@ -1660,6 +1698,7 @@ function drawStageArrivalOverlay(){
   ctx.restore();
 }
 function resetGame() {
+  Object.assign(helix,createHelix());
   defeat=null;player.rubroAtDefeat=false;
   resetRubro(rubro);
   ghostRun=[];
@@ -1742,9 +1781,12 @@ function resetGame() {
   bossDamagedThisRun=false;
   notification.timer=0;
   collectibleToast.timer=0;
+  syncTrackLabel();
 }
 
-function startGame(stage=activeStage,skipCinematic=false,withArrival=false) {
+function startGame(stage=activeStage,skipCinematic=false,withArrival=false,part=stage===1?forestPart:1) {
+  forestPart=stage===1?part:1;
+  if(stage===1&&part===2)skipCinematic=true;
   if(stage===4){startRiftPreview(skipCinematic);return;}
   if(riftPreview.active)riftPreview.stop();
   if(![1,2,3].includes(stage))return;
@@ -1757,6 +1799,7 @@ function startGame(stage=activeStage,skipCinematic=false,withArrival=false) {
   }
   unlockAudio();
   if(!testUnlocked()){
+    if(stage===1){forestJourney.pending=part===2;saveForestJourney();}
     campaign.started=true;
     campaign.lastStage=stage;
     saveCampaign();
@@ -2808,6 +2851,12 @@ function update(dt) {
   updateSentryShots(dt);
   if(!gameStarted||defeat)return;
   updateCityBoss(dt);
+  if(isForestTwo()){
+    for(const p of forestTwoWorld.presses){const state=pressState(p,gameTime);if(state.active&&Math.abs(player.x-p.x)<p.w/2+PLAYER_RADIUS&&player.y>p.y-155)damagePlayer(false);}
+    const previousHelixState=helix.active+":"+helix.defeated;
+    if(!defeat)advanceHelix(helix,player,dt,{damage:()=>damagePlayer(false),dashing:()=>airDash.active,sound:playSfx,notice:announce,burst:(x,y)=>{emitParticles(x,y,"#b1ffdc",36,190);shakeTime=.2;}});
+    if(previousHelixState!==helix.active+":"+helix.defeated){musicStep=0;syncTrackLabel();}
+  }
   if(!gameStarted||defeat)return;
   updateCityBossFX(dt);
   collectItems();
@@ -2846,7 +2895,7 @@ function update(dt) {
 
   // Stage 1 keeps its original exit. Stage 2 requires entering a fully open
   // dimensional portal; touching the inactive spawn point cannot win.
-  const exitReached=activeStage===2?
+  const exitReached=isForestTwo()?helix.defeated&&helix.collapse>2&&circleRect(player.x,player.y,PLAYER_RADIUS,goal):activeStage===2?
       riftPortal.open&&playerTouchesRift():
       activeStage===3?
       cityBoss.defeated&&circleRect(player.x,player.y,PLAYER_RADIUS,goal):
@@ -2872,6 +2921,9 @@ function cameraAnchorFor(vx, facing) {
 }
 
 function updateCamera(dt) {
+  if(isForestTwo()&&helix.active&&!helix.defeated){
+    cameraX=containArenaPlayer(lerp(cameraX,architectCameraX(player.x,helix.x,FACTORY.arenaLeft,FACTORY.arenaRight,VIEW_W),1-Math.exp(-7*dt)),player.x,FACTORY.arenaLeft,FACTORY.arenaRight,VIEW_W);cameraY=0;return;
+  }
   // The Architect arena is wider than the viewport; follow without losing Flux.
   if(activeStage===3&&cityBoss.active&&!cityBoss.defeated){
     const target=architectCameraX(player.x,cityBoss.x,cityBoss.arenaLeft,cityBoss.arenaRight,VIEW_W);
@@ -3569,8 +3621,10 @@ function draw() {
   if(activeStage===2)drawChasms();
   if(activeStage===3){drawCityChasms();drawCityRiftGates();}
   if(activeStage===2)drawGuardianBackdrop();
+  if(isForestTwo())drawForestTwoGround(ctx,tracks,cameraX,VIEW_W,visualTime);
   drawTracks();
   drawTunnels();
+  if(isForestTwo())drawPresses(ctx,forestTwoWorld.presses,gameTime,cameraX,VIEW_W);
   drawPulseGates();
   drawSigns();
   drawObjects();
@@ -3585,6 +3639,7 @@ function draw() {
   drawArchitectGroundRifts();
   drawCityExit();
   drawGuardian();
+  if(isForestTwo())drawHelix(ctx,helix,visualTime,goal);
   drawGuardianVisuals();
   drawRiftPortal();
   drawMemoryCores();
@@ -3639,6 +3694,7 @@ function drawCityBackground(){
   }
 }
 function drawBackground() {
+  if(isForestTwo()){drawForestTwoBackdrop(ctx,{cameraX,cameraY,width:VIEW_W,height:VIEW_H,time:visualTime});return;}
   if(activeStage===3){drawCityBackground();return;}
   if(activeStage===2){drawCanyonBackground();return;}
   // Three parallax layers, rendered in screen space with distinct scroll factors.
@@ -3760,7 +3816,7 @@ function drawChasms() {
   }
 }
 
-function drawForest(){if(activeStage!==1)return;renderForest(ctx,{cameraX,VIEW_W,groundY});}
+function drawForest(){if(activeStage!==1||isForestTwo())return;renderForest(ctx,{cameraX,VIEW_W,groundY});}
 function drawTracks() {
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
@@ -3998,6 +4054,7 @@ function drawObjects() {
 
   for (const bad of enemies) {
     if (!bad.alive) continue;
+    if(isForestTwo()&&bad.weathered){drawWornWalker(ctx,bad,visualTime);continue;}
     if(["city-drone","city-hunter","city-turret"].includes(bad.type)){
       const isDrone=bad.type==="city-drone",isHunter=bad.type==="city-hunter";
       ctx.fillStyle=isDrone?"#ffbd7a":isHunter?"#f079af":"#a4b5f7";
@@ -4054,7 +4111,7 @@ function drawObjects() {
   }
 
   // The simple GO marker belongs only to the tutorial stage.
-  if(activeStage===1){
+  if(activeStage===1&&!isForestTwo()){
     ctx.fillStyle="#ffffff";
     roundRect(goal.x,goal.y,goal.w,goal.h,6);ctx.fill();
     ctx.fillStyle="#ff5b8b";
@@ -4376,7 +4433,7 @@ function drawMinimalHud(mobile){
   ctx.fillStyle="#f9ecdb";ctx.font="bold 20px system-ui";
   ctx.textAlign="right";
   ctx.fillText(gameTime.toFixed(1)+" s",VIEW_W-31,42);
-  const bestGhost=ghostVisible?ghostArchive["stage"+activeStage]:null;
+  const bestGhost=ghostVisible&&!isForestTwo()?ghostArchive["stage"+activeStage]:null;
   if(bestGhost&&!stageArrival.active){
     const phantom=ghostFrameAt(bestGhost,gameTime);
     if(phantom){
@@ -4407,7 +4464,7 @@ function drawMinimalHud(mobile){
   ctx.fillText(gauge.value+" u/s",655,72);
   ctx.textAlign="left";
 
-  const boss=activeStage===2&&guardian.active&&!guardian.defeated
+  const boss=isForestTwo()&&helix.active&&!helix.defeated?{name:"TITÃ HELIX · O REATOR ESQUECIDO",hp:helix.hp,max:helix.maxHp}:activeStage===2&&guardian.active&&!guardian.defeated
     ?{name:"GUARDIÃO DO PRISMA",hp:guardian.hp,max:guardian.maxHp}
     :activeStage===3&&cityBoss.active&&!cityBoss.defeated
       ?{name:"ARQUITETO DO VAZIO",hp:cityBoss.hp,max:cityBoss.maxHp}:null;
@@ -4899,7 +4956,7 @@ function scheduleMusic(){
     cityBossTheme?CITY_BOSS_STEP_SECONDS:
     activeStage===3?CITY_STEP_SECONDS:
     bossTheme?GUARDIAN_STEP_SECONDS/guardianPhase(guardian.hp).tempo:
-    activeStage===2?PRISM_STEP_SECONDS:MUSIC_STEP_SECONDS;
+    activeStage===2?PRISM_STEP_SECONDS:isForestTwo()?60/(helix.active&&!helix.defeated?132:114)/4:MUSIC_STEP_SECONDS;
   if(!Number.isFinite(now)||!Number.isFinite(nextMusicNote))return;
   if(nextMusicNote<now-.15||nextMusicNote>now+1)nextMusicNote=now+.05;
   let scheduled=0;
@@ -4927,7 +4984,14 @@ function scheduleMusic(){
     else if(activeStage===3)scheduleCityTheme(nextMusicNote,musicStep,chapter);
     else if(bossTheme)scheduleGuardianTheme(nextMusicNote,musicStep);
     else if(activeStage===2)schedulePrismCanyonStep(nextMusicNote,musicStep,chapter);
-    else scheduleNeonCanopyStep(nextMusicNote,musicStep,chapter);
+    else if(isForestTwo()){
+      const score=forestTwoScore(musicStep,player.x>=FACTORY.entrance&&player.x<FACTORY.exit?1:0,helix.active&&!helix.defeated);
+      for(const n of score.notes)prismVoice(midiToHz(n.midi),nextMusicNote,n.duration,n.gain,n.voice);
+      if(score.kick)synthMusic(64,nextMusicNote,.11,.1);
+      if(score.snare)synthMusic(180,nextMusicNote,.085,.03,"triangle");
+      if(score.hat)synthMusic(1550,nextMusicNote,.026,.011,"triangle");
+      if(score.metal)synthMusic(380,nextMusicNote,.07,.018,"square");
+    }else scheduleNeonCanopyStep(nextMusicNote,musicStep,chapter);
     musicStep=(musicStep+1)%128;
     nextMusicNote+=stepDuration;
   }
@@ -4935,7 +4999,7 @@ function scheduleMusic(){
 
 function syncTrackLabel(){
   if(!trackNowPlaying)return;
-  trackNowPlaying.textContent=riftPreview.active?"♫ "+FINAL_SCORE[riftPreview.musicSection].name+" · "+FINAL_SCORE[riftPreview.musicSection].bpm+" BPM":activeStage===3
+  trackNowPlaying.textContent=isForestTwo()?(helix.active&&!helix.defeated?"♫ Pulso do Titã · 132 BPM":"♫ Raízes do Amanhã · 114 BPM"):riftPreview.active?"♫ "+FINAL_SCORE[riftPreview.musicSection].name+" · "+FINAL_SCORE[riftPreview.musicSection].bpm+" BPM":activeStage===3
     ?cityBoss.active&&!cityBoss.defeated
       ?"♫ CHEFE: Coroa do Vazio · 158 BPM"
       :"♫ Cidade Entre Estrelas · 136 BPM"
@@ -5116,7 +5180,8 @@ for(const [index,name] of ["One","Two","Three","Four"].entries()){
     document.querySelector("#mapNodeStage"+["One","Two","Three","Four"][next-1]).focus?.();
   });
 }
-document.querySelector("#stageOneButton").addEventListener("click", ()=>startGame(1));
+document.querySelector("#stageOneButton").addEventListener("click", ()=>startGame(1,false,false,1));
+document.querySelector("#forestTwoButton").addEventListener("click",()=>startGame(1,true,false,2));
  document.querySelector("#stageTwoButton").addEventListener("click",()=>{if(campaign.stage1Completed||testUnlocked())startGame(2)});
 document.querySelector("#stageThreeButton").addEventListener("click",()=>{if(campaign.stage2Completed||testUnlocked())startGame(3)});
 document.querySelector("#stageFourButton").addEventListener("click",startRiftPreview);
@@ -5125,7 +5190,7 @@ document.querySelector("#achievementsButton").addEventListener("click",showAchie
 document.querySelector("#resultsAchievementsButton").addEventListener("click",showAchievementsMenu);
 document.querySelector("#achievementsBackButton").addEventListener("click",showMainMenu);
 document.querySelector("#nextStageButton").addEventListener("click",()=>{
-  if(gameCleared&&activeStage===1&&(campaign.stage1Completed||testUnlocked()))startGame(2);
+  if(gameCleared&&activeStage===1&&(campaign.stage1Completed||testUnlocked())){if(isForestTwo())startGame(2);else startGame(1,true,false,2);}
   else if(gameCleared&&activeStage===2&&(campaign.stage2Completed||testUnlocked()))startGame(3);
   else if(gameCleared&&activeStage===3&&(campaign.stage3Completed||testUnlocked()))startGame(4);
 });
@@ -5179,11 +5244,12 @@ draw();
 if(import.meta.env.DEV&&new URLSearchParams(location.search).has("rift-qa")){
   window.__riftQA={freeze(){riftQAFrozen=true;},info:()=>riftPreview.info(),
     step(inputs,render=true){riftPreview.update(1/120,new Set(inputs));syncRubroButton();if(render){if(cinematic.active)drawCinematic();else draw();}},
-    setupScenario({stage=1,x=180,crystals=0,completed=false,vx=0}={}){
+    setupScenario({stage=1,part=1,x=180,crystals=0,completed=false,vx=0}={}){
+      forestPart=part;
       riftPreview.stop();activateStage(stage);resetGame();debugMode=false;fullTestMode=false;debugUsedThisRun=false;
-      progress.stage4.completed=completed;campaign.stage4Completed=completed;campaign.aerialDash=true;
+      progress.stage4.completed=completed;campaign.stage4Completed=completed;campaign.aerialDash=part!==2;
       player.x=x;player.prevX=x;player.y=(groundY(x)??420)-PLAYER_RADIUS;player.prevY=player.y;
-      player.onGround=true;player.ground=tracks.find(p=>x>=p.x1&&x<=p.x2&&!p.secretId);player.rings=crystals;player.boost=boostCapacity();player.vx=vx;
+      player.onGround=true;player.ground=tracks.find(p=>x>=p.x1&&x<=p.x2&&!p.secretId);player.rings=crystals;player.boost=part===2?0:boostCapacity();player.vx=vx;
       cameraX=clamp(x-360,0,WORLD_W-VIEW_W);cameraY=clamp(player.y-295,0,WORLD_H-VIEW_H);
       gameCleared=false;resumeRiftScreen();riftQAFrozen=true;draw();syncRubroButton();
     },
@@ -5200,13 +5266,15 @@ if(import.meta.env.DEV&&new URLSearchParams(location.search).has("rift-qa")){
       startRiftPreview(true);riftQAFrozen=true;for(let i=0;i<100;i++)riftPreview.update(1/120,new Set());draw();
       return riftPreview.info();
     },
-    gameInfo:()=>({cameraX,cameraY,dashStatus:currentDashStatus(),defeat:defeat?{...defeat}:null,stage:activeStage,x:player.x,y:player.y,vx:player.vx,vy:player.vy,crystals:player.rings,onGround:player.onGround,sliding:player.sliding,boosting:player.boosting,dash:{...airDash},rubro:{...rubro},time:gameTime,damage:runDamageCount,walls:walls.map(w=>({...w})),tunnels:tunnels.map(w=>({...w}))}),
+    gameInfo:()=>({forestPart,helix:{...helix},checkpointIndex,cleared:gameCleared,boost:player.boost,presses:isForestTwo()?forestTwoWorld.presses.map(p=>({...p,...pressState(p,gameTime)})):[],cameraX,cameraY,dashStatus:currentDashStatus(),defeat:defeat?{...defeat}:null,stage:activeStage,cores:player.cores,x:player.x,y:player.y,vx:player.vx,vy:player.vy,crystals:player.rings,onGround:player.onGround,sliding:player.sliding,boosting:player.boosting,dash:{...airDash},rubro:{...rubro},time:gameTime,damage:runDamageCount,walls:walls.map(w=>({...w})),tunnels:tunnels.map(w=>({...w}))}),
     stepGame(inputs=[],frames=1){
       const wasJump=keys.has(" ");keys.clear();for(const key of inputs)keys.add(key);
       if(keys.has(" ")&&!wasJump){if(!player.onGround&&dashUnlocked())startAirDash();else jumpBuffer=.13;}
       for(let i=0;i<frames;i++){riftQAFrozen=false;update(1/120);riftQAFrozen=true;}
       draw();syncRubroButton();return this.gameInfo();
     },
+    settleExit(){for(let i=0;i<240&&stageExit.active;i++)updateStageExit(1/120);return {campaign:{...campaign},journey:{...forestJourney}};},
+    forestWorld:()=>({tracks:forestTwoWorld.tracks,spikes:forestTwoWorld.spikes,pulseGates:forestTwoWorld.pulseGates,enemies:forestTwoWorld.enemies}),
     addShot(){sentryShots.push({x:player.x,y:player.y,vx:0,vy:0,life:2,r:9,unblockable:true});},
     takeHit(){player.invulnerable=0;damagePlayer(false);syncRubroButton();return this.gameInfo();},
     saveQAProgress(){storeProgress();saveCampaign();},

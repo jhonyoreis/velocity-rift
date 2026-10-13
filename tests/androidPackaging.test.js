@@ -18,8 +18,8 @@ test("Capacitor packages and web directory are configured for offline Android",(
  const config=JSON.parse(readFileSync(new URL("../capacitor.config.json",import.meta.url),"utf8"));
  const pkg=JSON.parse(readFileSync(new URL("../package.json",import.meta.url),"utf8"));
  assert.equal(config.webDir,"dist");
- assert.equal(config.appId,"com.velocityrift.game");
- assert.equal(config.appName,"Velocity Rift");
+ assert.equal(config.appId,"com.velocityrift.game.forest2");
+ assert.equal(config.appName,"Velocity Rift Neon 2");
  assert.ok(!config.server?.url);
  assert.equal(pkg.dependencies["@capacitor/android"],pkg.dependencies["@capacitor/core"]);
  assert.equal(pkg.dependencies["@capacitor/core"],pkg.devDependencies["@capacitor/cli"]);

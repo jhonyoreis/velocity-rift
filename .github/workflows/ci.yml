@@ -1,7 +1,7 @@
 name: Validate Velocity Rift
 on:
   push:
-    branches: [main, "maintenance/**"]
+    branches: [main, "maintenance/**", "experiment/neon-forest-2"]
   pull_request:
     branches: [main]
 jobs:
