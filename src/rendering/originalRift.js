@@ -1,3 +1,5 @@
+import {drawDashCharge,drawSovereignDirections} from "./combatReadability.js";
+import {dashIndicatorState} from "../game/combatReadability.js";
 import {drawPocketReality} from "./pocketReality.js";
 import {drawBoostTrail} from "./boostTrail.js";
 import {sampleDefeat} from "../game/defeat.js";
@@ -274,6 +276,8 @@ export function drawOriginalRift(ctx,s,layout,{W=960,H=540,drawFlux=null,drawSov
  ctx.restore();
  if(!s.defeat)drawRubroAura(ctx,s.x,s.y,t+(s.transformClock||0),{active:s.rubro||s.scarlet>0,transformTime:s.transformTime});
  ctx.restore();
+ drawSovereignDirections(ctx,s,W,H);
+ drawDashCharge(ctx,dashIndicatorState({available:s.dashReady,active:s.dash>0,blocked:!!(s.defeat||s.victory||s.story||s.finished||s.transformTime)}));
  // Match the existing sparse HUD; lower edges remain free for mobile controls.
  panel(ctx,14,12,185,47);ctx.font="bold 20px system-ui";ctx.fillStyle="#effffa";ctx.fillText("◆ "+s.crystals,27,42);
  panel(ctx,W-157,12,140,47);ctx.fillStyle="#effffa";ctx.textAlign="right";ctx.fillText(s.time.toFixed(1)+" s",W-31,42);ctx.textAlign="left";

@@ -3,7 +3,7 @@ export const SOVEREIGN_ARENA={left:43200,right:47200,floor:650,ceiling:150};
 export const CHASE={start:20200,end:32600,hits:5,barrierSpeed:390};
 export function createSovereign(){return {mode:"dormant",hp:5,maxHp:5,clock:0,cycle:-1,
  x:0,y:0,hitCooldown:0,vulnerable:false,warning:null,barrierX:19700,
- shots:[],beams:[],volleyClock:0,orbClock:0,minions:[],attackSerial:0,resonance:null,resonanceClock:0,
+ shots:[],beams:[],volleyClock:0,orbClock:0,orbWarned:false,minions:[],attackSerial:0,resonance:null,resonanceClock:0,
  defeated:false,forcedDefeat:false,phaseHits:0};}
 export function canDamageSovereign(boss,player){
  if(boss.defeated||boss.hitCooldown>0||!boss.vulnerable)return false;
@@ -42,7 +42,7 @@ export function advanceSovereign(b,s,dt,hooks){
   b.x=chase?Math.min(CHASE.end-260,s.x+1300):
    SOVEREIGN_ARENA.left+800+(cycle%3)*920;
   b.y=s.gravity===1?(chase?hooks.surfaceAt(b.x)-80:SOVEREIGN_ARENA.floor-90):SOVEREIGN_ARENA.ceiling+90;
-  b.target={x:s.x,y:s.y};b.warning="volley";
+  b.target={x:s.x,y:s.y};b.warning="volley";hooks.warnAttack?.("volley");
   if(!chase&&cycle>0){b.warning="gravity";hooks.warnGravity(-s.gravity);}
  }
  if(phase>=1&&!b.volleyFired){
@@ -51,7 +51,7 @@ export function advanceSovereign(b,s,dt,hooks){
   if(!chase&&cycle>0)hooks.flipGravity(-s.gravity);
  }
  if(phase>=1.75&&!b.beamFired&&!chase){
-  b.beamFired=true;
+  b.beamFired=true;hooks.warnAttack?.("laser");
   const x=b.x+(cycle%2?200:-200);
   b.beams.push({x1:x,y1:150,x2:x,y2:650,warning:.8,life:1.65,unblockable:true,sovereign:true,drainsAll:true});
   if(rage)b.beams.push({x1:x+(cycle%2?-390:390),y1:150,x2:x+(cycle%2?-390:390),y2:650,warning:1,life:1.8,unblockable:true,sovereign:true,drainsAll:true});
@@ -74,7 +74,8 @@ export function advanceSovereign(b,s,dt,hooks){
   if(phase<opening-.8)b.volleyClock+=dt;b.orbClock+=dt;
   const volleyInterval=Math.max(.95,2.8-wounds*.35);
   if(b.volleyClock>=volleyInterval&&phase<opening-.8){b.volleyClock=0;b.shots.push(...shotFan(b.x,b.y,s,3,400).map(shot=>({...shot,sovereign:true})));}
-  if(b.orbClock>=8){b.orbClock=0;const angle=Math.atan2(s.y-b.y,s.x-b.x);b.shots.push({x:b.x,y:b.y,vx:Math.cos(angle)*460,vy:Math.sin(angle)*460,life:5,r:17,sovereign:true,orb:true});}
+  if(b.orbClock>=7.3&&!b.orbWarned){b.orbWarned=true;hooks.warnAttack?.("orb");}
+  if(b.orbClock>=8){b.orbClock=0;b.orbWarned=false;const angle=Math.atan2(s.y-b.y,s.x-b.x);b.shots.push({x:b.x,y:b.y,vx:Math.cos(angle)*460,vy:Math.sin(angle)*460,life:5,r:17,sovereign:true,orb:true});}
   b.resonanceClock+=dt;
   if(!b.resonance&&b.resonanceClock>=4.5){
    const sites=[SOVEREIGN_ARENA.left+450,SOVEREIGN_ARENA.left+1850,SOVEREIGN_ARENA.right-450];

@@ -1,4 +1,4 @@
-# Velocity Rift 4.2.2 — APK R25
+# Velocity Rift 4.2.3 — APK R26
 
 A quarta fase encerra a campanha. O portão inicial continua exigindo nove
 núcleos distintos das primeiras três regiões da campanha atual. Há retorno
@@ -87,7 +87,7 @@ invertida. Capturas ficam em `test-artifacts/visual/` no workflow de validação
 
 A validação de navegador não substitui jogar no aparelho físico. No APK:
 
-1. Conferir **v4.2.2 · APK R25** e a coleção anterior após instalar.
+1. Conferir **v4.2.3 · APK R26** e a coleção anterior após instalar.
 2. Testar Pular, segunda pressão para Dash, Boost e Slide simultâneos.
 3. Alternar os pedestais e conferir legibilidade dos sinais em tela pequena.
 4. Ouvir os movimentos e ajustar volumes de música/efeitos conforme desejado.
@@ -148,3 +148,11 @@ A validação de navegador não substitui jogar no aparelho físico. No APK:
 - Coletar energia Rubro: +8 cristais, uma única vez por energia. Acertar o Soberano continua sem dar cristais.
 - Entrar na arena do Arquiteto com zero cristais, coletar o cristal próximo à entrada pelo chão e confirmar proteção contra um dano.
 - Confirmar que não há coleta repetida; retornar pelo checkpoint restaura o cristal.
+
+## Clareza no combate — R26
+
+- Cruzar a arena do Arquiteto até ambos os extremos: Flux permanece visível, sem enquadrar fora da arena.
+- Dash passa por carregado, ativo e gasto com comandos reais; pousar recarrega; Pular continua funcionando no estado gasto.
+- Indicadores do Soberano e Rubro aparecem fora da tela, apontam para o alvo e desaparecem quando ele está visível.
+- Dois indicadores na mesma borda ficam separados, acima dos controles de toque.
+- Rajada, laser, orbe e inversão têm sons distintos; orbe é avisada antes de aparecer, sem repetição a cada quadro.

@@ -1,4 +1,10 @@
-# Velocity Rift — Uma Flor, Enfim (versão 4.2.2)
+# Velocity Rift — Uma Flor, Enfim (versão 4.2.3)
+
+## 4.2.3 — Clareza no combate (APK R26)
+
+- Câmera do Arquiteto acompanha toda a arena, mantendo Flux enquadrado e mostrando o chefe quando ambos cabem na tela.
+- Indicadores nas bordas localizam o Soberano e a energia Rubro fora da tela; som próprio para rajada, laser, orbe e inversão.
+- Dash carregado, em uso e gasto aparecem no HUD e no botão Pular; pousar recarrega o indicador.
 
 ## 4.2.2 — Apoio nas batalhas (APK R25)
 

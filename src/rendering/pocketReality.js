@@ -1,3 +1,5 @@
+import {drawDashCharge} from "./combatReadability.js";
+import {dashIndicatorState} from "../game/combatReadability.js";
 import {drawRubroAura} from "./rubro.js";
 import {sampleDefeat} from "../game/defeat.js";
 import {drawMemoryCore} from "./collectibles.js";
@@ -66,5 +68,6 @@ export function drawPocketReality(ctx,p,{W=960,H=540,drawFlux,defeat=null,crysta
  ctx.fillStyle=theme.edge;ctx.font="bold 15px system-ui";ctx.fillText(exile?"REALIDADE ESTILHAÇADA":p.trial.name.toUpperCase(),W/2,35);
  ctx.font="11px system-ui";ctx.fillStyle="#d4dff6";ctx.fillText((exile?"SOBREVIVA": "UMA TENTATIVA · EVITE TODO DANO")+" · "+Math.max(0,p.limit-t).toFixed(1)+"s",W/2,54);
  ctx.fillStyle=theme.edge;ctx.fillRect(W/2-225,65,450*Math.max(0,1-t/p.limit),2);
+ drawDashCharge(ctx,dashIndicatorState({available:p.dashReady,active:p.dash>0,blocked:!!defeat}),188,37);
  ctx.textAlign="left";ctx.fillStyle="#080e21dd";ctx.beginPath();ctx.roundRect(12,13,135,46,10);ctx.fill();ctx.fillStyle="#eff5ff";ctx.font="bold 19px system-ui";ctx.fillText("◆ "+crystals,25,42);ctx.restore();
 }

@@ -2987,3 +2987,11 @@ html.mobile-game .game-panel.cinematic-active .vr-film-hint{display:none!importa
 .rubro-button svg{width:100%;height:100%;display:block;}
 .rubro-button[hidden]{display:none!important;}
 html.mobile-game .rubro-button{right:max(26px,env(safe-area-inset-right));bottom:max(92px,calc(env(safe-area-inset-bottom) + 92px));}
+
+/* Dash status decorates Jump without disabling its normal action. */
+.touch-controls [data-key=" "]{position:relative;}
+.touch-controls .dash-charge{display:none;position:absolute;top:3px;right:7px;font-size:22px;line-height:1;font-weight:900;pointer-events:none;}
+.touch-controls [data-dash-state="ready"] .dash-charge{display:block;color:#ffe095;text-shadow:0 0 9px #ffb85e;}
+.touch-controls [data-dash-state="spent"] .dash-charge{display:block;color:#778b94;}
+.touch-controls [data-dash-state="active"] .dash-charge{display:block;color:#c6fff5;}
+.touch-controls [data-dash-state="ready"]{box-shadow:inset 0 0 0 2px #ffe09577;}

@@ -1,3 +1,5 @@
+import {architectCameraX,containArenaPlayer,dashIndicatorState} from "./game/combatReadability.js";
+import {drawDashCharge} from "./rendering/combatReadability.js";
 import {drawBoostTrail} from "./rendering/boostTrail.js";
 import {createDefeat,sampleDefeat} from "./game/defeat.js";
 import {drawMemoryCore,drawBoostEnergy,drawBreakWall} from "./rendering/collectibles.js";
@@ -1883,6 +1885,7 @@ function loop(now) {
       console.warn("Velocity Rift: música desativada após erro de áudio.", error);
     }
   }
+  syncDashButton();
   if(cinematic.active)drawCinematic();else draw();
   requestAnimationFrame(loop);
 }
@@ -2869,9 +2872,10 @@ function cameraAnchorFor(vx, facing) {
 }
 
 function updateCamera(dt) {
-  // Full arena is exactly one viewport wide. No look-ahead, no following.
+  // The Architect arena is wider than the viewport; follow without losing Flux.
   if(activeStage===3&&cityBoss.active&&!cityBoss.defeated){
-    cameraX=cityBoss.arenaLeft;
+    const target=architectCameraX(player.x,cityBoss.x,cityBoss.arenaLeft,cityBoss.arenaRight,VIEW_W);
+    cameraX=containArenaPlayer(lerp(cameraX,target,1-Math.exp(-7*dt)),player.x,cityBoss.arenaLeft,cityBoss.arenaRight,VIEW_W);
     cameraY=0;return;
   }
   if(activeStage===3&&cityBoss.defeated&&player.x>=cityBoss.arenaLeft){
@@ -3537,7 +3541,19 @@ function updateTrail(dt) {
   player.trail = player.trail.filter((dot) => dot.life > 0).slice(-24);
 }
 
+function currentDashStatus(){
+  if(!gameStarted||paused||gameCleared||cinematic.active||stageArrival.active||defeat)return "hidden";
+  if(riftPreview.active)return riftPreview.dashStatus;
+  return dashIndicatorState({unlocked:dashUnlocked(),available:airDash.available,active:airDash.active,blocked:!!rubro.transformTime||dashAltar.active});
+}
+function syncDashButton(){
+  const button=document.querySelector('[data-key=" "]'),state=currentDashStatus();
+  if(button.dataset.dashState===state)return;
+  button.dataset.dashState=state;
+  button.setAttribute("aria-label",state==="ready"?"Pular · Dash carregado, toque novamente no ar":state==="spent"?"Pular · Dash recarrega ao pousar":state==="active"?"Pular · Dash em uso":"Pular");
+}
 function draw() {
+  syncDashButton();
   ctx.clearRect(0, 0, VIEW_W, VIEW_H);
   if(riftPreview.active){riftPreview.draw(ctx,VIEW_W,VIEW_H);return;}
 
@@ -4371,6 +4387,7 @@ function drawMinimalHud(mobile){
   }
   ctx.textAlign="left";
 
+  drawDashCharge(ctx,currentDashStatus());
   // A thin boost gauge stays between the counters, without a bulky card.
   ctx.fillStyle="rgba(8,30,46,.72)";
   roundRect(291,26,370,18,9);ctx.fill();
@@ -4487,6 +4504,10 @@ function playSfx(kind) {
     "secret-start": [470, 680, .25, "triangle", .025],
     "secret-win": [550, 1280, .48, "sine", .043],
     achievement: [660, 1100, .45, "sine", .04],
+    "sovereign-volley": [190,440,.22,"triangle",.023],
+    "sovereign-laser": [480,1350,.55,"sawtooth",.019],
+    "sovereign-orb": [620,130,.62,"sine",.033],
+    "sovereign-gravity": [120,680,.65,"triangle",.028],
     "boss-alert": [220, 410, 0.29, "triangle", 0.031],
     "boss-enter": [105, 385, 0.95, "sawtooth", 0.026],
     "boss-collapse": [625, 75, 1.45, "sawtooth", 0.047],
@@ -5166,13 +5187,20 @@ if(import.meta.env.DEV&&new URLSearchParams(location.search).has("rift-qa")){
       cameraX=clamp(x-360,0,WORLD_W-VIEW_W);cameraY=clamp(player.y-295,0,WORLD_H-VIEW_H);
       gameCleared=false;resumeRiftScreen();riftQAFrozen=true;draw();syncRubroButton();
     },
+    combatReadabilityScenario({bossX=45500,energyX=45900}={}){
+      const sample=createOriginalRift({drawFlux:(actor,fx,t)=>drawFluxBody({...actor,campaignAppearance:true},fx,t),drawSovereign:(...args)=>cinemaSovereign(...args),drawAlicia:(...args)=>cinemaAlicia(...args),onFrame(s){
+        Object.assign(s,{x:44500,y:632,vx:0,vy:0,cameraX:44100,cameraY:280,messageTime:0,dashReady:true});
+        Object.assign(s.boss,{mode:"scarlet",x:bossX,y:560,hp:6,maxHp:6,resonance:{x:energyX,y:608,warning:0}});
+      }});
+      sample.start(9);sample.update(1/120,new Set());sample.draw(ctx,VIEW_W,VIEW_H);
+    },
     altarScenario(coreIds){
       campaign.stage1Completed=campaign.stage2Completed=campaign.stage3Completed=true;
       for(let i=0;i<3;i++)campaign.extras.cores["stage"+(i+1)]=coreIds[i];
       startRiftPreview(true);riftQAFrozen=true;for(let i=0;i<100;i++)riftPreview.update(1/120,new Set());draw();
       return riftPreview.info();
     },
-    gameInfo:()=>({defeat:defeat?{...defeat}:null,stage:activeStage,x:player.x,y:player.y,vx:player.vx,vy:player.vy,crystals:player.rings,onGround:player.onGround,sliding:player.sliding,boosting:player.boosting,dash:{...airDash},rubro:{...rubro},time:gameTime,damage:runDamageCount,walls:walls.map(w=>({...w})),tunnels:tunnels.map(w=>({...w}))}),
+    gameInfo:()=>({cameraX,cameraY,dashStatus:currentDashStatus(),defeat:defeat?{...defeat}:null,stage:activeStage,x:player.x,y:player.y,vx:player.vx,vy:player.vy,crystals:player.rings,onGround:player.onGround,sliding:player.sliding,boosting:player.boosting,dash:{...airDash},rubro:{...rubro},time:gameTime,damage:runDamageCount,walls:walls.map(w=>({...w})),tunnels:tunnels.map(w=>({...w}))}),
     stepGame(inputs=[],frames=1){
       const wasJump=keys.has(" ");keys.clear();for(const key of inputs)keys.add(key);
       if(keys.has(" ")&&!wasJump){if(!player.onGround&&dashUnlocked())startAirDash();else jumpBuffer=.13;}

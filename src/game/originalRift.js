@@ -1,3 +1,4 @@
+import {dashIndicatorState} from "./combatReadability.js";
 import {createPocketReality,updatePocketReality} from "./pocketReality.js";
 import {createDefeat,sampleDefeat} from "./defeat.js";
 import {RUBRO,createRubroState,updateRubro,resetRubro,rubroCanBreak} from "./rubro.js";
@@ -325,7 +326,8 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
   }
   advanceSovereign(b,s,dt,{
    surfaceAt(x){const p=layout.platforms.find(p=>p.orientation==="floor"&&x>=p.x1&&x<=p.x2);return p?platformSurface(p,x,s.time):510;},
-   warnGravity(){s.gravityWarning=1;announce("O SOBERANO VAI INVERTER A GRAVIDADE · PREPARE O SALTO",2);},
+   warnAttack(kind){onSound("sovereign-"+kind);},
+   warnGravity(){onSound("sovereign-gravity");s.gravityWarning=1;announce("O SOBERANO VAI INVERTER A GRAVIDADE · PREPARE O SALTO",2);},
    flipGravity(g){s.gravity=g;s.vy=0;s.grounded=false;s.dashReady=true;s.phaseFlash=.7;onSound("portal-enter");},
    barrierHit(){damage(true);announce("BARREIRA DA RUPTURA · TODOS OS CRISTAIS PERDIDOS",3);},
    awaken(){s.boost=s.capacity;burst(s.x,s.y,"#ff466e",20);onSound("boss-crack");announce("RESSONÂNCIA · FLUX RUBRO POR 7,5s",3);}
@@ -352,7 +354,7 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
   sector:riftSectorAt(s.x).name};}
  return {start,resumeStory,stop(){s.active=false;},respawn,update,info,
   draw(ctx,W=960,H=540){drawOriginalRift(ctx,s,layout,{W,H,drawFlux,drawSovereign,drawAlicia,ghost:ghostAt(s.time)});},
-  get active(){return s.active;},get crystals(){return s.crystals;},get ending(){return Boolean(s.victory);},get rubroLocked(){return Boolean(s.pocket)||s.arenaStarted&&!s.finished;},get musicSection(){return s.finished||s.victory?8:s.boss.mode==="scarlet"?7:s.boss.mode==="arena"||s.boss.mode==="invincible"?6:s.boss.mode==="chase"?4:riftSectorAt(s.x).music;}};
+  get dashStatus(){const p=s.pocket||s;return dashIndicatorState({available:p.dashReady,active:p.dash>0,blocked:!!(s.dead||s.story||s.victory||s.finished||rubroState.transformTime)});},get active(){return s.active;},get crystals(){return s.crystals;},get ending(){return Boolean(s.victory);},get rubroLocked(){return Boolean(s.pocket)||s.arenaStarted&&!s.finished;},get musicSection(){return s.finished||s.victory?8:s.boss.mode==="scarlet"?7:s.boss.mode==="arena"||s.boss.mode==="invincible"?6:s.boss.mode==="chase"?4:riftSectorAt(s.x).music;}};
 }
 export function enemyPosition(e,i,time){
  const x=e.x+Math.sin(time*1.9+i)*e.range;
