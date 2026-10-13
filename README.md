@@ -1,4 +1,8 @@
-# Velocity Rift — Uma Flor, Enfim (versão 4.2.3)
+# Velocity Rift — Uma Flor, Enfim (versão 4.2.4)
+
+## 4.2.4 — Energia Rubra (APK R27)
+
+- Energia Rubra concede 2 cristais por coleta, em vez de 8.
 
 ## 4.2.3 — Clareza no combate (APK R26)
 

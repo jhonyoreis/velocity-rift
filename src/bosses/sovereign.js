@@ -87,7 +87,7 @@ export function advanceSovereign(b,s,dt,hooks){
    b.resonance.warning=Math.max(0,b.resonance.warning-dt);
    b.resonance.y=s.gravity===1?608:192;
    if(b.resonance.warning===0&&Math.hypot(s.x-b.resonance.x,s.y-b.resonance.y)<55){
-    s.scarlet=7.5;s.crystals+=8;s.dashReady=true;b.resonance=null;hooks.awaken();
+    s.scarlet=7.5;s.crystals+=2;s.dashReady=true;b.resonance=null;hooks.awaken();
    }
   }
  }
