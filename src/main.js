@@ -1,4 +1,4 @@
-import {createForestTwoWorld,FACTORY,pressState} from "./levels/forestTwo.js";
+import {createForestTwoWorld,FACTORY,pressState,pressCrushes} from "./levels/forestTwo.js";
 import {createHelix,advanceHelix} from "./bosses/helix.js";
 import {forestTwoScore} from "./audio/forestTwoScore.js";
 import {drawForestTwoBackdrop,drawForestTwoGround,drawPresses,drawWornWalker,drawHelix} from "./rendering/forestTwo.js";
@@ -2852,7 +2852,7 @@ function update(dt) {
   if(!gameStarted||defeat)return;
   updateCityBoss(dt);
   if(isForestTwo()){
-    for(const p of forestTwoWorld.presses){const state=pressState(p,gameTime);if(state.active&&Math.abs(player.x-p.x)<p.w/2+PLAYER_RADIUS&&player.y>p.y-155)damagePlayer(false);}
+    for(const p of forestTwoWorld.presses)if(pressCrushes(p,gameTime,player,PLAYER_RADIUS))damagePlayer(false,{crush:true});
     const previousHelixState=helix.active+":"+helix.defeated;
     if(!defeat)advanceHelix(helix,player,dt,{damage:()=>damagePlayer(false),dashing:()=>airDash.active,sound:playSfx,notice:announce,burst:(x,y)=>{emitParticles(x,y,"#b1ffdc",36,190);shakeTime=.2;}});
     if(previousHelixState!==helix.active+":"+helix.defeated){musicStep=0;syncTrackLabel();}
@@ -3561,8 +3561,8 @@ function updateCheckpoints() {
     }
   });
 }
-function damagePlayer(fall) {
- if(defeat||debugMode||(player.invulnerable>0&&!fall)||!gameStarted)return;
+function damagePlayer(fall,{crush=false}={}) {
+ if(defeat||debugMode||(player.invulnerable>0&&!fall&&!crush)||!gameStarted)return;
  if(airDash.active){airDash.active=false;airDash.time=0;}
  runDamageCount++;
  interruptSecretTrials();
@@ -3573,7 +3573,7 @@ function damagePlayer(fall) {
  emitParticles(player.x,player.y,"#ff896d",13,155);
  playSfx("hurt");
  player.rubroAtDefeat=rubro.active;
- const result=calculateCrystalDamage(player.rings,{fall,rubro:rubro.active});
+ const result=calculateCrystalDamage(player.rings,{fall,rubro:rubro.active,crush});
  player.rings=result.remaining;
  if(player.rings===0)resetRubro(rubro);
  if(result.dead){
@@ -5244,12 +5244,12 @@ draw();
 if(import.meta.env.DEV&&new URLSearchParams(location.search).has("rift-qa")){
   window.__riftQA={freeze(){riftQAFrozen=true;},info:()=>riftPreview.info(),
     step(inputs,render=true){riftPreview.update(1/120,new Set(inputs));syncRubroButton();if(render){if(cinematic.active)drawCinematic();else draw();}},
-    setupScenario({stage=1,part=1,x=180,crystals=0,completed=false,vx=0}={}){
+    setupScenario({stage=1,part=1,x=180,crystals=0,completed=false,vx=0,invulnerable=0}={}){
       forestPart=part;
       riftPreview.stop();activateStage(stage);resetGame();debugMode=false;fullTestMode=false;debugUsedThisRun=false;
       progress.stage4.completed=completed;campaign.stage4Completed=completed;campaign.aerialDash=part!==2;
       player.x=x;player.prevX=x;player.y=(groundY(x)??420)-PLAYER_RADIUS;player.prevY=player.y;
-      player.onGround=true;player.ground=tracks.find(p=>x>=p.x1&&x<=p.x2&&!p.secretId);player.rings=crystals;player.boost=part===2?0:boostCapacity();player.vx=vx;
+      player.invulnerable=invulnerable;player.onGround=true;player.ground=tracks.find(p=>x>=p.x1&&x<=p.x2&&!p.secretId);player.rings=crystals;player.boost=part===2?0:boostCapacity();player.vx=vx;
       cameraX=clamp(x-360,0,WORLD_W-VIEW_W);cameraY=clamp(player.y-295,0,WORLD_H-VIEW_H);
       gameCleared=false;resumeRiftScreen();riftQAFrozen=true;draw();syncRubroButton();
     },

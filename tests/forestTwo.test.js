@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createForestTwoWorld,pressState} from '../src/levels/forestTwo.js';
-import {createHelix,advanceHelix} from '../src/bosses/helix.js';
+import {createForestTwoWorld,pressState,pressCrushes} from '../src/levels/forestTwo.js';
+import {createHelix,advanceHelix,helixTempo} from '../src/bosses/helix.js';
 import {createEnemy as enemy} from '../src/game/enemies.js';
 import {yOnTrack} from '../src/game/geometry.js';
 import {forestTwoScore} from '../src/audio/forestTwoScore.js';
@@ -23,4 +23,23 @@ test('Helix locks arena, exposes a reactor reachable without Dash, and stops haz
 });
 test('new score varies through eight bars and develops an industrial layer',()=>{
  const a=Array.from({length:128},(_,i)=>forestTwoScore(i));assert.ok(new Set(a.map(s=>JSON.stringify(s.notes))).size>24);assert.ok(forestTwoScore(3,1).metal);assert.equal(forestTwoScore(3,0).metal,false);assert.equal(forestTwoScore(0,1,true).bpm,132);
+});
+
+test('crush requires a closed head and actual contact; warnings and overhead routes remain safe',()=>{
+ const press={x:100,y:450,w:94,phase:0,period:3.8};
+ assert.equal(pressCrushes(press,1.9,{x:100,y:432}),false);
+ assert.equal(pressCrushes(press,2.27,{x:100,y:432}),false);
+ assert.equal(pressCrushes(press,2.5,{x:100,y:432}),true);
+ assert.equal(pressCrushes(press,2.5,{x:200,y:432}),false);
+ assert.equal(pressCrushes(press,2.5,{x:100,y:330}),false);
+});
+test('every Helix wound shortens the full attack cycle without skipping its warning',()=>{
+ const intervals=[];
+ for(const hp of [4,3,2,1]){
+  const b=createHelix();b.hp=hp;const p={x:11300,y:300,vy:0,vx:0,boosting:false};let elapsed=0;const warnings=[];
+  const hooks={damage(){},sound(s){if(s==='boss-alert')warnings.push(elapsed);},notice(){},burst(){},dashing:()=>false};
+  while(warnings.length<3){elapsed+=1/120;advanceHelix(b,p,1/120,hooks);}
+  intervals.push(warnings[2]-warnings[1]);assert.ok(1.2/helixTempo(hp)>.75);
+ }
+ for(let i=1;i<intervals.length;i++)assert.ok(intervals[i]<intervals[i-1]-.4);
 });

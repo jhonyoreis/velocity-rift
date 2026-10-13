@@ -18,6 +18,11 @@ try{
    await page.evaluate(x=>{window.__riftQA.setupScenario({part:2,x});window.__riftQA.stepGame([],1);},x);
    await page.waitForTimeout(220);await page.screenshot({path:`test-artifacts/visual/${mobile?'android':'desktop'}-forest2-${name}.png`});
   }
+  // Crushing bypasses crystals, Rubro and ordinary hit protection.
+  for(const rubro of [false,true]){
+   const crushed=await page.evaluate(rubro=>{const a=window.__riftQA;a.setupScenario({part:2,x:3690,crystals:100,completed:rubro,invulnerable:10});if(rubro){a.transformRubro();a.stepGame([],130);}return a.stepGame([],360);},rubro);
+   assert.ok(crushed.defeat,"press must kill through crystals and invulnerability");assert.equal(crushed.crystals,0);assert.equal(crushed.defeat.fall,false);
+  }
   // Checkpoint retry resets the boss and puts reachable crystals ahead.
   await page.evaluate(()=>{const a=window.__riftQA;a.setupScenario({part:2,x:10990});a.stepGame([],2);a.takeHit();a.stepGame([],180);});
   await page.locator('#deathRestartButton').click();

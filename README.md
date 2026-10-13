@@ -1,4 +1,9 @@
-# Velocity Rift — Uma Flor, Enfim (versão 4.3.0)
+# Velocity Rift — Uma Flor, Enfim (versão 4.3.1)
+
+## 4.3.1 — Prensas e ritmo do Titã (APK R29 experimental)
+
+- Esmagamento efetivo pela prensa é fatal, mesmo com cristais, Rubro e proteção temporária de dano.
+- Titã Helix acelera o ciclo de ataques a cada acerto: de 6,6 segundos até cerca de 4,3 segundos, mantendo o aviso antes do impacto.
 
 ## 4.3.0 — Floresta Neon 2 (APK R28 experimental)
 

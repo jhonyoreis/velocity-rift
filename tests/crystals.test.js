@@ -11,3 +11,7 @@ test("regular hit costs at least eight or thirty-five percent",()=>{
  assert.deepEqual(calculateCrystalDamage(5),{remaining:0,lost:5,dead:false});
  assert.deepEqual(calculateCrystalDamage(0),{remaining:0,lost:0,dead:true});
 });
+
+test("crushing kills through any crystal reserve and Rubro resistance",()=>{
+ for(const rubro of [true,false])for(const n of [0,1,20,1000])assert.deepEqual(calculateCrystalDamage(n,{crush:true,rubro}),{remaining:0,lost:n,dead:true});
+});

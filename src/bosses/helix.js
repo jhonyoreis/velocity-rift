@@ -1,4 +1,5 @@
 import {FACTORY} from '../levels/forestTwo.js';
+export function helixTempo(hp){return 1+Math.max(0,Math.min(3,4-hp))*.18;}
 export function createHelix(){return {active:false,defeated:false,hp:4,maxHp:4,x:FACTORY.arenaLeft+690,y:302,time:0,cycle:-1,aim:0,waves:[],hitCooldown:0,collapse:0,exposed:false};}
 // One attack at a time: target locks before impact, ground waves are jumpable,
 // and the lowered reactor is reachable without the later aerial Dash upgrade.
@@ -6,7 +7,7 @@ export function advanceHelix(b,p,dt,hooks){
  if(b.defeated){b.collapse+=dt;return;}
  if(!b.active){if(p.x<FACTORY.arenaLeft+65)return;b.active=true;hooks.sound('boss-enter');hooks.notice('TITÃ HELIX','Salte no reator aberto ou use Boost.');}
  p.x=Math.max(FACTORY.arenaLeft+18,Math.min(FACTORY.arenaRight-18,p.x));
- b.time+=dt;b.hitCooldown=Math.max(0,b.hitCooldown-dt);
+ b.tempo=helixTempo(b.hp);b.time+=dt*b.tempo;b.hitCooldown=Math.max(0,b.hitCooldown-dt);
  const duration=6.6,cycle=Math.floor(b.time/duration),phase=b.time%duration;
  if(cycle!==b.cycle){b.cycle=cycle;b.aim=Math.max(FACTORY.arenaLeft+110,Math.min(FACTORY.arenaRight-110,p.x));b.fired=false;hooks.sound('boss-alert');}
  b.warning=phase<1.2;b.strike=phase>=1.2&&phase<1.5;b.exposed=phase>=2.6&&phase<5.4;

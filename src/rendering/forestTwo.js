@@ -94,7 +94,7 @@ export function drawHelix(c,b,time,goal){
  const scale=b.defeated?Math.max(.6,1-b.collapse*.06):1;c.scale(scale,scale);
  // Huge suspended turbine with asymmetric broken armour and a breathing reactor.
  line(c,-60,-220,-60,-63,'#648075',12);line(c,65,-220,65,-63,'#4a655e',12);
- gear(c,0,-12,82,b.defeated?0:time*(b.exposed?.8:.23),'#556964');
+ gear(c,0,-12,82,b.defeated?0:time*(b.exposed?.8:.23)*(b.tempo||1),'#556964');
  for(const side of [-1,1]){c.save();c.scale(side,1);c.fillStyle='#344a49';c.beginPath();c.moveTo(40,-70);c.lineTo(102,-52);c.lineTo(114,21);c.lineTo(82,49);c.lineTo(53,33);c.closePath();c.fill();line(c,70,-47,90,17,'#a38c61',5);c.restore();}
  c.fillStyle='#142d32';c.beginPath();c.arc(0,0,47,0,TAU);c.fill();
  const color=b.defeated?'#3d6359':b.exposed?'#acffe6':'#edb965';const glow=c.createRadialGradient(0,0,4,0,0,69);glow.addColorStop(0,color+'a0');glow.addColorStop(1,color+'00');c.fillStyle=glow;c.fillRect(-70,-70,140,140);

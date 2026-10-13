@@ -1,3 +1,4 @@
+import {circleRect} from "../game/geometry.js";
 // A continuous forest floor becomes an abandoned turbine hall. Upper paths
 // offer speed and crystals; missing a jump returns to the lower route.
 export const FACTORY={entrance:6100,arenaLeft:11200,arenaRight:12200,exit:12900};
@@ -26,3 +27,11 @@ export function createForestTwoWorld({track,rect,enemy,orb,yOnTrack,PLAYER_RADIU
 }
 // Long readable charge, brief impact, then a generous safe crossing window.
 export function pressState(press,time){const t=(time+press.phase)%press.period;return {warning:t>=1.5&&t<2.25,active:t>=2.25&&t<2.7,extension:t<2.25?0:t<2.4?Math.min(1,(t-2.25)/.15):t<2.7?1:Math.max(0,1-(t-2.7)/.65)};}
+
+// A fatal crush only occurs once the head closes against the solid floor.
+export function pressCrushes(press,time,player,radius=18){
+ const state=pressState(press,time);
+ if(!state.active||state.extension<.9)return false;
+ const top=press.y-185+145*state.extension;
+ return circleRect(player.x,player.y,radius,{x:press.x-press.w/2,y:top,w:press.w,h:press.y-top});
+}
