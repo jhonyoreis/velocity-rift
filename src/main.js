@@ -3563,6 +3563,9 @@ function draw() {
   drawDashAltarOverlay();
   drawSentryShots();
   drawCityBoss();
+  if(activeStage===3)for(const ring of rings){
+    if(ring.arenaCrystal&&ring.active)renderCrystal(ctx,ring,visualTime);
+  }
   drawArchitectGroundRifts();
   drawCityExit();
   drawGuardian();
@@ -3969,7 +3972,7 @@ function drawObjects() {
   }
 
   for(const ring of rings){
-    if(ring.active)renderCrystal(ctx,ring,visualTime);
+    if(ring.active&&!ring.arenaCrystal)renderCrystal(ctx,ring,visualTime);
   }
 
   for (const boostOrb of boostOrbs) {

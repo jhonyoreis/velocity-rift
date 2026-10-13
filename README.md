@@ -1,4 +1,9 @@
-# Velocity Rift — Uma Flor, Enfim (versão 4.2.1)
+# Velocity Rift — Uma Flor, Enfim (versão 4.2.2)
+
+## 4.2.2 — Apoio nas batalhas (APK R25)
+
+- A energia Rubro do Soberano volta a conceder 8 cristais por coleta. Acertar o chefe continua sem conceder cristais.
+- Um cristal fica disponível no chão, perto da entrada da arena do Arquiteto; reiniciar pelo checkpoint restaura sua coleta.
 
 ## 4.2.1 — Ruínas entre realidades (APK R24)
 

@@ -1,4 +1,4 @@
-# Velocity Rift 4.2.1 — APK R24
+# Velocity Rift 4.2.2 — APK R25
 
 A quarta fase encerra a campanha. O portão inicial continua exigindo nove
 núcleos distintos das primeiras três regiões da campanha atual. Há retorno
@@ -87,7 +87,7 @@ invertida. Capturas ficam em `test-artifacts/visual/` no workflow de validação
 
 A validação de navegador não substitui jogar no aparelho físico. No APK:
 
-1. Conferir **v4.2.1 · APK R24** e a coleção anterior após instalar.
+1. Conferir **v4.2.2 · APK R25** e a coleção anterior após instalar.
 2. Testar Pular, segunda pressão para Dash, Boost e Slide simultâneos.
 3. Alternar os pedestais e conferir legibilidade dos sinais em tela pequena.
 4. Ouvir os movimentos e ajustar volumes de música/efeitos conforme desejado.
@@ -142,3 +142,9 @@ A validação de navegador não substitui jogar no aparelho físico. No APK:
 - Conferir Orbe perseguindo mudanças de direção e desaparecendo no fim da vida útil.
 - Confirmar cristais inalterados após acerto no Soberano e coleta de ressonância.
 - Inspecionar cenários e perigos em desktop e Android horizontal, além da campanha completa.
+
+## Apoio nas batalhas — R25
+
+- Coletar energia Rubro: +8 cristais, uma única vez por energia. Acertar o Soberano continua sem dar cristais.
+- Entrar na arena do Arquiteto com zero cristais, coletar o cristal próximo à entrada pelo chão e confirmar proteção contra um dano.
+- Confirmar que não há coleta repetida; retornar pelo checkpoint restaura o cristal.

@@ -57,6 +57,19 @@ try{
   await page.evaluate(()=>window.__riftQA.stepGame(["arrowright","arrowdown"],65));
   await page.screenshot({path:`${folder}/${prefix}-canyon-slide-ramp.png`});
   s=await page.evaluate(()=>window.__riftQA.stepGame(["arrowright","arrowdown"],60));assert.ok(s.x>3740,`Slide cannot cross canyon ramp: ${s.x}`);assert.equal(s.damage,0);
+  // Collect the Architect arena crystal through normal movement, survive one hit,
+  // then die and use the actual checkpoint button to collect it again.
+  await page.evaluate(()=>window.__riftQA.setupScenario({stage:3,x:21810,crystals:0,completed:true}));
+  await page.screenshot({path:`${folder}/${prefix}-architect-crystal-available.png`});
+  s=await page.evaluate(()=>{const api=window.__riftQA;for(let i=0;i<720;i++){const s=api.stepGame(["arrowright"]);if(s.crystals===1)return s;}return api.gameInfo();});
+  assert.equal(s.crystals,1,JSON.stringify(s));assert.ok(s.x>22000);assert.equal(s.defeat,null);
+  await page.screenshot({path:`${folder}/${prefix}-architect-crystal.png`});
+  s=await page.evaluate(()=>window.__riftQA.stepGame([],15));assert.equal(s.crystals,1,"one pickup only");
+  s=await page.evaluate(()=>window.__riftQA.takeHit());assert.equal(s.crystals,0);assert.equal(s.defeat,null,"one crystal protects from the first hit");
+  await page.evaluate(()=>{window.__riftQA.takeHit();window.__riftQA.stepGame([],150);});
+  await page.locator("#deathMenu").waitFor({state:"visible"});await page.locator("#deathRestartButton").click();
+  s=await page.evaluate(()=>{const api=window.__riftQA;for(let i=0;i<720;i++){const s=api.stepGame(["arrowright"]);if(s.crystals===1)return s;}return api.gameInfo();});
+  assert.equal(s.crystals,1,"checkpoint restores the arena crystal");assert.equal(s.defeat,null);
   const altar=await page.evaluate(()=>window.__riftQA.altarScenario([[0,2],[1],[]]));
   assert.equal(altar.cores,3);assert.deepEqual(altar.coreSlots,[true,false,true,false,true,false,false,false,false]);assert.equal(altar.gateOpened,false);
   await page.screenshot({path:`${folder}/${prefix}-altar-missing.png`});

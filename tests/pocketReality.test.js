@@ -42,8 +42,8 @@ test("new trial routes have real gaps, paired lasers and live sentinels",()=>{
  p.x=p.enemies[0].x-100;p.y=p.enemies[0].y+100;for(let i=0;i<170;i++)updatePocketReality(p,1/120,new Set());assert.ok(p.shots.length>0);
  }assert.notDeepEqual(routes[0],routes[1]);assert.notDeepEqual(routes[1],routes[2]);
 });
-test("Sovereign resonance grants Rubro without awarding crystals",()=>{
- const b=createSovereign();b.mode="scarlet";b.resonance={x:44500,y:608,warning:0};const s={x:44500,y:608,gravity:1,crystals:17};advanceSovereign(b,s,1/120,{surfaceAt:()=>650,warnGravity(){},flipGravity(){},barrierHit(){},awaken(){}});assert.equal(s.scarlet,7.5);assert.equal(s.crystals,17);
+test("Sovereign resonance grants Rubro and eight crystals once per pickup",()=>{
+ const b=createSovereign();b.mode="scarlet";b.resonance={x:44500,y:608,warning:0};const s={x:44500,y:608,gravity:1,crystals:17};advanceSovereign(b,s,1/120,{surfaceAt:()=>650,warnGravity(){},flipGravity(){},barrierHit(){},awaken(){}});assert.equal(s.scarlet,7.5);assert.equal(s.crystals,25);assert.equal(b.resonance,null);advanceSovereign(b,s,1/120,{surfaceAt:()=>650,warnGravity(){},flipGravity(){},barrierHit(){},awaken(){}});assert.equal(s.crystals,25);
 });
 test("successful Sovereign damage does not generate crystals",()=>{
  let first=true;const r=createOriginalRift({onFrame:s=>{if(first){first=false;Object.assign(s,{x:44500,y:560,vx:0,vy:0,crystals:40,invincible:2,gravity:1,dimension:0,chaseDone:true,arenaStarted:true,dash:.2,dashFacing:1});Object.assign(s.boss,{mode:"arena",clock:3.8,cycle:0,x:44500,y:560,hp:5,maxHp:5,vulnerable:true,hitCooldown:0,volleyFired:true,beamFired:true});}}});r.start(9);tick(r);const s=tick(r);assert.equal(s.boss.hp,4);assert.equal(s.crystals,40);

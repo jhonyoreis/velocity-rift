@@ -1,4 +1,4 @@
-import {createRiftCorridor,RIFT_CORRIDOR_START,RIFT_WORLD_WIDTH} from "./riftCorridor.js";
+import {createRiftCorridor,RIFT_CORRIDOR_START,RIFT_BOSS_ARENA_LEFT,RIFT_WORLD_WIDTH} from "./riftCorridor.js";
 
 export function createStageThreeWorld({track,rect,enemy,orb,PLAYER_RADIUS,WORLD_H}){
   // Rooftops are safer elevated shortcuts. Streets have more enemies.
@@ -43,6 +43,9 @@ export function createStageThreeWorld({track,rect,enemy,orb,PLAYER_RADIUS,WORLD_
     [13220,14500],[14930,15800],[16200,17300]]){
     for(let x=a;x<b;x+=62)rings.push({x,y:groundY(x)-49,r:8,active:true});
   }
+  // One ground-accessible crystal for the Architect attempt; normal checkpoint reset restores it.
+  const arenaCrystalX=RIFT_BOSS_ARENA_LEFT+220;
+  rings.push({x:arenaCrystalX,y:groundY(arenaCrystalX)-36,r:8,active:true,arenaCrystal:true});
   const signs=[
     [210,"CIDADE DAS FENDAS","TELHADOS SEGUROS · RUAS PERIGOSAS"],
     [1700,"DRONES DE ASSALTO","TIROS DUPLOS · BOOST NÃO BLOQUEIA"],
