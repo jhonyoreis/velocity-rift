@@ -58,8 +58,17 @@ try{
   retry=await page.evaluate(()=>window.__riftQA.stepGame(['arrowright'],45));assert.ok(retry.crystals>0,'boss retry crystals reachable on foot');
   await page.evaluate(()=>window.__riftQA.setupScenario({part:2,x:100}));
   const result=await page.evaluate(()=>{
-   const api=window.__riftQA,world=api.forestWorld();let s=api.gameInfo(),lastJump=false,jumpHold=0;const log=[];
-   for(let i=0;i<60000&&!s.cleared&&!s.defeat;i++){
+   const api=window.__riftQA,world=api.forestWorld();let s=api.gameInfo(),lastJump=false,jumpHold=0;const log=[];let retries=0;
+   // Preserve genuine checkpoint retries under the increased 65% damage.
+    for(let i=0;i<120000&&!s.cleared;i++){
+     if(s.defeat){
+      if(++retries>14)break;
+      api.stepGame([],240,false);
+      document.querySelector('#deathRestartButton').click();
+      s=api.gameInfo();lastJump=false;jumpHold=0;
+      if(s.defeat)break;
+      continue;
+     }
     const keys=['arrowright'];const tunnel=s.tunnels.find(t=>s.x>t.x-155&&s.x<t.x+t.w+35);
     if(tunnel)keys.push('arrowdown');
     const hazard=world.spikes.some(h=>h.x-s.x<130&&h.x+h.w>s.x-15)||world.pulseGates.some(h=>h.x-s.x<125&&h.x>s.x-30);
@@ -86,11 +95,11 @@ try{
     lastJump=keys.includes(' ');s=api.stepGame(keys,1,false);
     if(i%1200===0)log.push({t:s.time,x:s.x,y:s.y,c:s.crystals,hp:s.helix.hp,boost:s.boost});
    }
-   api.stepGame([],0,true);return {s,log};
+   api.stepGame([],0,true);return {s,log,retries};
   });
-  console.log(mobile?'ANDROID':'DESKTOP',JSON.stringify({x:result.s.x,time:result.s.time,crystals:result.s.crystals,hp:result.s.helix.hp,defeat:result.s.defeat,log:result.log}));
+  console.log(mobile?'ANDROID':'DESKTOP',JSON.stringify({x:result.s.x,time:result.s.time,crystals:result.s.crystals,hp:result.s.helix.hp,defeat:result.s.defeat,retries:result.retries,log:result.log}));
   await page.screenshot({path:`test-artifacts/visual/${mobile?'android':'desktop'}-forest2-route-end.png`});
-  assert.equal(result.s.defeat,null,'input-only route survives');assert.ok(result.s.cleared,'complete forest 2 and enter exit');assert.equal(result.s.helix.hp,0);assert.equal(result.s.cores,0);assert.deepEqual(errors,[]);
+  assert.equal(result.s.defeat,null,'route survives with genuine checkpoint retries');assert.ok(result.s.cleared,'complete forest 2 and enter exit');assert.equal(result.s.helix.hp,0);assert.equal(result.s.cores,0);assert.deepEqual(errors,[]);
   const saved=await page.evaluate(()=>window.__riftQA.settleExit());assert.equal(saved.journey.completed,true);assert.equal(saved.journey.pending,false);
   assert.ok(result.s.factory.defeated&&result.s.factory.power<.05,'factory powers down on the way out');
   assert.equal(saved.campaign.records.stage1.bestTime,0,'part two must not overwrite part one records');
