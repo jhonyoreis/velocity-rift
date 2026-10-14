@@ -112,7 +112,7 @@ export function createOriginalRiftLayout(){
   [23900,-1,1],[29800,-1,1],[37400,-1,-1],[42200,0,1]])enemy(x,"rift-triple",dim,g);
  for(const [x,dim,g] of [[5740,-1,1],[8520,-1,-1],[15140,-1,1],[18800,-1,1],
   [27000,-1,1],[35700,-1,-1],[40700,-1,1]])enemy(x,"rift-laser",dim,g);
- for(const [x,dim,g] of [[12800,1,1],[17200,-1,1],[24300,-1,1],[38180,0,-1],[42000,0,1]])enemy(x,"wraith",dim,g);
+ for(const [x,dim,g] of [[12800,1,1],[17200,-1,1],[24300,-1,1],[38460,0,-1],[42000,0,1]])enemy(x,"wraith",dim,g);
  const hazards=[
   {x:5170,y:455,w:72,h:15,type:"spikes",gravity:1},
   {x:8760,y:110,w:64,h:15,type:"spikes",gravity:-1},
