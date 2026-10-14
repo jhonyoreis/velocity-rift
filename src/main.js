@@ -5391,6 +5391,15 @@ if(import.meta.env.DEV&&new URLSearchParams(location.search).has("rift-qa")){
       for(let i=0;i<frames;i++){if(paused)break;riftQAFrozen=false;update(1/120);riftQAFrozen=true;}
       if(render){draw();syncRubroButton();}return this.gameInfo();
     },
+    // Development-only visual test of the last-heart reflected beam warning.
+    prismLastHeartForQA(){
+      if(!isCanyonTwo())return null;
+      Object.assign(guardian,{active:true,defeated:false,hp:1,
+        state:"telegraph",timer:0,lockAim:true,
+        aimX:player.x,aimY:player.y});
+      draw();
+      return this.gameInfo().guardian;
+    },
     tryStartStage(stage,part=1){startGame(stage,true,true,part);return this.gameInfo();},
     completeStageForQA(){gameCleared=true;showResults(123,50,0);return this.gameInfo();},
     settleExit(){for(let i=0;i<240&&stageExit.active;i++)updateStageExit(1/120);return {campaign:{...campaign},journey:{...forestJourney},canyonJourney:{...canyonJourney}};},
