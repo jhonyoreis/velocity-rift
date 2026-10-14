@@ -38,7 +38,7 @@ try{
   // Separately verify the rendered five-heart boss and final triple reflection.
   const pattern=await page.evaluate(()=>{
    const a=window.__riftQA;
-   a.setupScenario({stage:2,part:2,x:34700,crystals:100,invulnerable:20});
+   a.setupScenario({stage:2,part:2,x:35100,crystals:100,invulnerable:20});
    const initialHp=a.gameInfo().guardian.hp;
    const finalHeart=a.prismLastHeartForQA();
    return {initialHp,rays:finalHeart.beams};
