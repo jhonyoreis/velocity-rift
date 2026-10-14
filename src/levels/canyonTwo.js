@@ -32,6 +32,14 @@ export function createCanyonTwoWorld({track,rect,enemy,orb,yOnTrack,PLAYER_RADIU
   const count=a<5000?7:5;
   for(let i=0;i<count;i++){const t=i/(count-1),x=a-55+(b-a+110)*t;rings.push({x,y:floor(x)-36-Math.sin(t*Math.PI)*85,r:8,active:true});}
  }
+ // Recovery reserves are concentrated at the final Guardian approach and arena,
+ // rather than flooding the entire canyon with collectibles.
+ for(let x=33760;x<34800;x+=80){
+  if(!inPit(x))rings.push({x,y:floor(x)-35,r:8,active:true});
+ }
+ for(let x=34840;x<35750;x+=100){
+  rings.push({x,y:floor(x)-48,r:8,active:true});
+ }
  const fallingCrystals=[1100,1390,2800,4330,6020,6250,6900,11000,11480,13020,13200,15720,18300,18510,19680,20520,20700,22020,23650,26900,27100,28180,31420,32900,33950].filter(x=>!inPit(x)).map((x,i)=>({x,ceiling:floor(x)-250,floor:floor(x),width:42,height:88,trigger:180,delay:i===0?1.05:.9}));
  const refractors=[3350,5650,8870,10300,12750,14600,18250,20200,22300,26700,28000,31600,33000].map((x,i)=>({x,floor:floor(x),phase:(i*1.1)%4.4}));
  const enemySpecs=[[690,'walker'],[2040,'drone'],[2640,'walker'],[3750,'drone'],[5380,'walker'],[6770,'walker'],[7370,'drone'],[8250,'sentry'],[9800,'drone'],[10870,'walker'],
