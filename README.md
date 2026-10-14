@@ -1,4 +1,11 @@
-# Velocity Rift — Uma Flor, Enfim (versão 4.6.2)
+# Velocity Rift — Uma Flor, Enfim (versão 4.6.3)
+
+## 4.6.3 — Recuo e Máquinas (APK R36)
+
+- **Floresta Neon 2:** drones desgastados agora atiram projéteis direcionados com um aviso âmbar antes do disparo. As prensas descem em 0,10 segundo (antes 0,15) e permanecem estendidas por 0,85 segundo (antes 0,30), mantendo um aviso visual prévio.
+- **Cânion Prisma 2:** postes refratores mantêm seus lasers ativos por 1,15 segundo (antes 0,62) dentro do mesmo ciclo de 2,9 segundos, com antecipação do aviso.
+- **Fenda Original:** danos normais agora produzem o mesmo recuo para trás e para cima das outras fases (250 horizontal e 450 vertical). A gravidade invertida é respeitada. As regras especiais de cristais da fase final, seus chefes e a progressão foram preservadas.
+- Sem novas fases ou alterações de formato de save.
 
 ## 4.6.2 — A Ira do Prisma (APK R35)
 
