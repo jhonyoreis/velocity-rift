@@ -1,4 +1,4 @@
-export const RUBRO={threshold:20,transformSeconds:.9,speed:1.4,jump:1.22,boost:1.5,dash:1.3,damageFraction:.20,minDamage:4};
+export const RUBRO={threshold:20,transformSeconds:.9,speed:1.4,jump:1.22,boost:1.5,dash:1.3,damageFraction:.10,minDamage:2};
 export const createRubroState=()=>({active:false,transformTime:0});
 export function activateRubro(state,unlocked,crystals){
  if(!unlocked||crystals<RUBRO.threshold||state.active||state.transformTime>0)return false;
