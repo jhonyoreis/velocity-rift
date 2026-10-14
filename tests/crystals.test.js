@@ -20,3 +20,8 @@ test("Rubro retains its established protection during crystal rebalance",()=>{
  assert.deepEqual(calculateCrystalDamage(100,{rubro:true}),{remaining:90,lost:10,dead:false});
  assert.deepEqual(calculateCrystalDamage(10,{rubro:true}),{remaining:8,lost:2,dead:false});
 });
+
+test("scripted final chapter retains the original damage balance",()=>{
+ assert.deepEqual(calculateCrystalDamage(100,{baseFraction:.35,baseMinimum:8}),{remaining:65,lost:35,dead:false});
+ assert.deepEqual(calculateCrystalDamage(20,{baseFraction:.35,baseMinimum:8}),{remaining:12,lost:8,dead:false});
+});
