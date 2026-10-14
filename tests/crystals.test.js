@@ -16,7 +16,7 @@ test("crushing kills through any crystal reserve and Rubro resistance",()=>{
  for(const rubro of [true,false])for(const n of [0,1,20,1000])assert.deepEqual(calculateCrystalDamage(n,{crush:true,rubro}),{remaining:0,lost:n,dead:true});
 });
 
-test("Rubro protection still applies, but hits cost more crystals",()=>{
- assert.deepEqual(calculateCrystalDamage(100,{rubro:true}),{remaining:80,lost:20,dead:false});
- assert.deepEqual(calculateCrystalDamage(10,{rubro:true}),{remaining:6,lost:4,dead:false});
+test("Rubro retains its established protection during crystal rebalance",()=>{
+ assert.deepEqual(calculateCrystalDamage(100,{rubro:true}),{remaining:90,lost:10,dead:false});
+ assert.deepEqual(calculateCrystalDamage(10,{rubro:true}),{remaining:8,lost:2,dead:false});
 });
