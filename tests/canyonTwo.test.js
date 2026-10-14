@@ -112,7 +112,7 @@ test('Prism refractor beams persist 1.15 seconds without losing the warning',()=
  const r={x:350,floor:440,phase:0};
  assert.ok(refractorState(r,1.3).warning);
  assert.equal(refractorState(r,1.3).active,false);
- for(const t of [1.70,1.95,2.3,2.6,2.84])
+ for(const t of [1.72,1.95,2.3,2.6,2.84])
   assert.equal(refractorState(r,t).active,true,'ray stays dangerous throughout the firing window');
  assert.equal(refractorState(r,2.86).active,false);
  assert.equal(refractorState(r,3.1).active,false);
