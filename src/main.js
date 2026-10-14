@@ -1,6 +1,6 @@
 import {createCanyonTwoWorld,prepareCanyonOne,SANCTUARY} from "./levels/canyonTwo.js";
-import {createCaveHazards,advanceFallingCrystal,refractorState,beamTouches,reflectedGuardianLine} from "./game/canyonHazards.js";
-import {drawCanyonTwoBackdrop,drawCanyonTwoGround,drawCaveHazards,drawCaveTunnel} from "./rendering/canyonTwo.js";
+import {createCaveHazards,advanceFallingCrystal,refractorState,beamTouches,reflectedGuardianLine,advanceCaveBridge,resetCaveBridge} from "./game/canyonHazards.js";
+import {drawCanyonTwoBackdrop,drawCanyonTwoGround,drawCaveHazards,drawCaveTunnel,drawCanyonWaterfalls} from "./rendering/canyonTwo.js";
 import {canyonTwoScore} from "./audio/canyonTwoScore.js";
 import {createForestTwoWorld,FACTORY,pressState,pressCrushes} from "./levels/forestTwo.js";
 import {createHelix,advanceHelix} from "./bosses/helix.js";
@@ -141,8 +141,8 @@ try{const j=JSON.parse(localStorage.getItem("velocity-rift-forest2-experiment")|
 function saveForestJourney(){try{localStorage.setItem("velocity-rift-forest2-experiment",JSON.stringify(forestJourney));}catch(_){}}
 function isForestTwo(){return activeStage===1&&forestPart===2;}
 let canyonPart=1;
-const canyonJourney={pending:false,completed:false,bestTime:0,clears:0};
-try{const j=JSON.parse(localStorage.getItem("velocity-rift-canyon2-experiment")||"{}");canyonJourney.pending=j.pending===true;canyonJourney.completed=j.completed===true;canyonJourney.bestTime=Number.isFinite(j.bestTime)&&j.bestTime>0?j.bestTime:0;canyonJourney.clears=Number.isInteger(j.clears)&&j.clears>0?j.clears:0;}catch(_){}
+const canyonJourney={pending:false,completed:false,bestTime:0,clears:0,layoutVersion:2,previousLayoutBestTime:0};
+try{const j=JSON.parse(localStorage.getItem("velocity-rift-canyon2-experiment")||"{}");canyonJourney.pending=j.pending===true;canyonJourney.completed=j.completed===true;const validBest=Number.isFinite(j.bestTime)&&j.bestTime>0?j.bestTime:0;canyonJourney.bestTime=j.layoutVersion===2?validBest:0;canyonJourney.previousLayoutBestTime=j.layoutVersion===2?(Number.isFinite(j.previousLayoutBestTime)?j.previousLayoutBestTime:0):validBest;canyonJourney.clears=j.layoutVersion===2&&Number.isInteger(j.clears)&&j.clears>0?j.clears:0;}catch(_){}
 function saveCanyonJourney(){try{localStorage.setItem("velocity-rift-canyon2-experiment",JSON.stringify(canyonJourney));}catch(_){}}
 function isCanyonTwo(){return activeStage===2&&canyonPart===2;}
 function isSecondPart(){return isForestTwo()||isCanyonTwo();}
@@ -577,6 +577,7 @@ function activateStage(stage=1) {
 }
 
 function secretPlatformSolid(floor){
+  if(floor.kind==="cave-crumble")return !floor.broken;
   if(floor.kind==="rift-phase")return riftPlatformPhase(floor,gameTime).solid;
   if(!floor.secretId)return true;
   const trial=secretTrials.find(t=>t.id===floor.secretId);
@@ -591,6 +592,7 @@ function secretPlatformSolid(floor){
 }
 function updateMovingPlatforms(dt) {
   for(const floor of tracks){
+    if(floor.kind==="cave-crumble"){advanceCaveBridge(floor,player.onGround&&player.ground===floor,dt);continue;}
     if(activeStage===3&&floor.kind==="rift-elevator"){
       const newY=riftElevatorY(floor,gameTime),dy=newY-floor.y1;
       floor.y1=newY;floor.y2=newY;
@@ -1416,7 +1418,7 @@ function restartAfterDeath(){
   if(activeStage===3&&cityBoss.active&&!cityBoss.defeated)resetCityBoss();
   if(activeStage===2&&guardian.active&&!guardian.defeated)resetGuardian();
   if(isForestTwo()&&!helix.defeated)Object.assign(helix,createHelix());
-  if(isCanyonTwo())caveHazards=createCaveHazards(canyonTwoWorld);
+  if(isCanyonTwo()){caveHazards=createCaveHazards(canyonTwoWorld);tracks.forEach(resetCaveBridge);}
   cameraAnchorX=VIEW_W*CAMERA_IDLE_ANCHOR;
   cameraX=clamp(target.x-cameraAnchorX,0,Math.max(0,WORLD_W-VIEW_W));
   cameraY=clamp(target.y-VIEW_H*.56,0,WORLD_H-VIEW_H);
@@ -1807,6 +1809,7 @@ function resetGame() {
     t.sentinels.forEach(e=>{e.x=e.baseX;e.y=e.baseY;});
   });
   tracks.forEach(t=>{
+    resetCaveBridge(t);
     if(t.kind==="rift-elevator"){t.y1=t.initialY;t.y2=t.initialY;}
     if(!t.secretId)return;
     t.broken=false;t.crumbleTime=0;
@@ -3671,7 +3674,7 @@ function draw() {
   drawStageArrivalRunway();
   if(activeStage===2&&!isCanyonTwo())drawChasms();
   if(activeStage===3){drawCityChasms();drawCityRiftGates();}
-  if(isCanyonTwo())drawCanyonTwoGround(ctx,tracks,cameraX,VIEW_W,visualTime);
+  if(isCanyonTwo()){drawCanyonWaterfalls(ctx,canyonTwoWorld.waterfalls,{cameraX,cameraY,width:VIEW_W,height:VIEW_H,time:visualTime});drawCanyonTwoGround(ctx,tracks,cameraX,VIEW_W,visualTime);}
   if(isForestTwo())drawForestTwoGround(ctx,tracks,cameraX,VIEW_W,visualTime);
   drawTracks();
   drawTunnels();
@@ -3874,6 +3877,7 @@ function drawTracks() {
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
   for (const floor of tracks) {
+    if(floor.kind==="cave-crumble"&&floor.broken)continue;
     if (floor.x2 < cameraX - 120 || floor.x1 > cameraX + VIEW_W + 120) continue;
     if(floor.kind==="rift-phase"){
       const {solid,warning}=riftPlatformPhase(floor,gameTime);
@@ -5058,7 +5062,7 @@ function scheduleMusic(){
       if(score.hat)synthMusic(1550,nextMusicNote,.026,.011,"triangle");
       if(score.metal)synthMusic(380,nextMusicNote,.07,.018,"square");
     }else scheduleNeonCanopyStep(nextMusicNote,musicStep,chapter);
-    musicStep=(musicStep+1)%128;
+    musicStep=(musicStep+1)%(isCanyonTwo()?256:128);
     nextMusicNote+=stepDuration;
   }
 }
@@ -5312,12 +5316,12 @@ draw();
 if(import.meta.env.DEV&&new URLSearchParams(location.search).has("rift-qa")){
   window.__riftQA={freeze(){riftQAFrozen=true;},info:()=>riftPreview.info(),
     step(inputs,render=true){riftPreview.update(1/120,new Set(inputs));syncRubroButton();if(render){if(cinematic.active)drawCinematic();else draw();}},
-    setupScenario({stage=1,part=1,x=180,crystals=0,completed=false,vx=0,invulnerable=0}={}){
+    setupScenario({stage=1,part=1,x=180,crystals=0,completed=false,vx=0,invulnerable=0,boost=null}={}){
       forestPart=stage===1?part:1;canyonPart=stage===2?part:1;
       riftPreview.stop();activateStage(stage);resetGame();debugMode=false;fullTestMode=false;debugUsedThisRun=false;
       progress.stage4.completed=completed;campaign.stage4Completed=completed;campaign.aerialDash=part!==2;
       player.x=x;player.prevX=x;player.y=(groundY(x)??420)-PLAYER_RADIUS;player.prevY=player.y;
-      player.invulnerable=invulnerable;player.onGround=true;player.ground=tracks.find(p=>x>=p.x1&&x<=p.x2&&!p.secretId);player.rings=crystals;player.boost=part===2?0:boostCapacity();player.vx=vx;
+      player.invulnerable=invulnerable;player.onGround=true;player.ground=tracks.find(p=>x>=p.x1&&x<=p.x2&&!p.secretId);player.rings=crystals;player.boost=boost??(part===2?0:boostCapacity());player.vx=vx;
       cameraX=clamp(x-360,0,WORLD_W-VIEW_W);cameraY=clamp(player.y-295,0,WORLD_H-VIEW_H);
       gameCleared=false;resumeRiftScreen();riftQAFrozen=true;draw();syncRubroButton();
     },
@@ -5334,7 +5338,7 @@ if(import.meta.env.DEV&&new URLSearchParams(location.search).has("rift-qa")){
       startRiftPreview(true);riftQAFrozen=true;for(let i=0;i<100;i++)riftPreview.update(1/120,new Set());draw();
       return riftPreview.info();
     },
-    gameInfo:()=>({forestPart,canyonPart,guardian:{...guardian,core:guardianCorePosition(),line:guardianLaserLine()},caveHazards:caveHazards.map(c=>({...c})),portal:{...riftPortal},helix:{...helix},checkpointIndex,cleared:gameCleared,boost:player.boost,presses:isForestTwo()?forestTwoWorld.presses.map(p=>({...p,...pressState(p,gameTime)})):[],cameraX,cameraY,dashStatus:currentDashStatus(),defeat:defeat?{...defeat}:null,stage:activeStage,cores:player.cores,x:player.x,y:player.y,vx:player.vx,vy:player.vy,crystals:player.rings,onGround:player.onGround,sliding:player.sliding,boosting:player.boosting,dash:{...airDash},rubro:{...rubro},time:gameTime,damage:runDamageCount,walls:walls.map(w=>({...w})),tunnels:tunnels.map(w=>({...w}))}),
+    gameInfo:()=>({forestPart,canyonPart,ground:player.ground?{...player.ground}:null,cavePlatforms:isCanyonTwo()?tracks.filter(t=>["cave-bridge","cave-crumble","moving"].includes(t.kind)).map(t=>({...t})):[],guardian:{...guardian,core:guardianCorePosition(),line:guardianLaserLine()},caveHazards:caveHazards.map(c=>({...c})),portal:{...riftPortal},helix:{...helix},checkpointIndex,cleared:gameCleared,boost:player.boost,presses:isForestTwo()?forestTwoWorld.presses.map(p=>({...p,...pressState(p,gameTime)})):[],cameraX,cameraY,dashStatus:currentDashStatus(),defeat:defeat?{...defeat}:null,stage:activeStage,cores:player.cores,x:player.x,y:player.y,vx:player.vx,vy:player.vy,crystals:player.rings,onGround:player.onGround,sliding:player.sliding,boosting:player.boosting,dash:{...airDash},rubro:{...rubro},time:gameTime,damage:runDamageCount,walls:walls.map(w=>({...w})),tunnels:tunnels.map(w=>({...w}))}),
     stepGame(inputs=[],frames=1,render=true){
       const wasJump=keys.has(" ");keys.clear();for(const key of inputs)keys.add(key);
       if(keys.has(" ")&&!wasJump){if(!player.onGround&&dashUnlocked())startAirDash();else jumpBuffer=.13;}
@@ -5342,7 +5346,7 @@ if(import.meta.env.DEV&&new URLSearchParams(location.search).has("rift-qa")){
       if(render){draw();syncRubroButton();}return this.gameInfo();
     },
     settleExit(){for(let i=0;i<240&&stageExit.active;i++)updateStageExit(1/120);return {campaign:{...campaign},journey:{...forestJourney},canyonJourney:{...canyonJourney}};},
-    canyonWorld:()=>({tracks:canyonTwoWorld.tracks,spikes:canyonTwoWorld.spikes,enemies:canyonTwoWorld.enemies,refractors:canyonTwoWorld.refractors}),
+    canyonWorld:()=>({tracks:canyonTwoWorld.tracks,spikes:canyonTwoWorld.spikes,enemies:canyonTwoWorld.enemies,refractors:canyonTwoWorld.refractors,pits:canyonTwoWorld.pits,checkpoints:canyonTwoWorld.checkpoints,waterfalls:canyonTwoWorld.waterfalls,sanctuary:SANCTUARY}),
     forestWorld:()=>({tracks:forestTwoWorld.tracks,spikes:forestTwoWorld.spikes,pulseGates:forestTwoWorld.pulseGates,enemies:forestTwoWorld.enemies}),
     addShot(){sentryShots.push({x:player.x,y:player.y,vx:0,vy:0,life:2,r:9,unblockable:true});},
     takeHit(){player.invulnerable=0;damagePlayer(false);syncRubroButton();return this.gameInfo();},

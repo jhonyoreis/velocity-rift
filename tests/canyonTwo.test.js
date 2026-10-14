@@ -1,13 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createCanyonTwoWorld,SANCTUARY} from '../src/levels/canyonTwo.js';
-import {createCaveHazards,advanceFallingCrystal,refractorState,beamTouches,reflectedGuardianLine} from '../src/game/canyonHazards.js';
+import {createCaveHazards,advanceFallingCrystal,refractorState,beamTouches,reflectedGuardianLine,advanceCaveBridge,resetCaveBridge} from '../src/game/canyonHazards.js';
 import {createEnemy as enemy} from '../src/game/enemies.js';
 import {yOnTrack} from '../src/game/geometry.js';
 import {canyonTwoScore} from '../src/audio/canyonTwoScore.js';
 const world=createCanyonTwoWorld({track:(x1,y1,x2,y2,kind)=>({x1,y1,x2,y2,kind}),rect:(x,y,w,h,kind)=>({x,y,w,h,kind,active:true}),orb:(x,y)=>({x,y,active:true}),enemy,yOnTrack,PLAYER_RADIUS:18,WORLD_H:820});
-test('cave lower route is continuous and every upper route has a reachable entry',()=>{
- for(let x=0;x<=world.worldW;x+=5)assert.ok(world.tracks.some(t=>t.kind==='cave-floor'&&x>=t.x1&&x<=t.x2),`floor ${x}`);
+test('expanded cave has real waterfall gaps, readable upper entries and an isolated boss',()=>{
+ assert.ok(world.worldW>=36000);assert.ok(world.pits.length>=15);
+ for(let x=0;x<=world.worldW;x+=5){const gap=world.pits.some(([a,b])=>x>a&&x<b);assert.equal(world.tracks.some(t=>t.kind==='cave-floor'&&x>=t.x1&&x<=t.x2),!gap,`floor ${x}`);}
+ assert.equal(world.waterfalls.length,world.pits.length);
  assert.deepEqual(world.memoryCores,[]);assert.deepEqual(world.secretTrials,[]);
  for(const t of world.tracks.filter(t=>t.kind==='platform')){const g=world.tracks.find(g=>g.kind==='cave-floor'&&t.x1>=g.x1&&t.x1<=g.x2);assert.ok(yOnTrack(g,t.x1)-t.y1<=150);}
  const cp=world.checkpoints.find(c=>c.boss);assert.ok(cp.x<SANCTUARY.arenaLeft);assert.ok(world.rings.some(r=>r.x>cp.x&&r.x<SANCTUARY.arenaLeft));assert.ok(world.boostOrbs.some(r=>r.x>cp.x&&r.x<SANCTUARY.arenaLeft));
@@ -46,4 +48,22 @@ test('upper landing routes leave room to descend before slide passages',()=>{
  for(const tunnel of world.tunnels)for(const ledge of world.tracks.filter(t=>t.kind==='platform')){
   assert.ok(ledge.x2<tunnel.x-150||ledge.x1>tunnel.x+tunnel.w+50,`ledge ${ledge.x1} conflicts with tunnel ${tunnel.x}`);
  }
+});
+
+test('cracked bridges warn, collapse and recover; retry restores solid footing',()=>{
+ const p={kind:'cave-crumble'};advanceCaveBridge(p,true,.1);assert.ok(p.crumbleTime>.8&&!p.broken);
+ advanceCaveBridge(p,false,.86);assert.ok(p.broken);advanceCaveBridge(p,false,3.5);assert.equal(p.broken,false);
+ advanceCaveBridge(p,true,1);assert.ok(p.broken);resetCaveBridge(p);assert.equal(p.broken,false);assert.equal(p.crumbleTime,0);
+});
+test('mandatory stepping stones remain within normal jump reach and checkpoints never spawn over water',()=>{
+ for(const [a,b] of world.pits.filter(([a,b])=>b-a>500)){
+  const route=world.tracks.filter(t=>t.x1>=a&&t.x1<b).sort((x,y)=>x.x1-y.x1);assert.ok(route.length>=4);
+  for(let i=1;i<route.length;i++)assert.ok(route[i].x1-route[i-1].x2+(route[i].swing||0)+(route[i-1].swing||0)<=290);
+ }
+ for(const c of world.checkpoints)for(const dx of [-25,0,25])assert.ok(world.tracks.some(t=>t.kind==='cave-floor'&&c.x+dx>=t.x1&&c.x+dx<=t.x2),`unsafe checkpoint ${c.x}`);
+});
+test('waterfall and fractured aqueduct sections develop the score instead of looping the opening',()=>{
+ assert.notDeepEqual(canyonTwoScore(16,0).notes,canyonTwoScore(16,3).notes);
+ assert.notDeepEqual(canyonTwoScore(2,2).notes,canyonTwoScore(2,7).notes);
+ assert.notDeepEqual(canyonTwoScore(0,3).notes,canyonTwoScore(128,3).notes);
 });

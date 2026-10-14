@@ -1,4 +1,8 @@
-# Velocity Rift — Uma Flor, Enfim (versão 4.4.0)
+# Velocity Rift — Uma Flor, Enfim (versão 4.4.1)
+
+## 4.4.1 — Cataratas e Pontes de Vidro (APK R31 experimental)
+
+Cânion Prisma 2 ampliado de 13.800 para 36.800 unidades. Quinze abismos de cachoeira, passagens por pilares, plataformas móveis, pontes que racham após contato e reconstituem depois de ceder. Dez capítulos com novos aquedutos, sequências de slide/salto, cristais instáveis e trilha que se desenvolve nas cataratas. Checkpoints antes das travessias longas; quedas são fatais com qualquer reserva de cristais, inclusive Rubro. Guardião preservado na nova câmara final.
 
 ## 4.4.0 — Santuário da Refração (APK R30 experimental)
 

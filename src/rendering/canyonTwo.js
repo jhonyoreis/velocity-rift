@@ -1,3 +1,4 @@
+import {SANCTUARY} from "../levels/canyonTwo.js";
 import {refractorState} from '../game/canyonHazards.js';
 const TAU=Math.PI*2;
 const hash=n=>{const x=Math.sin(n*127.1+311.7)*43758.5453;return x-Math.floor(x);};
@@ -12,7 +13,7 @@ function crystal(c,x,y,w,h,color='#9a86ed',flip=false){
 function aura(c,x,y,r,color){const g=c.createRadialGradient(x,y,1,x,y,r);g.addColorStop(0,color);g.addColorStop(1,'rgba(30,35,80,0)');c.fillStyle=g;c.fillRect(x-r,y-r,r*2,r*2);}
 export function drawCanyonTwoBackdrop(c,{cameraX,cameraY,width,height,time,defeated=false}){
  c.save();c.translate(cameraX,cameraY);
- const zone=cameraX>11000?3:cameraX>7000?2:cameraX>3000?1:0;
+ const zone=cameraX>SANCTUARY.arenaLeft-900?3:cameraX>7000?2:cameraX>3000?1:0;
  const sky=c.createLinearGradient(0,0,0,height);sky.addColorStop(0,'#080e24');sky.addColorStop(.5,'#202951');sky.addColorStop(1,'#123d4c');c.fillStyle=sky;c.fillRect(0,0,width,height);
  // Stone ribs in three independent depth planes.
  for(let layer=0;layer<3;layer++){
@@ -40,7 +41,7 @@ export function drawCanyonTwoBackdrop(c,{cameraX,cameraY,width,height,time,defea
   }
  }
  if(zone===3){
-  const x=12450-cameraX,y=236-cameraY;
+  const x=SANCTUARY.guardianX-cameraX,y=236-cameraY;
   aura(c,x,y,310,defeated?'rgba(101,255,215,.22)':'rgba(156,124,255,.24)');
   c.save();c.translate(x,y);for(let k=0;k<3;k++){c.save();c.rotate((k%2?1:-1)*time*.025+k*.3);c.strokeStyle=k===0?'#466384':'#385473';c.lineWidth=k===0?5:2;c.beginPath();c.arc(0,0,155+k*31,0,TAU);c.stroke();for(let j=0;j<12;j++){const a=j*TAU/12;c.save();c.rotate(a);c.fillStyle='#739fb4';c.globalAlpha=.45;c.fillRect(154+k*31,-3,10,6);c.restore();}c.restore();}c.restore();
   for(const dx of [-260,-185,190,265]){c.globalAlpha=.72;crystal(c,x+dx,410-cameraY,dx%2?65:85,160+Math.abs(dx)*.3,defeated?'#7fd3c5':'#8471c2');c.globalAlpha=1;}
@@ -58,6 +59,7 @@ export function drawCanyonTwoBackdrop(c,{cameraX,cameraY,width,height,time,defea
 }
 export function drawCanyonTwoGround(c,tracks,cameraX,width,time){
  for(const t of tracks){if(t.x2<cameraX-100||t.x1>cameraX+width+100)continue;
+  if(t.kind==='cave-crumble'&&t.broken){c.save();c.strokeStyle='rgba(159,207,221,.2)';c.setLineDash([4,8]);c.beginPath();c.moveTo(t.x1,t.y1+12);c.lineTo(t.x2,t.y2+12);c.stroke();c.restore();continue;}
   if(t.kind==='cave-floor'){
    poly(c,[[t.x1,t.y1],[t.x2,t.y2],[t.x2,830],[t.x1,830]],'#111f33');
    poly(c,[[t.x1,t.y1+15],[t.x2,t.y2+15],[t.x2,t.y2+43],[t.x1,t.y1+58]],'#20344b');
@@ -65,7 +67,8 @@ export function drawCanyonTwoGround(c,tracks,cameraX,width,time){
   }else{
    poly(c,[[t.x1,t.y1+7],[t.x2,t.y2+7],[t.x2-16,t.y2+27],[t.x1+19,t.y1+32]],'#344563','#7395b5');
    for(let x=t.x1+27;x<t.x2-10;x+=55){c.fillStyle='#85c5cd';c.globalAlpha=.32;c.fillRect(x,t.y1+13,12,3);c.globalAlpha=1;}
-   if(t.kind==='platform'){c.globalAlpha=.6;crystal(c,(t.x1+t.x2)/2,t.y1+26,32,63,'#659cae',true);c.globalAlpha=1;}
+   if(t.kind==='cave-crumble'){c.strokeStyle=t.crumbleTime>0?'#ffd98c':'#a0dfe8';c.lineWidth=2;for(let x=t.x1+26;x<t.x2;x+=46){c.beginPath();c.moveTo(x,t.y1+8);c.lineTo(x+6,t.y1+15);c.lineTo(x-4,t.y1+24);c.stroke();}if(t.crumbleTime>0){c.fillStyle='#ffc78a';c.fillRect(t.x1,t.y1+28,(t.x2-t.x1)*t.crumbleTime/.95,3);}}
+   if(t.kind==='platform'||t.kind==='cave-bridge'){c.globalAlpha=.6;crystal(c,(t.x1+t.x2)/2,t.y1+26,32,63,'#659cae',true);c.globalAlpha=1;}
    if(t.kind==='moving'){aura(c,(t.x1+t.x2)/2,t.y1+35,50,'rgba(137,246,224,.17)');c.strokeStyle='#71c7c5';c.beginPath();c.ellipse((t.x1+t.x2)/2,t.y1+39+Math.sin(time*2)*3,23,5,0,0,TAU);c.stroke();}
   }
  }
@@ -100,4 +103,27 @@ export function drawCaveTunnel(c,t,profile){
  c.strokeStyle='#87b8c5';c.globalAlpha=.5;c.lineWidth=1;c.beginPath();c.moveTo(a.x+w*.3,a.y-155);c.lineTo(a.x+w*.4,a.y-112);c.lineTo(a.x+w*.64,a.y-90);c.stroke();c.globalAlpha=1;
  c.strokeStyle='#f4c77e';c.lineWidth=4;c.beginPath();profile.forEach((p,i)=>i?c.lineTo(p.x,p.y-26):c.moveTo(p.x,p.y-26));c.stroke();
  c.fillStyle='#ffe5af';c.font='bold 13px system-ui';c.fillText('↓ SLIDE',a.x+15,a.y-48);
+}
+
+export function drawCanyonWaterfalls(c,falls,{cameraX,cameraY,width,height,time}){
+ for(const f of falls){
+  if(f.right<cameraX-120||f.left>cameraX+width+120)continue;
+  const left=Math.max(f.left,cameraX-80),right=Math.min(f.right,cameraX+width+80),rim=Math.min(f.leftY,f.rightY),bottom=820;
+  const voidGradient=c.createLinearGradient(0,rim,0,bottom);voidGradient.addColorStop(0,'rgba(8,24,43,.8)');voidGradient.addColorStop(.6,'#060e20');voidGradient.addColorStop(1,'#030817');c.fillStyle=voidGradient;c.fillRect(left,rim+16,right-left,bottom-rim);
+  // Water pours down each actual cliff; long ravines have distant curtains.
+  const curtains=[{x:f.left+6,w:38,y:f.leftY-4},{x:f.right-49,w:43,y:f.rightY-4}];
+  if(f.wide)for(let x=Math.ceil(left/285)*285;x<right;x+=285)curtains.push({x:x+25,w:64,y:85,far:true});
+  for(const stream of curtains){
+   const g=c.createLinearGradient(stream.x,stream.y,stream.x,740);g.addColorStop(0,stream.far?'rgba(124,239,238,.08)':'rgba(179,255,241,.7)');g.addColorStop(.24,stream.far?'rgba(99,215,239,.19)':'rgba(62,207,232,.46)');g.addColorStop(1,'rgba(59,133,228,0)');c.fillStyle=g;c.fillRect(stream.x,stream.y,stream.w,740-stream.y);
+   for(let j=0;j<5;j++){const x=stream.x+5+j*(stream.w-10)/5,y=stream.y+((time*(150+j*13)+j*94+f.seed*33)%(690-stream.y));c.strokeStyle=stream.far?'rgba(184,255,246,.16)':'rgba(219,255,249,.48)';c.lineWidth=j%2?1:2;c.beginPath();c.moveTo(x,y);c.lineTo(x+Math.sin(time*2+j)*2,y+36+j*5);c.stroke();}
+   if(!stream.far){c.strokeStyle='#b7f8e6';c.lineWidth=3;c.beginPath();c.moveTo(stream.x,stream.y+1);c.quadraticCurveTo(stream.x+stream.w*.7,stream.y-7,stream.x+stream.w,stream.y+18);c.stroke();}
+  }
+  // Amber edge markers and arrow-shaped chips identify a lethal drop.
+  for(const [x,y,dir] of [[f.left,f.leftY,-1],[f.right,f.rightY,1]]){
+   c.strokeStyle='#bba0dc';c.lineWidth=2;c.beginPath();c.moveTo(x,y+18);c.lineTo(x,y+145);c.stroke();
+   c.fillStyle='#273a4d';c.fillRect(x+dir*24-5,y-40,10,38);c.fillStyle='#f7c17b';c.fillRect(x+dir*24-5,y-40,10,5);
+   c.strokeStyle='#f7c17b';c.lineWidth=2;c.beginPath();c.moveTo(x+dir*5,y+36);c.lineTo(x,y+42);c.lineTo(x-dir*5,y+36);c.stroke();
+  }
+  for(let i=0;i<9;i++){const x=left+(right-left)*(i+.5)/9+Math.sin(time*.8+i)*12,y=650+Math.sin(time*.5+i*1.7)*26;aura(c,x,y,54,'rgba(113,207,238,.08)');}
+ }
 }

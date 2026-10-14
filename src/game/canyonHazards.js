@@ -26,3 +26,13 @@ export function reflectedGuardianLine(line,left,right,floor){
  const x=Math.max(left+16,Math.min(right-16,line.x2+(line.x2<line.x1?210:-210)));
  return {x1:line.x2,y1:line.y2,x2:x,y2:line.y2>floor-40?floor-145:floor-12};
 }
+
+// Cracked aqueduct stones warn after first contact, then recover so retries and
+// backtracking cannot leave the route permanently impossible.
+export function advanceCaveBridge(floor,standing,dt){
+ if(floor.kind!=='cave-crumble')return;
+ if(floor.broken){floor.rebuild=Math.max(0,(floor.rebuild||0)-dt);if(floor.rebuild===0){floor.broken=false;floor.crumbleTime=0;}return;}
+ if(standing&&!floor.crumbleTime)floor.crumbleTime=.95;
+ if(floor.crumbleTime>0){floor.crumbleTime=Math.max(0,floor.crumbleTime-dt);if(floor.crumbleTime===0){floor.broken=true;floor.rebuild=3.4;}}
+}
+export function resetCaveBridge(floor){if(floor.kind==='cave-crumble'){floor.broken=false;floor.crumbleTime=0;floor.rebuild=0;}}
