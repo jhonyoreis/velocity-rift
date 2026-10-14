@@ -5,9 +5,9 @@ test("fall removes everything and ends the run",()=>{
  for(const n of [0,1,10,100])
    assert.deepEqual(calculateCrystalDamage(n,{fall:true}),{remaining:0,lost:n,dead:true});
 });
-test("regular hit costs at least twelve or fifty percent",()=>{
- assert.deepEqual(calculateCrystalDamage(100),{remaining:50,lost:50,dead:false});
- assert.deepEqual(calculateCrystalDamage(20),{remaining:8,lost:12,dead:false});
+test("regular hit costs at least eight or forty-five percent",()=>{
+ assert.deepEqual(calculateCrystalDamage(100),{remaining:55,lost:45,dead:false});
+ assert.deepEqual(calculateCrystalDamage(20),{remaining:11,lost:9,dead:false});
  assert.deepEqual(calculateCrystalDamage(5),{remaining:0,lost:5,dead:false});
  assert.deepEqual(calculateCrystalDamage(0),{remaining:0,lost:0,dead:true});
 });
