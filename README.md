@@ -1,4 +1,8 @@
-# Velocity Rift — Uma Flor, Enfim (versão 4.3.1)
+# Velocity Rift — Uma Flor, Enfim (versão 4.4.0)
+
+## 4.4.0 — Santuário da Refração (APK R30 experimental)
+
+Cânion Prisma 2: cavernas, ruínas suspensas, cristais que caem com aviso, feixes refratados e trilha original. O Guardião encerra a segunda parte. Acesso direto em **Fases → Cânion Prisma → Cânion Prisma 2**. Mantém Floresta Neon 2 e as correções da R29; atualiza o mesmo aplicativo experimental.
 
 ## 4.3.1 — Prensas e ritmo do Titã (APK R29 experimental)
 
@@ -980,3 +984,8 @@ QA manual complementar: completar corrida de mais de cinco minutos e verificar o
 - O percurso termina no **Limiar do Soberano**, com resultados da tentativa e opções para repetir/voltar ao mapa. A batalha final, a transformação rubra, o resgate de Alicia, os créditos e a conclusão da campanha permanecem para a **4.0**; a travessia não grava vitória, recorde ou progresso final antecipado.
 - **125 testes**, build e testes de navegador desktop/Android horizontal; a nova automação percorre a fase inteira com comandos comuns, sem invulnerabilidade, e valida as telas e o checkpoint invertido. Capturas são produzidas em `test-artifacts/visual/`. QA em aparelho real ainda deve avaliar dificuldade, som e desempenho.
 - Dependências resolvidas em lockfile e Playwright fixado na versão usada pela validação. Detalhes e roteiro manual em [QA-3.8.2](docs/QA-3.8.2.md).
+
+
+### R30 · Cânion Prisma 2 — Santuário da Refração
+
+Branch experimental `experiment/prism-canyon-2`, baseada na R29. Cavernas em quatro atos, cristais de teto com aviso e impacto fatal, feixes refratados, ruínas com rotas altas e recuperação por baixo. Guardião do Prisma transferido para a segunda parte, com laser refletido e aceleração progressiva. Trilha original Luz Sob a Pedra (118 BPM), harmonia em oito compassos e camadas conforme a região. Sem núcleos nem desafios opcionais na parte 2. Seleção direta de fase, checkpoints, resultados e Continue próprios. Mesma identidade Android experimental e mesma assinatura permanente para atualizar a R29.
