@@ -1,4 +1,13 @@
-# Velocity Rift — Uma Flor, Enfim (versão 4.6.1)
+# Velocity Rift — Uma Flor, Enfim (versão 4.6.2)
+
+## 4.6.2 — A Ira do Prisma (APK R35)
+
+- Colisões comuns passam a custar 65% dos cristais (mínimo de 11). A forma Rubro e o capítulo final preservam suas regras especiais.
+- Cânion Prisma 2 reduz os cristais de 273 para cerca de 184, criando sete corredores completos sem fileiras e espaçamento maior entre os grupos. As pistas iniciais dos saltos continuam visíveis.
+- Cristais suspensos caem mais rapidamente e, ao se despedaçar no solo, lançam fragmentos para ambos os lados. O aviso de perigo permanece.
+- Refratores disparam raios com mais frequência, com a trajetória avisada antes de ficar perigosa.
+- Sentinelas do Cânion 2 lançam pares de projéteis; os drones também disparam com sinalização de carga.
+- Guardião do Prisma passa a ter cinco vidas, com três ricochetes adicionais no laser da última vida. O traçado completo aparece antes do ataque.
 
 ## 4.6.1 — Cristais e Controles (APK R34)
 
