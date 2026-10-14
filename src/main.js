@@ -16,7 +16,7 @@ import {drawRubroAura} from "./rendering/rubro.js";
 import {RUBRO,createRubroState,activateRubro,updateRubro,resetRubro,rubroCanBreak} from "./game/rubro.js";
 import {tunnelFloorAt,tunnelProfile,polishWorldObstacles} from "./game/tunnelProfile.js";
 import {fluxAppearance} from "./game/fluxAppearance.js";
-import {FLUX_MOTION} from "./game/fluxMotion.js";
+import {FLUX_MOTION,FLUX_HIT_RECOIL} from "./game/fluxMotion.js";
 import {FINAL_SCORE,finalScoreStep} from "./audio/finalScore.js";
 import {drawFinaleFrame} from "./rendering/finale.js";
 import {createCinematicArt} from "./rendering/cinematicArt.js";
@@ -27,6 +27,7 @@ import {speedometer} from "./game/speedometer.js";
 import {sanitizeGhost,ghostFrameAt,recordGhostFrame,makeGhost} from "./game/ghostReplay.js";
 import {guardianPhase} from "./bosses/guardianPhases.js";
 import {canyonEnemyVolley,canyonEnemyCooldown} from "./game/canyonCombat.js";
+import {forestDroneShot,FOREST_DRONE_RANGE,FOREST_DRONE_COOLDOWN,FOREST_DRONE_WARNING} from "./game/forestTwoCombat.js";
 import {ALICIA_ECHOES,sanitizeEchoArchive} from "./data/aliciaEchoes.js";
 import {BONUS_CHALLENGES,earnedBonusChallenges,sanitizeBonusChallenges} from "./game/bonusChallenges.js";
 import {ACHIEVEMENTS} from "./data/achievements.js";
@@ -1784,7 +1785,8 @@ function resetGame() {
     bad.x = bad.baseX;
     bad.y = bad.yBase;
     bad.phase=0;
-    bad.shotTimer=.55 + (bad.baseX%7)*.12;
+    bad.shotTimer=isForestTwo()&&bad.type==="drone"?
+      .95+(bad.baseX%5)*.17:.55+(bad.baseX%7)*.12;
   });
   rings.forEach((ring) => {
     ring.active = true;
@@ -3134,9 +3136,9 @@ function updateSentryShots(dt){
 }
 function drawSentryShots(){
   for(const shot of sentryShots){
-    ctx.fillStyle=shot.caveShard?"rgba(159,244,255,.28)":shot.caveShot?"rgba(213,144,255,.23)":shot.cityShot?"rgba(255,176,103,.23)":"rgba(255,107,179,.2)";
+    ctx.fillStyle=shot.forestShot?"rgba(255,207,110,.28)":shot.caveShard?"rgba(159,244,255,.28)":shot.caveShot?"rgba(213,144,255,.23)":shot.cityShot?"rgba(255,176,103,.23)":"rgba(255,107,179,.2)";
     ctx.beginPath();ctx.arc(shot.x,shot.y,shot.r+7,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle=shot.caveShard?"#b9f5ff":shot.caveShot?"#d9a7ff":shot.cityShot?"#ffac79":"#ff82c5";
+    ctx.fillStyle=shot.forestShot?"#ffd08a":shot.caveShard?"#b9f5ff":shot.caveShot?"#d9a7ff":shot.cityShot?"#ffac79":"#ff82c5";
     ctx.beginPath();ctx.arc(shot.x,shot.y,shot.r,0,Math.PI*2);ctx.fill();
     if(shot.caveShard){
       ctx.strokeStyle="#e3fdff";ctx.lineWidth=2;
@@ -3196,6 +3198,20 @@ function updateEnemies(dt) {
         sentryShots.push(...canyonEnemyVolley("drone",bad.x,bad.y-bad.h*.65,player));
         bad.shotTimer=canyonEnemyCooldown("drone");
         playSfx("boss-alert");
+      }
+    }
+    if(isForestTwo()&&bad.type==="drone"){
+      const originY=bad.y-bad.h*.55;
+      const near=Math.hypot(bad.x-player.x,originY-player.y)<FOREST_DRONE_RANGE;
+      // A far-away drone cannot launch immediately on entering the screen.
+      if(!near)bad.shotTimer=Math.max(bad.shotTimer??0,FOREST_DRONE_WARNING+.1);
+      else{
+        bad.shotTimer=(bad.shotTimer??.95)-dt;
+        if(bad.shotTimer<=0&&sentryShots.length<34){
+          sentryShots.push(forestDroneShot(bad.x,originY,player));
+          bad.shotTimer=FOREST_DRONE_COOLDOWN;
+          playSfx("boss-alert");
+        }
       }
     }
 
@@ -3682,9 +3698,9 @@ function damagePlayer(fall,{crush=false}={}) {
    return;
  }
  // Surviving a normal collision: lose substantial crystals and bounce away.
- player.vx=-player.facing*250;
- player.vy=-450;
- player.invulnerable=1.1;
+ player.vx=-player.facing*FLUX_HIT_RECOIL.horizontal;
+ player.vy=-FLUX_HIT_RECOIL.vertical;
+ player.invulnerable=FLUX_HIT_RECOIL.invulnerability;
 }
 
 function updateTrail(dt) {
