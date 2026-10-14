@@ -1,4 +1,32 @@
-# Velocity Rift — Uma Flor, Enfim (versão 4.2.4)
+# Velocity Rift — Uma Flor, Enfim (versão 4.5.0)
+
+## 4.5.0 — A Fábrica Desperta (APK R32 experimental)
+
+Floresta Neon 2 ampliada de 14.200 para 34.000 unidades, com dez áreas e 40 inimigos desgastados. Raízes e copas com rotas alternativas, pátio com cargas suspensas, esteiras em sentidos opostos, elevadores, prensas e estufas com descargas de esporos. A fábrica se ilumina conforme Flux avança e se desliga após o Titã Helix; a trilha ganha arranjos industriais, harmonias de estufa e um encerramento tranquilo. Quinze checkpoints, chão contínuo e esmagamentos fatais mesmo com cristais ou Rubro. Preserva Cânion Prisma 2 R31 e o restante da campanha. Tempos da versão curta ficam arquivados separadamente.
+
+## 4.4.1 — Cataratas e Pontes de Vidro (APK R31 experimental)
+
+Cânion Prisma 2 ampliado de 13.800 para 36.800 unidades. Quinze abismos de cachoeira, passagens por pilares, plataformas móveis, pontes que racham após contato e reconstituem depois de ceder. Dez capítulos com novos aquedutos, sequências de slide/salto, cristais instáveis e trilha que se desenvolve nas cataratas. Checkpoints antes das travessias longas; quedas são fatais com qualquer reserva de cristais, inclusive Rubro. Guardião preservado na nova câmara final.
+
+## 4.4.0 — Santuário da Refração (APK R30 experimental)
+
+Cânion Prisma 2: cavernas, ruínas suspensas, cristais que caem com aviso, feixes refratados e trilha original. O Guardião encerra a segunda parte. Acesso direto em **Fases → Cânion Prisma → Cânion Prisma 2**. Mantém Floresta Neon 2 e as correções da R29; atualiza o mesmo aplicativo experimental.
+
+## 4.3.1 — Prensas e ritmo do Titã (APK R29 experimental)
+
+- Esmagamento efetivo pela prensa é fatal, mesmo com cristais, Rubro e proteção temporária de dano.
+- Titã Helix acelera o ciclo de ataques a cada acerto: de 6,6 segundos até cerca de 4,3 segundos, mantendo o aviso antes do impacto.
+
+## 4.3.0 — Floresta Neon 2 (APK R28 experimental)
+
+Branch: `experiment/neon-forest-2`. Instala separadamente como **Velocity Rift Neon 2**, mantendo o aplicativo principal e seu progresso. Acesso direto: Fases → Floresta Neon 2. A conclusão da Floresta Neon 1 também oferece a continuação; depois do Titã Helix, a fenda leva ao Cânion Prisma.
+
+- Árvores gigantes, fábrica abandonada Helix, passarelas e solo contínuo.
+- Robôs da primeira floresta com ferrugem, placas quebradas e vegetação.
+- Prensas sinalizadas, eletropulsos, Slide e barreiras de Boost. Sem núcleos ou desafios opcionais.
+- Titã Helix com impactos marcados, ondas saltáveis e reator exposto; checkpoint antes da arena.
+- Trilha Raízes do Amanhã (114 BPM), arranjo industrial dentro da fábrica e Pulso do Titã (132 BPM).
+- Registros experimentais separados dos tempos e fantasmas da Floresta Neon 1.
 
 ## 4.2.4 — Energia Rubra (APK R27)
 
@@ -964,3 +992,8 @@ QA manual complementar: completar corrida de mais de cinco minutos e verificar o
 - O percurso termina no **Limiar do Soberano**, com resultados da tentativa e opções para repetir/voltar ao mapa. A batalha final, a transformação rubra, o resgate de Alicia, os créditos e a conclusão da campanha permanecem para a **4.0**; a travessia não grava vitória, recorde ou progresso final antecipado.
 - **125 testes**, build e testes de navegador desktop/Android horizontal; a nova automação percorre a fase inteira com comandos comuns, sem invulnerabilidade, e valida as telas e o checkpoint invertido. Capturas são produzidas em `test-artifacts/visual/`. QA em aparelho real ainda deve avaliar dificuldade, som e desempenho.
 - Dependências resolvidas em lockfile e Playwright fixado na versão usada pela validação. Detalhes e roteiro manual em [QA-3.8.2](docs/QA-3.8.2.md).
+
+
+### R30 · Cânion Prisma 2 — Santuário da Refração
+
+Branch experimental `experiment/prism-canyon-2`, baseada na R29. Cavernas em quatro atos, cristais de teto com aviso e impacto fatal, feixes refratados, ruínas com rotas altas e recuperação por baixo. Guardião do Prisma transferido para a segunda parte, com laser refletido e aceleração progressiva. Trilha original Luz Sob a Pedra (118 BPM), harmonia em oito compassos e camadas conforme a região. Sem núcleos nem desafios opcionais na parte 2. Seleção direta de fase, checkpoints, resultados e Continue próprios. Mesma identidade Android experimental e mesma assinatura permanente para atualizar a R29.

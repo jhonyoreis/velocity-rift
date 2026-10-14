@@ -12,5 +12,5 @@ test("HTML IDs and JavaScript literal selectors agree",()=>{
  for(const id of requested)assert.ok(ids.includes(id),"missing id: "+id);
 });
 test("forest decoration no longer renders in the city",()=>{
- assert.match(main,/function drawForest\(\)\{if\(activeStage!==1\)return;renderForest/);
+ assert.match(main,/function drawForest\(\)\{if\(activeStage!==1\|\|isForestTwo\(\)\)return;renderForest/);
 });
