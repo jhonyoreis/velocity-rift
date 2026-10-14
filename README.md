@@ -2,7 +2,7 @@
 
 ## 4.6.1 — Cristais e Controles (APK R34)
 
-- Colisões comuns agora custam pelo menos 12 cristais ou 50% da reserva. Flux Rubro mantém sua proteção original de 10% (mínimo 2).
+- Colisões nas fases convencionais agora custam pelo menos 12 cristais ou 50% da reserva. O capítulo final mantém o equilíbrio já aprovado, assim como a proteção original de Flux Rubro (10%, mínimo 2).
 - Cânion Prisma 2 tem menos cristais espalhados, preservando as primeiras pistas de salto e as recompensas antes do Guardião.
 - No Android, é possível arrastar um dedo entre os comandos e acumular ações (por exemplo, Slide + Boost), liberando ambas apenas ao retirar esse dedo da tela. O multitoque continua independente.
 - Mantém a campanha e os arquivos de progresso existentes, sem alterar as seis etapas.
