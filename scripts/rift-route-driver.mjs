@@ -62,15 +62,21 @@ export function createRiftRouteDriver({collectExtras=false}={}){
   const gap=p&&p.x2-s.x<65&&!platforms.some(n=>n!==p&&n.x1<=p.x2+22&&n.x2>p.x2&&Math.abs(platformSurface(n,p.x2,s.time)-platformSurface(p,p.x2,s.time))<30);
   const rise=p&&p.x2-s.x<130&&platforms.some(n=>n!==p&&Math.abs(n.x1-p.x2)<30&&(platformSurface(p,p.x2,s.time)-platformSurface(n,n.x1,s.time))*s.gravity>15);
   const hazard=world.hazards.some(h=>h.x>s.x&&h.x-s.x<120);
-  const enemy=world.enemies.some(e=>(e.dimension===-1||e.dimension===s.dimension)&&["rift-laser","rift-triple"].includes(e.type)&&e.x>s.x-40&&e.x<s.x+145);
+  // Under reverse gravity, jump and dash early across ceiling gaps before ranged fire can knock Flux back.
+  const enemy=world.enemies.some(e=>(e.dimension===-1||e.dimension===s.dimension)&&["rift-laser","rift-triple"].includes(e.type)&&e.x>s.x-40&&e.x<s.x+(s.gravity<0?340:145));
   if(anchor&&Math.abs(s.x-anchor.x)<170)needJump=needDash=false;
   const wall=world.barricades.some(b=>b.x>s.x-40&&b.x<s.x+180);
+  // In ceiling sectors Dash must bridge the actual gap before gravity
+  // pulls Flux out of bounds; a delayed generic dash is too late.
+  if(s.gravity<0&&gap)needDash=true;
   needDash ||= (enemy||wall)&&!anchor;
   needJump ||= wall&&!anchor&&s.grounded;
   needJump ||= !extra&&!extraExit&&boss.mode==="dormant"&&(gap||rise||hazard||((enemy||wall)&&!anchor));
   if(s.grounded&&needJump&&jumpAge>.35){keys.delete("arrowdown");keys.add(" ");jumpAge=0;dashed=false;fastJump=!extra&&(dangerMinion||enemy||wall||needDash||(rune&&Math.abs(s.x-rune.x)<125));}
   else if(jumpAge<(extraJump?.34:fastJump?.025:boss.mode==="dormant"?.3:.2))keys.add(" ");
-  else if(!extra&&!extraExit&&!s.grounded&&s.dashReady&&!dashed&&((needDash&&jumpAge>(fastJump?.06:.24))||(boss.mode==="dormant"&&jumpAge>(fastJump?.06:.36)))){
+  // On ceiling routes, save Dash for the gap itself, not the warning spikes
+  // immediately before it. An early Dash prevents the next ceiling landing.
+  else if(!extra&&!extraExit&&!s.grounded&&s.dashReady&&!dashed&&((needDash&&jumpAge>(fastJump?.06:.24))||(boss.mode==="dormant"&&(s.gravity>0||gap)&&jumpAge>(fastJump?.06:.36)))){
    // Horizontal Dash continues in the approach direction rather than braking.
    keys.delete(dir>0?"arrowleft":"arrowright");keys.add(dir>0?"arrowright":"arrowleft");keys.add(" ");dashed=true;
   }

@@ -13,10 +13,12 @@ export function advanceFallingCrystal(c,player,dt,{warning=()=>{},impact=()=>{},
 }
 export function refractorState(r,time){
  const period=2.9,t=((time+r.phase)%period+period)%period;
- const warning=t>=1.42&&t<2.13,active=t>=2.13&&t<2.75;
+ // Preserve the fast 2.9s firing cycle, but keep the beam alive 1.15s
+ // instead of 0.62s, moving the full warning earlier in the same cycle.
+ const warning=t>=1.00&&t<1.70,active=t>=1.70&&t<2.85;
  // Beam bends at the prism; its complete, fixed path is shown before firing.
  const points=[{x:r.x-130,y:r.floor-245},{x:r.x,y:r.floor-155},{x:r.x+130,y:r.floor-12}];
- return {warning,active,charge:warning?(t-1.42)/.71:active?1:0,points};
+ return {warning,active,charge:warning?(t-1.00)/.70:active?1:0,points};
 }
 export function beamTouches(player,points,radius=23){
  return points.slice(1).some((b,i)=>{const a=points[i],dx=b.x-a.x,dy=b.y-a.y;const u=Math.max(0,Math.min(1,((player.x-a.x)*dx+(player.y-a.y)*dy)/(dx*dx+dy*dy)));return Math.hypot(player.x-a.x-dx*u,player.y-a.y-dy*u)<radius;});

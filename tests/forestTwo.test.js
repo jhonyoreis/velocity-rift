@@ -28,7 +28,8 @@ test('new score varies through eight bars and develops an industrial layer',()=>
 test('crush requires a closed head and actual contact; warnings and overhead routes remain safe',()=>{
  const press={x:100,y:450,w:94,phase:0,period:3.8};
  assert.equal(pressCrushes(press,1.9,{x:100,y:432}),false);
- assert.equal(pressCrushes(press,2.27,{x:100,y:432}),false);
+ assert.equal(pressCrushes(press,2.18,{x:100,y:432}),false);
+ assert.equal(pressCrushes(press,2.27,{x:100,y:432}),true);
  assert.equal(pressCrushes(press,2.5,{x:100,y:432}),true);
  assert.equal(pressCrushes(press,2.5,{x:200,y:432}),false);
  assert.equal(pressCrushes(press,2.5,{x:100,y:330}),false);
@@ -54,4 +55,17 @@ test('expanded route has safe checkpoint floors and no spawn inside a lethal mac
  }
  const belts=world.tracks.filter(t=>t.kind==='factory-belt');assert.ok(belts.some(t=>t.belt>0)&&belts.some(t=>t.belt<0));
  assert.ok(world.tracks.filter(t=>t.upper).length>20);
+});
+
+test('presses slam faster and stay fully down for longer while warning remains visible',()=>{
+ const p={x:100,y:450,w:94,phase:0,period:3.8};
+ assert.equal(pressState(p,1.6).warning,true);
+ assert.equal(pressState(p,1.6).extension,0);
+ assert.ok(pressState(p,2.19).extension>0&&pressState(p,2.19).extension<1);
+ for(const t of [2.25,2.50,2.85,3.05]){
+  assert.equal(pressState(p,t).extension,1,'press remains down for at least .8 seconds');
+  assert.equal(pressCrushes(p,t,{x:100,y:432}),true);
+ }
+ assert.equal(pressState(p,3.5).extension,0);
+ assert.equal(pressState(p,3.5).active,false);
 });

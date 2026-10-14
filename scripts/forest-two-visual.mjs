@@ -21,6 +21,14 @@ try{
    await page.evaluate(x=>{window.__riftQA.setupScenario({part:2,x});window.__riftQA.stepGame([],1);},x);
    await page.waitForTimeout(220);await page.screenshot({path:`test-artifacts/visual/${mobile?'android':'desktop'}-forest2-${name}.png`});
   }
+  // Real gameplay simulation: weathered drones must launch a visible shot.
+  const droneShot=await page.evaluate(()=>{
+   const a=window.__riftQA;
+   a.setupScenario({part:2,x:8350,crystals:100,invulnerable:10});
+   return a.stepGame([],122);
+  });
+  assert.ok(droneShot.shots.some(s=>s.forestShot),'a Floresta Neon 2 drone actually fires');
+  await page.screenshot({path:`test-artifacts/visual/${mobile?'android':'desktop'}-forest2-drone-firing.png`});
   // Crushing bypasses crystals, Rubro and ordinary hit protection.
   for(const rubro of [false,true]){
    const crushed=await page.evaluate(rubro=>{const a=window.__riftQA;a.setupScenario({part:2,x:3690,crystals:100,completed:rubro,invulnerable:10});if(rubro){a.transformRubro();a.stepGame([],130);}return a.stepGame([],360);},rubro);

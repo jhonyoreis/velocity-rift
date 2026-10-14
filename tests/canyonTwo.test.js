@@ -31,7 +31,7 @@ test('normal-speed movement escapes a triggered shard and nearby players are saf
  assert.equal(c.state,'spent');assert.equal(hits,0);
 });
 test('refractors show the identical complete path during warning and fire',()=>{
- const r={x:100,floor:420,phase:0},warn=refractorState(r,1.8),fire=refractorState(r,2.4);
+ const r={x:100,floor:420,phase:0},warn=refractorState(r,1.35),fire=refractorState(r,2.4);
  assert.ok(warn.warning&&!warn.active);assert.ok(fire.active&&!fire.warning);assert.deepEqual(warn.points,fire.points);
  assert.ok(beamTouches({x:100,y:265},fire.points));assert.equal(beamTouches({x:100,y:402},fire.points),false);
  assert.equal(refractorState(r,1).active,false);
@@ -106,4 +106,16 @@ test('Guardian final heart displays three reflected rays matching real collision
   assert.ok(rays[i].x2>=34818&&rays[i].x2<=35742);
  }
  assert.ok(new Set(rays.map(l=>Math.round(l.y2))).size>=3);
+});
+
+test('Prism refractor beams persist 1.15 seconds without losing the warning',()=>{
+ const r={x:350,floor:440,phase:0};
+ assert.ok(refractorState(r,1.3).warning);
+ assert.equal(refractorState(r,1.3).active,false);
+ for(const t of [1.72,1.95,2.3,2.6,2.84])
+  assert.equal(refractorState(r,t).active,true,'ray stays dangerous throughout the firing window');
+ assert.equal(refractorState(r,2.86).active,false);
+ assert.equal(refractorState(r,3.1).active,false);
+ assert.deepEqual(refractorState(r,1.95).points,refractorState(r,1.35).points);
+ assert.equal(refractorState(r,1.95+2.9).active,true,'firing cadence remains the same');
 });
