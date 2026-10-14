@@ -45,8 +45,17 @@ export function createForestTwoWorld({track,rect,enemy,orb,yOnTrack,PLAYER_RADIU
   springs:[],boostPads:[],spikes,pulseGates,memoryCores:[],secretTrials:[],pits:[]
  };
 }
-// Long readable charge, brief impact, then a generous safe crossing window.
-export function pressState(press,time){const t=((time+press.phase)%press.period+press.period)%press.period;return {warning:t>=1.5&&t<2.25,active:t>=2.25&&t<2.7,extension:t<2.25?0:t<2.4?Math.min(1,(t-2.25)/.15):t<2.7?1:Math.max(0,1-(t-2.7)/.65)};}
+// The amber warning is still readable, but the piston slams down faster,
+// stays at full extension for longer, and gives a shorter escape interval.
+export function pressState(press,time){
+ const t=((time+press.phase)%press.period+press.period)%press.period;
+ const warning=t>=1.35&&t<2.15;
+ const extension=t<2.15?0:t<2.25?Math.min(1,(t-2.15)/.10):
+  t<3.10?1:Math.max(0,1-(t-3.10)/.38);
+ // During the first moments of retraction it can still crush on contact.
+ const active=t>=2.15&&t<3.15;
+ return {warning,active,extension};
+}
 export function pressCrushes(press,time,player,radius=18){
  const state=pressState(press,time);
  if(!state.active||state.extension<.9)return false;
