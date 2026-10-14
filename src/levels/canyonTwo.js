@@ -1,4 +1,10 @@
 // Eight chapters alternate flowing runs, waterfall crossings and broken aqueducts.
+// Long, intentional reward-free stretches replace evenly spaced crystal rows.
+export const CRYSTAL_QUIET_ZONES=[
+ [3150,4100],[7270,8950],[11020,11820],[18050,18900],
+ [19900,21200],[26500,27600],[31100,32000]
+];
+const crystalQuiet=x=>CRYSTAL_QUIET_ZONES.some(([a,b])=>x>=a&&x<=b);
 export const SANCTUARY={entrance:3300,ruins:7200,cascades:11100,bridge:15800,aqueduct:19800,greatFalls:23800,fractures:28200,arenaLeft:34800,arenaRight:35760,guardianX:35450,exit:36200};
 export function createCanyonTwoWorld({track,rect,enemy,orb,yOnTrack,PLAYER_RADIUS,WORLD_H}){
  const points=[[0,420],[850,420],[1700,485],[2450,485],[3200,415],[4250,415],[4900,475],[5750,475],[6500,410],[7350,410],[8050,475],[8850,475],[9550,400],[10350,400],[11100,410],
@@ -24,13 +30,13 @@ export function createCanyonTwoWorld({track,rect,enemy,orb,yOnTrack,PLAYER_RADIU
  const inPit=x=>pits.some(([a,b])=>x>a&&x<b);
  const landingSafe=x=>pits.every(([a,b])=>x<a-150||x>b+180);
  const rings=[];
- for(const [a,n] of [[210,9],[1850,5],[2510,7],[3040,4],[4040,4],[5000,6],[5870,6],[6640,6],[7130,4],[9050,5],[11140,6],[11700,5],[12620,5],[13250,5],[14580,4],[15350,5],[15820,6],[18160,5],[19450,5],[19950,4],[20800,5],[21860,6],[23400,6],[23800,4],[26500,6],[27920,5],[28330,4],[31120,6],[31830,4],[32600,7],[33700,5],[34300,5],[34640,3],[35870,6],[36400,6]])for(let i=0;i<n;i+=2){const x=a+i*46;if(!inPit(x))rings.push({x,y:floor(x)-35-14*Math.sin(i/(n-1)*Math.PI),r:8,active:true});}
- for(const [a,b,y] of [...highs,...stepping])for(let x=a+35;x<b-20;x+=92)rings.push({x,y:y-34,r:8,active:true});
+ for(const [a,n] of [[210,9],[1850,5],[2510,7],[3040,4],[4040,4],[5000,6],[5870,6],[6640,6],[7130,4],[9050,5],[11140,6],[11700,5],[12620,5],[13250,5],[14580,4],[15350,5],[15820,6],[18160,5],[19450,5],[19950,4],[20800,5],[21860,6],[23400,6],[23800,4],[26500,6],[27920,5],[28330,4],[31120,6],[31830,4],[32600,7],[33700,5],[34300,5],[34640,3],[35870,6],[36400,6]])for(let i=0;i<n;i+=3){const x=a+i*46;if(!inPit(x)&&!crystalQuiet(x))rings.push({x,y:floor(x)-35-14*Math.sin(i/(n-1)*Math.PI),r:8,active:true});}
+ for(const [a,b,y] of [...highs,...stepping])for(let x=a+35;x<b-20;x+=132){if(!crystalQuiet(x))rings.push({x,y:y-34,r:8,active:true});}
  // Arcs teach the takeoff and landing before the first deadly crossing.
  for(const [a,b] of pits.filter(([a,b])=>b-a<500)){
   // Keep the first two tutorial arcs fully readable; thin later rewards.
   const count=a<5000?7:5;
-  for(let i=0;i<count;i++){const t=i/(count-1),x=a-55+(b-a+110)*t;rings.push({x,y:floor(x)-36-Math.sin(t*Math.PI)*85,r:8,active:true});}
+  for(let i=0;i<count;i++){const t=i/(count-1),x=a-55+(b-a+110)*t;if(!crystalQuiet(x))rings.push({x,y:floor(x)-36-Math.sin(t*Math.PI)*85,r:8,active:true});}
  }
  // Recovery reserves are concentrated at the final Guardian approach and arena,
  // rather than flooding the entire canyon with collectibles.
@@ -40,8 +46,8 @@ export function createCanyonTwoWorld({track,rect,enemy,orb,yOnTrack,PLAYER_RADIU
  for(let x=34840;x<35750;x+=100){
   rings.push({x,y:floor(x)-48,r:8,active:true});
  }
- const fallingCrystals=[1100,1390,2800,4330,6020,6250,6900,11000,11480,13020,13200,15720,18300,18510,19680,20520,20700,22020,23650,26900,27100,28180,31420,32900,33950].filter(x=>!inPit(x)).map((x,i)=>({x,ceiling:floor(x)-250,floor:floor(x),width:42,height:88,trigger:180,delay:i===0?1.05:.9}));
- const refractors=[3350,5650,8870,10300,12750,14600,18250,20200,22300,26700,28000,31600,33000].map((x,i)=>({x,floor:floor(x),phase:(i*1.1)%4.4}));
+ const fallingCrystals=[1100,1390,2800,4330,6020,6250,6900,11000,11480,13020,13200,15720,18300,18510,19680,20520,20700,22020,23650,26900,27100,28180,31420,32900,33950].filter(x=>!inPit(x)).map((x,i)=>({x,ceiling:floor(x)-250,floor:floor(x),width:42,height:88,trigger:180,delay:i===0?1.05:.74}));
+ const refractors=[3350,5650,8870,10300,12750,14600,18250,20200,22300,26700,28000,31600,33000].map((x,i)=>({x,floor:floor(x),phase:(i*.73)%2.9}));
  const enemySpecs=[[690,'walker'],[2040,'drone'],[2640,'walker'],[3750,'drone'],[5380,'walker'],[6770,'walker'],[7370,'drone'],[8250,'sentry'],[9800,'drone'],[10870,'walker'],
  [11720,'walker'],[12860,'drone'],[13380,'sentry'],[14470,'walker'],[15600,'drone'],[18230,'walker'],[18570,'drone'],[19440,'sentry'],[20140,'walker'],[20750,'drone'],[21980,'walker'],[22480,'sentry'],[23470,'drone'],[23900,'walker'],[26800,'drone'],[27260,'walker'],[28100,'sentry'],[28460,'walker'],[31300,'drone'],[31900,'walker'],[32740,'sentry'],[33100,'walker'],[33790,'drone'],[34200,'walker']];
  return {worldW:36800,spawn:{x:100,y:402},goal:{x:36570,y:338,w:55,h:72},tracks,rings,fallingCrystals,refractors,pits,
@@ -51,7 +57,7 @@ export function createCanyonTwoWorld({track,rect,enemy,orb,yOnTrack,PLAYER_RADIU
  checkpoints:[2460,5010,7110,9630,11530,14050,15940,18120,21000,23300,23950,26520,28540,31120,33700,34530,35900].map(x=>({x,y:floor(x)-PLAYER_RADIUS,active:false,boss:x===34530})),
  walls:[rect(-120,0,120,WORLD_H,'left-wall'),...[6550,15470,22800,32840].map(x=>rect(x,floor(x)-80,38,80,'break-gate'))],
  tunnels:[[2330,120],[4100,120],[7040,130],[11200,150],[13420,130],[18700,120],[21200,120],[22620,120],[27300,90],[32500,130]].map(([x,w])=>({x,w,ground:floor(x)})),
- enemies:enemySpecs.filter(([x])=>!inPit(x)).map(([x,type])=>{const b=enemy(x,floor(x)-(type==='drone'?70:2),type==='sentry'?0:35);return {...b,type,w:type==='sentry'?46:42,h:type==='drone'?25:type==='sentry'?38:28,crystalline:true};}),
+ enemies:enemySpecs.filter(([x])=>!inPit(x)).map(([x,type])=>{const b=enemy(x,floor(x)-(type==='drone'?70:2),type==='sentry'?0:35);return {...b,type,w:type==='sentry'?46:42,h:type==='drone'?25:type==='sentry'?38:28,crystalline:true,shotTimer:type==='drone'?1.3:type==='sentry'?1.0:undefined};}),
  boostOrbs:[580,1850,2990,4120,5120,6370,7270,8540,9670,11200,11610,12550,14050,15350,15880,18160,19400,21050,21870,22400,22600,23370,23950,26570,28270,28560,31170,32000,32620,34370,34610,35920].filter(x=>!inPit(x)).map(x=>orb(x,floor(x)-32)),
  springs:[],boostPads:[],spikes:[{x:5140,w:65},{x:7950,w:68},{x:10030,w:65},{x:11850,w:65},{x:13070,w:75},{x:19520,w:75},{x:20680,w:70},{x:22240,w:70},{x:23580,w:75},{x:27890,w:65},{x:31780,w:70},{x:34180,w:65}].filter(s=>landingSafe(s.x)).map(s=>({...s,y:floor(s.x)-22,h:22})),
  pulseGates:[20480,27080,33400].filter(x=>!inPit(x)).map((x,i)=>({x,y:floor(x)-115,w:18,h:93,period:3.5,live:.85,phase:i*.8})),memoryCores:[],secretTrials:[]};

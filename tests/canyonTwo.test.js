@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createCanyonTwoWorld,SANCTUARY} from '../src/levels/canyonTwo.js';
-import {createCaveHazards,advanceFallingCrystal,refractorState,beamTouches,reflectedGuardianLine,advanceCaveBridge,resetCaveBridge} from '../src/game/canyonHazards.js';
+import {createCanyonTwoWorld,SANCTUARY,CRYSTAL_QUIET_ZONES} from '../src/levels/canyonTwo.js';
+import {createCaveHazards,advanceFallingCrystal,refractorState,beamTouches,reflectedGuardianLine,advanceCaveBridge,resetCaveBridge,crystalImpactShards,guardianLaserSegments} from '../src/game/canyonHazards.js';
 import {createEnemy as enemy} from '../src/game/enemies.js';
 import {yOnTrack} from '../src/game/geometry.js';
 import {canyonTwoScore} from '../src/audio/canyonTwoScore.js';
@@ -31,10 +31,11 @@ test('normal-speed movement escapes a triggered shard and nearby players are saf
  assert.equal(c.state,'spent');assert.equal(hits,0);
 });
 test('refractors show the identical complete path during warning and fire',()=>{
- const r={x:100,floor:420,phase:0},warn=refractorState(r,3),fire=refractorState(r,4);
+ const r={x:100,floor:420,phase:0},warn=refractorState(r,1.8),fire=refractorState(r,2.4);
  assert.ok(warn.warning&&!warn.active);assert.ok(fire.active&&!fire.warning);assert.deepEqual(warn.points,fire.points);
  assert.ok(beamTouches({x:100,y:265},fire.points));assert.equal(beamTouches({x:100,y:402},fire.points),false);
  assert.equal(refractorState(r,1).active,false);
+ assert.equal(refractorState(r,3).active,false);
  const reflected=reflectedGuardianLine({x1:600,y1:315,x2:200,y2:398},0,960,410);assert.equal(reflected.x1,200);assert.equal(reflected.y1,398);assert.ok(reflected.x2>0&&reflected.x2<960);
 });
 test('Luz Sob a Pedra has eight varied bars, quiet opening and richer ruins',()=>{
@@ -70,8 +71,39 @@ test('waterfall and fractured aqueduct sections develop the score instead of loo
 
 test('Canyon 2 thins crystal rewards without removing tutorial arcs or boss approach',()=>{
  assert.ok(world.rings.length<300,'Canyon 2 should no longer flood the route with crystals');
- assert.ok(world.rings.length>160,'Canyon 2 must still reward exploration');
+ assert.ok(world.rings.length>130,'Canyon 2 must still reward exploration');
  const firstArc=world.rings.filter(r=>r.x>=1495&&r.x<=1835);
  assert.ok(firstArc.length>=7,'the first waterfall keeps its crystal guide');
  assert.ok(world.rings.filter(r=>r.x>=33760&&r.x<=35750).length>=25,'Guardian approach and fight provide recovery');
+});
+
+test('Prism Canyons crystal-free sectors are genuinely empty and spaced apart',()=>{
+ for(const [a,b] of CRYSTAL_QUIET_ZONES){
+  assert.ok(b-a>=750,'each region removes an entire crystal row');
+  assert.equal(world.rings.filter(r=>r.x>=a&&r.x<=b).length,0,'no dense clusters inside empty corridors');
+ }
+ assert.ok(world.rings.length<200,'clear reduction from prior 273 crystals');
+});
+test('falling crystals hit faster and send visible shards sideways',()=>{
+ const crystal=createCaveHazards(world)[1],p={x:crystal.x,y:crystal.floor-18};
+ const fragments=crystalImpactShards(crystal);
+ assert.equal(fragments.length,4);
+ assert.equal(fragments.filter(s=>s.vx<0).length,2);
+ assert.equal(fragments.filter(s=>s.vx>0).length,2);
+ assert.ok(fragments.every(s=>s.life>0&&s.caveShard));
+ const dt=.01;let elapsed=0,impacts=0;
+ while(crystal.state!=='spent'&&elapsed<3){advanceFallingCrystal(crystal,p,dt,{impact(){impacts++;}});elapsed+=dt;}
+ assert.equal(impacts,1);assert.ok(elapsed<1.2,'warning and fall now complete faster than before');
+});
+test('Guardian final heart displays three reflected rays matching real collision geometry',()=>{
+ const line={x1:35420,y1:295,x2:34808,y2:395};
+ const rays=guardianLaserSegments(line,34800,35760,410,3);
+ assert.equal(rays.length,4);
+ assert.deepEqual(rays[0],line);
+ for(let i=1;i<rays.length;i++){
+  assert.equal(rays[i].x1,rays[i-1].x2);
+  assert.equal(rays[i].y1,rays[i-1].y2);
+  assert.ok(rays[i].x2>=34818&&rays[i].x2<=35742);
+ }
+ assert.ok(new Set(rays.map(l=>Math.round(l.y2))).size>=3);
 });
