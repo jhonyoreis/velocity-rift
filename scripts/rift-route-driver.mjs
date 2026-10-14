@@ -66,6 +66,9 @@ export function createRiftRouteDriver({collectExtras=false}={}){
   const enemy=world.enemies.some(e=>(e.dimension===-1||e.dimension===s.dimension)&&["rift-laser","rift-triple"].includes(e.type)&&e.x>s.x-40&&e.x<s.x+(s.gravity<0?340:145));
   if(anchor&&Math.abs(s.x-anchor.x)<170)needJump=needDash=false;
   const wall=world.barricades.some(b=>b.x>s.x-40&&b.x<s.x+180);
+  // In ceiling sectors Dash must bridge the actual gap before gravity
+  // pulls Flux out of bounds; a delayed generic dash is too late.
+  if(s.gravity<0&&gap)needDash=true;
   needDash ||= (enemy||wall)&&!anchor;
   needJump ||= wall&&!anchor&&s.grounded;
   needJump ||= !extra&&!extraExit&&boss.mode==="dormant"&&(gap||rise||hazard||((enemy||wall)&&!anchor));
