@@ -71,7 +71,9 @@ export function createRiftRouteDriver({collectExtras=false}={}){
   needJump ||= !extra&&!extraExit&&boss.mode==="dormant"&&(gap||rise||hazard||((enemy||wall)&&!anchor));
   if(s.grounded&&needJump&&jumpAge>.35){keys.delete("arrowdown");keys.add(" ");jumpAge=0;dashed=false;fastJump=!extra&&(dangerMinion||enemy||wall||needDash||(rune&&Math.abs(s.x-rune.x)<125));}
   else if(jumpAge<(extraJump?.34:fastJump?.025:boss.mode==="dormant"?.3:.2))keys.add(" ");
-  else if(!extra&&!extraExit&&!s.grounded&&s.dashReady&&!dashed&&((needDash&&jumpAge>(fastJump?.06:.24))||(boss.mode==="dormant"&&jumpAge>(fastJump?.06:.36)))){
+  // On ceiling routes, save Dash for the gap itself, not the warning spikes
+  // immediately before it. An early Dash prevents the next ceiling landing.
+  else if(!extra&&!extraExit&&!s.grounded&&s.dashReady&&!dashed&&((needDash&&jumpAge>(fastJump?.06:.24))||(boss.mode==="dormant"&&(s.gravity>0||gap)&&jumpAge>(fastJump?.06:.36)))){
    // Horizontal Dash continues in the approach direction rather than braking.
    keys.delete(dir>0?"arrowleft":"arrowright");keys.add(dir>0?"arrowright":"arrowleft");keys.add(" ");dashed=true;
   }
