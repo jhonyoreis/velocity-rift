@@ -6,3 +6,7 @@ export const FLUX_MOTION = Object.freeze({
  jumpSpeed:660, gravity:1850, jumpCut:1450, terminalSpeed:1250,
  dashSpeed:1140, dashSeconds:.255, dashExitSpeed:560
 });
+
+// Shared hit reaction for the campaign: a short backwards hop. Inverted
+// gravity reverses only the vertical kick, not the horizontal recoil.
+export const FLUX_HIT_RECOIL=Object.freeze({horizontal:250,vertical:450,invulnerability:1.1});
