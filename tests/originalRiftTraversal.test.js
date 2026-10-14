@@ -28,7 +28,7 @@ test("final chapter authors nine sectors, six seals, three ascents and safe chec
 });
 test("input-only normal run solves all seals and wins pursuit, first form and scarlet form once",()=>{
  let endings=0;const r=createOriginalRift({onFinish:()=>endings++});r.start(9);
- const s=traverse(r);assert.equal(s.dead,false);assert.equal(s.finished,true);assert.equal(endings,1);
+ const s=traverse(r);assert.equal(s.dead,false,'Unexpected defeat: '+JSON.stringify({x:s.x,y:s.y,time:s.time,crystals:s.crystals,boss:s.boss.mode,damage:s.damageCount,checkpoint:s.checkpointIndex}));assert.equal(s.finished,true);assert.equal(endings,1);
  assert.equal(s.runes.length,6);assert.equal(s.visitedSectors.length,9);
  assert.equal(s.chaseDone,true);assert.equal(s.awakened,true);assert.equal(s.boss.phaseHits,6);
  assert.equal(s.scarlet,0);assert.ok(s.time>100);assert.ok(s.topSpeed>1000);
@@ -37,7 +37,7 @@ test("input-only normal run solves all seals and wins pursuit, first form and sc
 });
 test("all three optional memories and timed routes are reachable through player inputs",()=>{
  const cores=[],routes=[];const r=createOriginalRift({onCore:id=>cores.push(id),onSecret:(id,t)=>routes.push([id,t])});r.start(9);
- const s=traverse(r,{extras:true});assert.equal(s.dead,false);assert.equal(s.finished,true);
+ const s=traverse(r,{extras:true});assert.equal(s.dead,false,'Extras route defeat: '+JSON.stringify({x:s.x,y:s.y,time:s.time,crystals:s.crystals,boss:s.boss.mode,damage:s.damageCount}));assert.equal(s.finished,true);
  assert.deepEqual(s.runCores,[0,1,2]);assert.deepEqual(cores,[0,1,2]);
  assert.deepEqual(s.secrets,["origin","paradox","lastlight"]);
  assert.ok(routes.every(([id,t])=>t>0&&t<=25));assert.equal(routes.length,3);
