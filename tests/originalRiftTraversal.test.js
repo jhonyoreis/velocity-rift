@@ -31,7 +31,7 @@ test("input-only normal run solves all seals and wins pursuit, first form and sc
   onFinish:()=>endings++,
   onFrame:s=>{
    if(s.damageCount!==lastDamage){lastDamage=s.damageCount;hits.push({x:Math.round(s.x),y:Math.round(s.y),vx:Math.round(s.vx),vy:Math.round(s.vy),gravity:s.gravity,crystals:s.crystals,damage:s.damageCount,time:Math.round(s.time*10)/10});}
-   if(s.x>8900&&s.x<9500&&s.time-logAt>.075){logAt=s.time;tail.push({x:Math.round(s.x),y:Math.round(s.y),vx:Math.round(s.vx),vy:Math.round(s.vy),grounded:s.grounded,dash:s.dash>0,dashReady:s.dashReady,time:Math.round(s.time*100)/100});}
+   if(((s.x>8900&&s.x<9500)||(s.x>37300&&s.x<38300))&&s.time-logAt>.075){logAt=s.time;tail.push({x:Math.round(s.x),y:Math.round(s.y),vx:Math.round(s.vx),vy:Math.round(s.vy),grounded:s.grounded,dash:s.dash>0,dashReady:s.dashReady,time:Math.round(s.time*100)/100});}
   }
  });r.start(9);
  const s=traverse(r);if(s.dead)console.log('RIFT HIT TRACE',JSON.stringify(hits));if(s.dead)console.log('RIFT CEILING TRACE',JSON.stringify(tail.slice(-35)));assert.equal(s.dead,false,'Unexpected defeat: '+JSON.stringify({x:s.x,y:s.y,time:s.time,crystals:s.crystals,boss:s.boss.mode,damage:s.damageCount,checkpoint:s.checkpointIndex}));assert.equal(s.finished,true);assert.equal(endings,1);
