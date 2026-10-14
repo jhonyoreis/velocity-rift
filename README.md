@@ -1,4 +1,10 @@
-# Velocity Rift — Uma Flor, Enfim (versão 4.6.2)
+# Velocity Rift — Uma Flor, Enfim (versão 4.6.3)
+
+## 4.6.3 — Prensas e Refração (APK R36)
+
+- Floresta Neon 2: drones desgastados agora disparam um projétil direcionado com aviso âmbar antes do ataque. As prensas descem em 0,10 s (antes 0,15 s), permanecem embaixo por 0,85 s (antes 0,30 s) e continuam sinalizadas.
+- Cânion Prisma 2: os raios dos postes refratores permanecem ativos por 1,15 s (antes 0,62 s), sem alterar o ciclo de 2,9 s. O aviso ocorre mais cedo.
+- Campanha, capítulos, saves e física da Fenda Original permanecem intactos nesta versão. O recuo da fase final está em avaliação separada.
 
 ## 4.6.2 — A Ira do Prisma (APK R35)
 

@@ -27,6 +27,7 @@ import {speedometer} from "./game/speedometer.js";
 import {sanitizeGhost,ghostFrameAt,recordGhostFrame,makeGhost} from "./game/ghostReplay.js";
 import {guardianPhase} from "./bosses/guardianPhases.js";
 import {canyonEnemyVolley,canyonEnemyCooldown} from "./game/canyonCombat.js";
+import {forestDroneShot,FOREST_DRONE_RANGE,FOREST_DRONE_COOLDOWN,FOREST_DRONE_WARNING} from "./game/forestTwoCombat.js";
 import {ALICIA_ECHOES,sanitizeEchoArchive} from "./data/aliciaEchoes.js";
 import {BONUS_CHALLENGES,earnedBonusChallenges,sanitizeBonusChallenges} from "./game/bonusChallenges.js";
 import {ACHIEVEMENTS} from "./data/achievements.js";
@@ -1784,7 +1785,8 @@ function resetGame() {
     bad.x = bad.baseX;
     bad.y = bad.yBase;
     bad.phase=0;
-    bad.shotTimer=.55 + (bad.baseX%7)*.12;
+    bad.shotTimer=isForestTwo()&&bad.type==="drone"?
+      .95+(bad.baseX%5)*.17:.55+(bad.baseX%7)*.12;
   });
   rings.forEach((ring) => {
     ring.active = true;
@@ -3134,9 +3136,9 @@ function updateSentryShots(dt){
 }
 function drawSentryShots(){
   for(const shot of sentryShots){
-    ctx.fillStyle=shot.caveShard?"rgba(159,244,255,.28)":shot.caveShot?"rgba(213,144,255,.23)":shot.cityShot?"rgba(255,176,103,.23)":"rgba(255,107,179,.2)";
+    ctx.fillStyle=shot.forestShot?"rgba(255,207,110,.28)":shot.caveShard?"rgba(159,244,255,.28)":shot.caveShot?"rgba(213,144,255,.23)":shot.cityShot?"rgba(255,176,103,.23)":"rgba(255,107,179,.2)";
     ctx.beginPath();ctx.arc(shot.x,shot.y,shot.r+7,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle=shot.caveShard?"#b9f5ff":shot.caveShot?"#d9a7ff":shot.cityShot?"#ffac79":"#ff82c5";
+    ctx.fillStyle=shot.forestShot?"#ffd08a":shot.caveShard?"#b9f5ff":shot.caveShot?"#d9a7ff":shot.cityShot?"#ffac79":"#ff82c5";
     ctx.beginPath();ctx.arc(shot.x,shot.y,shot.r,0,Math.PI*2);ctx.fill();
     if(shot.caveShard){
       ctx.strokeStyle="#e3fdff";ctx.lineWidth=2;
@@ -3196,6 +3198,20 @@ function updateEnemies(dt) {
         sentryShots.push(...canyonEnemyVolley("drone",bad.x,bad.y-bad.h*.65,player));
         bad.shotTimer=canyonEnemyCooldown("drone");
         playSfx("boss-alert");
+      }
+    }
+    if(isForestTwo()&&bad.type==="drone"){
+      const originY=bad.y-bad.h*.55;
+      const near=Math.hypot(bad.x-player.x,originY-player.y)<FOREST_DRONE_RANGE;
+      // A far-away drone cannot launch immediately on entering the screen.
+      if(!near)bad.shotTimer=Math.max(bad.shotTimer??0,FOREST_DRONE_WARNING+.1);
+      else{
+        bad.shotTimer=(bad.shotTimer??.95)-dt;
+        if(bad.shotTimer<=0&&sentryShots.length<34){
+          sentryShots.push(forestDroneShot(bad.x,originY,player));
+          bad.shotTimer=FOREST_DRONE_COOLDOWN;
+          playSfx("boss-alert");
+        }
       }
     }
 
@@ -5384,7 +5400,7 @@ if(import.meta.env.DEV&&new URLSearchParams(location.search).has("rift-qa")){
       startRiftPreview(true);riftQAFrozen=true;for(let i=0;i<100;i++)riftPreview.update(1/120,new Set());draw();
       return riftPreview.info();
     },
-    gameInfo:()=>({arrival:{...stageArrival},route:campaignRoute(),campaign:{...campaign},forestPart,canyonPart,enemies:enemies.map(e=>({...e})),factory:{...factoryState},cargoLoads:cargoLoads.map(c=>({...c})),forestPlatforms:isForestTwo()?tracks.filter(t=>t.upper).map(t=>({...t})):[],ground:player.ground?{...player.ground}:null,cavePlatforms:isCanyonTwo()?tracks.filter(t=>["cave-bridge","cave-crumble","moving"].includes(t.kind)).map(t=>({...t})):[],guardian:{...guardian,core:guardianCorePosition(),line:guardianLaserLine(),beams:guardianBeamPaths()},caveHazards:caveHazards.map(c=>({...c})),portal:{...riftPortal},helix:{...helix},checkpointIndex,cleared:gameCleared,boost:player.boost,presses:isForestTwo()?forestTwoWorld.presses.map(p=>({...p,...pressState(p,gameTime)})):[],cameraX,cameraY,dashStatus:currentDashStatus(),defeat:defeat?{...defeat}:null,stage:activeStage,cores:player.cores,x:player.x,y:player.y,vx:player.vx,vy:player.vy,crystals:player.rings,onGround:player.onGround,sliding:player.sliding,boosting:player.boosting,dash:{...airDash},rubro:{...rubro},time:gameTime,damage:runDamageCount,walls:walls.map(w=>({...w})),tunnels:tunnels.map(w=>({...w}))}),
+    gameInfo:()=>({arrival:{...stageArrival},route:campaignRoute(),campaign:{...campaign},forestPart,canyonPart,enemies:enemies.map(e=>({...e})),factory:{...factoryState},cargoLoads:cargoLoads.map(c=>({...c})),forestPlatforms:isForestTwo()?tracks.filter(t=>t.upper).map(t=>({...t})):[],ground:player.ground?{...player.ground}:null,cavePlatforms:isCanyonTwo()?tracks.filter(t=>["cave-bridge","cave-crumble","moving"].includes(t.kind)).map(t=>({...t})):[],guardian:{...guardian,core:guardianCorePosition(),line:guardianLaserLine(),beams:guardianBeamPaths()},caveHazards:caveHazards.map(c=>({...c})),shots:sentryShots.map(p=>({...p})),portal:{...riftPortal},helix:{...helix},checkpointIndex,cleared:gameCleared,boost:player.boost,presses:isForestTwo()?forestTwoWorld.presses.map(p=>({...p,...pressState(p,gameTime)})):[],cameraX,cameraY,dashStatus:currentDashStatus(),defeat:defeat?{...defeat}:null,stage:activeStage,cores:player.cores,x:player.x,y:player.y,vx:player.vx,vy:player.vy,crystals:player.rings,onGround:player.onGround,sliding:player.sliding,boosting:player.boosting,dash:{...airDash},rubro:{...rubro},time:gameTime,damage:runDamageCount,walls:walls.map(w=>({...w})),tunnels:tunnels.map(w=>({...w}))}),
     stepGame(inputs=[],frames=1,render=true){
       const wasJump=keys.has(" ");keys.clear();for(const key of inputs)keys.add(key);
       if(keys.has(" ")&&!wasJump){if(!player.onGround&&dashUnlocked())startAirDash();else jumpBuffer=.13;}
