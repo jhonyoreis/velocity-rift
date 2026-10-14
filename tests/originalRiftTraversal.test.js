@@ -27,8 +27,11 @@ test("final chapter authors nine sectors, six seals, three ascents and safe chec
  for(const item of map.items.filter(i=>i.motion))assert.ok(map.platforms[item.platform].motion>0);
 });
 test("input-only normal run solves all seals and wins pursuit, first form and scarlet form once",()=>{
- let endings=0;const r=createOriginalRift({onFinish:()=>endings++});r.start(9);
- const s=traverse(r);assert.equal(s.dead,false,'Unexpected defeat: '+JSON.stringify({x:s.x,y:s.y,time:s.time,crystals:s.crystals,boss:s.boss.mode,damage:s.damageCount,checkpoint:s.checkpointIndex}));assert.equal(s.finished,true);assert.equal(endings,1);
+ let endings=0,lastDamage=0;const hits=[];const r=createOriginalRift({
+  onFinish:()=>endings++,
+  onFrame:s=>{if(s.damageCount!==lastDamage){lastDamage=s.damageCount;hits.push({x:Math.round(s.x),y:Math.round(s.y),vx:Math.round(s.vx),vy:Math.round(s.vy),gravity:s.gravity,crystals:s.crystals,damage:s.damageCount,time:Math.round(s.time*10)/10});}}
+ });r.start(9);
+ const s=traverse(r);if(s.dead)console.log('RIFT HIT TRACE',JSON.stringify(hits));assert.equal(s.dead,false,'Unexpected defeat: '+JSON.stringify({x:s.x,y:s.y,time:s.time,crystals:s.crystals,boss:s.boss.mode,damage:s.damageCount,checkpoint:s.checkpointIndex}));assert.equal(s.finished,true);assert.equal(endings,1);
  assert.equal(s.runes.length,6);assert.equal(s.visitedSectors.length,9);
  assert.equal(s.chaseDone,true);assert.equal(s.awakened,true);assert.equal(s.boss.phaseHits,6);
  assert.equal(s.scarlet,0);assert.ok(s.time>100);assert.ok(s.topSpeed>1000);
