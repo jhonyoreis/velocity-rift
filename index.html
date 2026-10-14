@@ -3,13 +3,14 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Velocity Rift 4.5.0 — Uma Flor, Enfim</title>
+    <title>Velocity Rift 4.6.0 — Uma Flor, Enfim</title>
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <link rel="stylesheet" href="./src/styles.css" />
+    <link rel="stylesheet" href="./src/rendering/journeyMap.css" />
   </head>
   <body>
     <main class="shell">
-      <section class="game-panel" aria-label="Velocity Rift 4.5.0">
+      <section class="game-panel" aria-label="Velocity Rift 4.6.0">
         <canvas id="game" width="960" height="540"></canvas>
         <div id="overlay" class="overlay" role="region" aria-label="Menu do Velocity Rift">
           <section id="mainMenu" class="menu-screen v3-main v4-home" aria-labelledby="menuHeading">
@@ -43,7 +44,7 @@
             <div class="v4-home-art" aria-hidden="true">
               <img src="./menu-hero.svg" alt="" width="850" height="760" decoding="async" />
             </div>
-            <small class="v4-home-version">v4.5.0 · <span class="vr-build-id">APK R32</span> · A FÁBRICA DESPERTA · EXPERIMENTAL</small>
+            <small class="v4-home-version">v4.6.0 · <span class="vr-build-id">APK R33</span> · JORNADA COMPLETA · EDIÇÃO OFICIAL</small>
 
             <!-- Keep existing progress anchors for saves and other menus,
                  without showing a statistics dashboard on the home screen. -->
@@ -145,185 +146,110 @@
               <button id="cancelNewGameButton" type="button" class="vr-icon-action vr-confirm-no" aria-label="Cancelar novo jogo" title="Cancelar novo jogo">✕</button>
             </div>
           </section>
-          <section id="stageMenu" class="menu-screen rift-map-screen rift-map-clean" aria-labelledby="stageHeading" hidden>
-            <header class="rift-map-header">
-              <div>
-                <span class="rift-map-overline">CAMPANHA · QUATRO DESTINOS</span>
-                <h2 id="stageHeading">Mapa das Fendas</h2>
-                <p class="rift-map-intro">Escolha para onde Flux vai.</p>
-              </div>
-              <span id="mapCampaignSummary" class="rift-map-progress" aria-live="polite">0% da jornada</span>
-            </header>
-            <div class="rift-map-layout">
-              <div class="rift-map-world rift-map-cartography" role="group" aria-label="Mapa interativo das quatro regiões">
-                <svg class="rift-map-art" viewBox="0 0 540 320" preserveAspectRatio="none" aria-hidden="true">
-                  <defs>
-                    <pattern id="riftAtlasGrid" width="32" height="32" patternUnits="userSpaceOnUse">
-                      <path d="M32 0H0V32" fill="none" stroke="#9ab3d0" stroke-opacity=".085" stroke-width="1" />
-                    </pattern>
-                    <linearGradient id="riftAtlasForest" x1="0" y1="1" x2="1" y2="0">
-                      <stop stop-color="#0e826f" stop-opacity=".52"/>
-                      <stop offset="1" stop-color="#3bbaa6" stop-opacity=".06"/>
-                    </linearGradient>
-                    <linearGradient id="riftAtlasPrism" x1="0" y1="1" x2="1" y2="0">
-                      <stop stop-color="#a86ce2" stop-opacity=".13"/>
-                      <stop offset="1" stop-color="#ba9cff" stop-opacity=".38"/>
-                    </linearGradient>
-                    <linearGradient id="riftAtlasCity" x1="0" y1="1" x2="1" y2="0">
-                      <stop stop-color="#5067ac" stop-opacity=".12"/>
-                      <stop offset="1" stop-color="#628eb9" stop-opacity=".36"/>
-                    </linearGradient>
-                    <linearGradient id="riftAtlasPath" x1="0" y1="0" x2="1" y2="0">
-                      <stop stop-color="#66ebd3"/>
-                      <stop offset=".56" stop-color="#b7a3ff"/>
-                      <stop offset="1" stop-color="#b5d9f9"/>
-                    </linearGradient>
-                    <radialGradient id="riftAtlasHaze">
-                      <stop stop-color="#7970ce" stop-opacity=".18"/>
-                      <stop offset="1" stop-color="#7970ce" stop-opacity="0"/>
-                    </radialGradient>
-                  </defs>
-                  <rect width="540" height="320" fill="url(#riftAtlasGrid)"/>
-                  <ellipse cx="306" cy="151" rx="205" ry="174" fill="url(#riftAtlasHaze)"/>
-                  <path class="rift-map-land rift-map-land-forest" d="M0 224L42 190L77 213L104 171L134 201L171 189L202 229L178 320H0Z" fill="url(#riftAtlasForest)"/>
-                  <path class="rift-map-land rift-map-land-prism" d="M166 182L219 125L241 93L277 45L313 100L343 80L385 152L333 216L250 228L211 195Z" fill="url(#riftAtlasPrism)"/>
-                  <path class="rift-map-land rift-map-land-city" d="M346 0H540V138L505 159L489 108L460 123L433 82L412 103L389 52Z" fill="url(#riftAtlasCity)"/>
-                  <path class="rift-map-land rift-map-land-void" d="M354 237L400 194L459 185L517 228L540 266V320H376Z" fill="#a765bd" fill-opacity=".09"/>
-                  <g class="rift-map-terrain" fill="none" stroke-linecap="round">
-                    <path d="M23 267L54 226L77 258L110 216L132 242L157 224" stroke="#61d9be" stroke-opacity=".19" stroke-width="3"/>
-                    <path d="M197 180L239 138L275 91L306 136L343 114" stroke="#bca9ff" stroke-opacity=".23" stroke-width="3"/>
-                    <path d="M407 82V30H430V48H452V15H472V40H495V4H518V84" stroke="#a6c4f1" stroke-opacity=".19" stroke-width="3"/>
-                    <path d="M376 260L417 220L446 261L489 217L521 274" stroke="#d19ad8" stroke-opacity=".18" stroke-width="3"/>
-                  </g>
-                  <g class="rift-map-sparks" fill="#9df8e7" fill-opacity=".40">
-                    <circle cx="51" cy="64" r="1.5"/><circle cx="136" cy="94" r="1.3"/>
-                    <circle cx="209" cy="42" r="1.3"/><circle cx="356" cy="251" r="1.4"/>
-                    <circle cx="518" cy="171" r="1.5"/><circle cx="273" cy="293" r="1.1"/>
-                  </g>
-                  <g class="rift-map-routes" fill="none" stroke-width="3.5" stroke-linecap="round">
-                    <path class="rift-map-path-underlay" d="M113 244C170 235 193 157 275 151M275 151C340 149 371 63 431 70M431 70C501 116 504 181 424 249"/>
-                    <path id="mapPathToCanyon" class="rift-map-path rift-map-path-locked" d="M113 244C170 235 193 157 275 151"/>
-                    <path id="mapPathToCity" class="rift-map-path rift-map-path-locked" d="M275 151C340 149 371 63 431 70"/>
-                    <path id="mapPathToFinal" class="rift-map-path rift-map-path-locked" d="M431 70C501 116 504 181 424 249"/>
-                  </g>
-                </svg>
-                <span class="rift-map-compass" aria-hidden="true">✧ <span>N</span></span>
-                <div class="rift-map-regions">
-                  <button id="mapNodeStageOne" type="button"
-                          class="rift-map-node rift-map-node-forest is-selected"
-                          aria-pressed="true" aria-label="Selecionar Floresta Neon">
-                    <span class="rift-node-emblem" aria-hidden="true">✦</span>
-                    <span class="rift-node-number">01</span>
-                    <span class="rift-node-title">FLORESTA NEON</span>
-                    <small id="mapNodeStageOneStatus">DISPONÍVEL</small>
-                  </button>
-                  <button id="mapNodeStageTwo" type="button"
-                          class="rift-map-node rift-map-node-canyon is-locked"
-                          aria-pressed="false" aria-label="Selecionar Cânion Prisma">
-                    <span class="rift-node-emblem" aria-hidden="true">◇</span>
-                    <span class="rift-node-number">02</span>
-                    <span class="rift-node-title">CÂNION PRISMA</span>
-                    <small id="mapNodeStageTwoStatus">BLOQUEADA</small>
-                  </button>
-                  <button id="mapNodeStageThree" type="button"
-                          class="rift-map-node rift-map-node-city is-locked"
-                          aria-pressed="false" aria-label="Selecionar Cidade das Fendas">
-                    <span class="rift-node-emblem" aria-hidden="true">▥</span>
-                    <span class="rift-node-number">03</span>
-                    <span class="rift-node-title">CIDADE DAS FENDAS</span>
-                    <small id="mapNodeStageThreeStatus">BLOQUEADA</small>
-                  </button>
-                  <button id="mapNodeStageFour" type="button"
-                          class="rift-map-node rift-map-node-final is-future"
-                          aria-pressed="false" aria-label="Selecionar Fenda Original">
-                    <span class="rift-node-emblem" aria-hidden="true">✧</span>
-                    <span class="rift-node-number">04</span>
-                    <span class="rift-node-title">FENDA ORIGINAL</span>
-                    <small id="mapNodeStageFourStatus">BLOQUEADA</small>
-                  </button>
-                </div>
-                <span class="rift-map-coordinate" aria-hidden="true">COORDENADAS DIMENSIONAIS</span>
-              </div>
-
-              <div class="rift-map-info" aria-live="polite">
-                <article id="stageOneCard" class="rift-map-details rift-detail-forest">
-                  <div class="rift-detail-heading">
-                    <span class="rift-detail-index">FASE 01</span>
-                    <span id="mapStageOneBadge" class="rift-detail-state">DISPONÍVEL</span>
-                  </div>
-                  <div class="rift-detail-main">
-                    <h3>Primeiro Impulso</h3>
-                    <p class="rift-detail-region">FLORESTA NEON</p>
-                    <p class="rift-detail-story">A jornada começa entre árvores luminosas e caminhos de velocidade.</p>
-                  </div>
-                  <div class="rift-detail-stats">
-                    <div><small>Tempo</small><strong id="mapStageOneBest">--</strong></div>
-                    <div><small>Núcleos</small><strong id="mapStageOneCores">0/3</strong></div>
-                    <div><small>Segredos</small><strong id="mapStageOneSecrets">0/3</strong></div>
-                  </div>
-                  <p id="stageOneProgress" class="rift-stage-progress">Primeira região da jornada</p>
-                  <button id="forestTwoButton" class="rift-map-launch forest-two-launch" type="button">FLORESTA NEON 2 · FÁBRICA HELIX →</button>
-                  <button id="stageOneButton" class="rift-map-launch" type="button">JOGAR FLORESTA NEON 1 →</button>
-                </article>
-                <article id="stageTwoCard" class="rift-map-details rift-detail-canyon stage-card-locked" hidden>
-                  <div class="rift-detail-heading">
-                    <span class="rift-detail-index">FASE 02</span>
-                    <span id="mapStageTwoBadge" class="rift-detail-state">BLOQUEADA</span>
-                  </div>
-                  <div class="rift-detail-main">
-                    <h3>Cânion Prisma</h3>
-                    <p class="rift-detail-region">CÂNION CRISTALINO</p>
-                    <p class="rift-detail-story">Domine os abismos e desafie o Guardião do Prisma.</p>
-                  </div>
-                  <div class="rift-detail-stats">
-                    <div><small>Tempo</small><strong id="mapStageTwoBest">--</strong></div>
-                    <div><small>Núcleos</small><strong id="mapStageTwoCores">0/3</strong></div>
-                    <div><small>Segredos</small><strong id="mapStageTwoSecrets">0/3</strong></div>
-                  </div>
-                  <p id="stageTwoProgress" class="rift-stage-progress">Conclua Primeiro Impulso para liberar</p>
-                  <button id="stageTwoButton" class="rift-map-launch" type="button" disabled>FASE BLOQUEADA</button>
-                  <button id="canyonTwoButton" class="rift-map-launch forest-two-launch" type="button">CÂNION PRISMA 2 · SANTUÁRIO DA REFRAÇÃO →</button>
-                  <span id="stageTwoLock" class="rift-map-locked-label">Conclua a fase 01 para desbloquear</span>
-                </article>
-                <article id="stageThreeCard" class="rift-map-details rift-detail-city" hidden>
-                  <div class="rift-detail-heading">
-                    <span class="rift-detail-index">FASE 03</span>
-                    <span id="mapStageThreeBadge" class="rift-detail-state">BLOQUEADA</span>
-                  </div>
-                  <div class="rift-detail-main">
-                    <h3>Cidade das Fendas</h3>
-                    <p class="rift-detail-region">METRÓPOLE DAS FENDAS</p>
-                    <p class="rift-detail-story">Domine o dash aéreo e enfrente o Arquiteto do Vazio.</p>
-                  </div>
-                  <div class="rift-detail-stats">
-                    <div><small>Tempo</small><strong id="mapStageThreeBest">--</strong></div>
-                    <div><small>Núcleos</small><strong id="mapStageThreeCores">0/3</strong></div>
-                    <div><small>Segredos</small><strong id="mapStageThreeSecrets">0/3</strong></div>
-                  </div>
-                  <p id="stageThreeProgress" class="rift-stage-progress">Conclua o Cânion Prisma para liberar</p>
-                  <button id="stageThreeButton" class="rift-map-launch" type="button" disabled>FASE BLOQUEADA</button>
-                </article>
-                <article id="stageFourCard" class="rift-map-details rift-detail-final" hidden>
-                  <div class="rift-detail-heading">
-                    <span class="rift-detail-index">FASE 04</span>
-                    <span id="mapStageFourBadge" class="rift-detail-state">BLOQUEADA</span>
-                  </div>
-                  <div class="rift-detail-main">
-                    <h3>Fenda Original</h3>
-                    <p class="rift-detail-region">CAPÍTULO FINAL</p>
-                    <p class="rift-detail-story">O mundo desfeito. Selos em duas realidades, uma perseguição implacável e o trono do Soberano. Nove memórias despertarão Flux Rubro. Alicia espera por você.</p>
-                  </div>
-                  <div class="rift-detail-coming">ALTAR DOS NOVE NÚCLEOS · <strong id="mapStageFourCores">0/9</strong></div>
-                  <div class="rift-detail-coming">RECORDE <strong id="mapStageFourBest">--</strong> · MEMÓRIAS <strong id="mapStageFourMemories">0/3</strong> · ROTAS <strong id="mapStageFourSecrets">0/3</strong></div>
-                  <p id="stageFourProgress" class="rift-stage-progress">Entre para ver o altar; recupere os nove núcleos das fases anteriores para abrir a porta.</p>
-                  <button id="stageFourButton" class="rift-map-launch" type="button" disabled>CONCLUA A CIDADE PARA ENTRAR</button>
-                </article>
-              </div>
-            </div>
-            <footer class="rift-map-footer">
-              <button id="backToMainButton" class="rift-map-back" type="button">← VOLTAR AO MENU</button>
-            </footer>
-          </section>
+          <section id="stageMenu" class="menu-screen rift-map-screen rift-map-clean rift-map-journey" aria-labelledby="stageHeading" hidden>
+ <header class="rift-map-header"><div><span class="rift-map-overline">SEIS DESTINOS · UMA JORNADA</span><h2 id="stageHeading">Mapa das Fendas</h2><p id="mapNextDestination" class="rift-map-intro">Próximo destino: Floresta Neon 1</p></div><span id="mapCampaignSummary" class="rift-map-progress" aria-live="polite">0% da jornada · 0/6</span></header>
+ <div class="rift-map-layout"><div class="rift-map-world rift-map-cartography" role="group" aria-label="Mapa interativo dos seis destinos">
+<svg class="rift-map-art" viewBox="0 0 600 360" preserveAspectRatio="none" aria-hidden="true">
+ <defs>
+  <linearGradient id="journeyForest" x2="0" y2="1"><stop stop-color="#20564d"/><stop offset="1" stop-color="#102d3a"/></linearGradient>
+  <linearGradient id="journeyPrism" x2="1" y2="1"><stop stop-color="#524477"/><stop offset="1" stop-color="#1c2947"/></linearGradient>
+  <linearGradient id="journeyWater" x2="0" y2="1"><stop stop-color="#89dcf4" stop-opacity=".7"/><stop offset="1" stop-color="#5199d4" stop-opacity="0"/></linearGradient>
+  <linearGradient id="riftAtlasPath"><stop stop-color="#8bf3ca"/><stop offset="1" stop-color="#c6abff"/></linearGradient>
+  <radialGradient id="journeyVoid"><stop stop-color="#ba8ef6" stop-opacity=".35"/><stop offset="1" stop-color="#8c6ab3" stop-opacity="0"/></radialGradient>
+  <pattern id="journeyGrid" width="30" height="30" patternUnits="userSpaceOnUse"><path d="M30 0H0V30" stroke="#b0e5ef" stroke-opacity=".035" fill="none"/></pattern>
+  <g id="atlasTree"><path d="M-2 0V-49H3V0" fill="#448171"/><path d="M-29-14L0-69L30-14Z" fill="#33715f"/><path d="M-18-32L0-62L19-32" stroke="#79cda2" stroke-opacity=".45" fill="none"/></g>
+  <g id="atlasCrystal"><path d="M-17 0L-9-41L7-67L22 0Z" fill="#8473ad"/><path d="M7-67L4 0H22Z" fill="#b3a0d6"/><path d="M7-67L4 0" stroke="#e0d0ff" stroke-opacity=".8"/></g>
+ </defs>
+ <rect width="600" height="360" fill="#0b192b"/><rect width="600" height="360" fill="url(#journeyGrid)"/>
+ <path d="M0 10L90 0L130 25L210 7L270 31L365 12L392 90L354 173L225 185L170 164L97 190L0 161Z" fill="url(#journeyForest)"/>
+ <path d="M380 0H600V315L550 304L516 322L476 299L445 248L462 195L415 161L427 105Z" fill="url(#journeyPrism)"/>
+ <path d="M190 230L251 204L314 213L364 186L433 226L438 340L360 360H196Z" fill="#24334e"/>
+ <ellipse cx="83" cy="274" rx="132" ry="113" fill="url(#journeyVoid)"/>
+ <g opacity=".7"><use href="#atlasTree" x="28" y="103"/><use href="#atlasTree" x="64" y="70"/><use href="#atlasTree" x="116" y="79"/><use href="#atlasTree" x="157" y="106"/><use href="#atlasTree" x="195" y="76"/></g>
+ <g fill="#152b36" stroke="#528d7d" stroke-width="1.5"><path d="M235 78V47L259 32V47L283 32V47H334V78Z"/><path d="M305 47V15H315V47"/><path d="M319 47V22H328V47"/></g>
+ <g fill="#91d3b3" opacity=".55"><path d="M247 58H257V69H247ZM270 58H280V69H270ZM293 58H303V69H293ZM316 58H326V69H316Z"/></g>
+ <path d="M221 100V170H377" stroke="#69a58d" stroke-width="3" fill="none" opacity=".3"/>
+ <g opacity=".8"><use href="#atlasCrystal" x="460" y="83"/><use href="#atlasCrystal" x="511" y="65"/><use href="#atlasCrystal" x="557" y="93"/></g>
+ <path d="M563 139Q573 129 589 139V337H563Z" fill="url(#journeyWater)"/>
+ <g class="atlas-water" stroke="#b7eeff" stroke-opacity=".35" stroke-width="2"><path d="M571 142V316M578 163V330M585 143V305"/></g>
+ <path d="M460 232Q476 161 535 184L560 233L537 218L520 201L491 214L477 240Z" fill="#0c182d" stroke="#8e7caa" stroke-opacity=".5"/>
+ <g fill="#18263c" stroke="#698399" stroke-width="1.5"><path d="M218 267V228H241V210H259V263M275 265V207H295V191H314V264M331 266V224H347V211H365V269M382 272V230H399V251H411"/></g>
+ <g fill="#a7cbd9" opacity=".35"><path d="M283 217H289V227H283ZM283 238H289V248H283ZM303 212H309V222H303ZM340 233H346V243H340Z"/></g>
+ <g stroke="#c6a7ed" fill="none" opacity=".27"><ellipse cx="84" cy="284" rx="51" ry="29" transform="rotate(-24 84 284)"/><ellipse cx="84" cy="284" rx="65" ry="41" transform="rotate(-24 84 284)"/><path d="M12 238L34 229L29 212M133 248L155 240L160 220M40 329L29 340M134 307L157 319"/></g>
+ <g class="rift-map-sparks" fill="#cbf5ed"><circle cx="27" cy="177" r="1.6"/><circle cx="199" cy="145" r="1.4"/><circle cx="357" cy="48" r="1.8"/><circle cx="395" cy="139" r="1.4"/><circle cx="545" cy="168" r="1.3"/><circle cx="457" cy="328" r="1.5"/><circle cx="174" cy="298" r="1.3"/><circle cx="110" cy="220" r="1.4"/></g>
+ <g class="rift-map-routes" fill="none" stroke-linecap="round">
+  <path class="rift-map-path-underlay" d="M84 122H300H516C572 122 571 277 516 277H300H84"/>
+  <path id="mapPathToForestTwo" class="rift-map-path rift-map-path-locked" d="M84 122H300"/>
+  <path id="mapPathToCanyon" class="rift-map-path rift-map-path-locked" d="M300 122H516"/>
+  <path id="mapPathToCanyonTwo" class="rift-map-path rift-map-path-locked" d="M516 122C572 122 571 277 516 277"/>
+  <path id="mapPathToCity" class="rift-map-path rift-map-path-locked" d="M516 277H300"/>
+  <path id="mapPathToFinal" class="rift-map-path rift-map-path-locked" d="M300 277H84"/>
+ </g>
+ <g fill="#b7d2da" opacity=".6"><path d="M192 119L198 122L192 125ZM408 119L414 122L408 125ZM557 196L554 202L551 196ZM408 274L402 277L408 280ZM192 274L186 277L192 280Z"/></g>
+</svg><div class="rift-map-regions"><button id="mapNodeStageOne" type="button" class="rift-map-node rift-map-node-forest" aria-pressed="true" aria-label="Selecionar Floresta Neon 1">
+ <span class="rift-node-emblem" aria-hidden="true">✦</span><span class="rift-node-number">01</span>
+ <span class="rift-node-title">FLORESTA NEON 1</span><small id="mapNodeStageOneStatus">DISPONÍVEL</small></button><button id="mapNodeForestTwo" type="button" class="rift-map-node rift-map-node-forest" aria-pressed="false" aria-label="Selecionar Floresta Neon 2">
+ <span class="rift-node-emblem" aria-hidden="true">⚙</span><span class="rift-node-number">02</span>
+ <span class="rift-node-title">FLORESTA NEON 2</span><small id="mapNodeForestTwoStatus">BLOQUEADA</small></button><button id="mapNodeStageTwo" type="button" class="rift-map-node rift-map-node-canyon" aria-pressed="false" aria-label="Selecionar Cânion Prisma 1">
+ <span class="rift-node-emblem" aria-hidden="true">◇</span><span class="rift-node-number">03</span>
+ <span class="rift-node-title">CÂNION PRISMA 1</span><small id="mapNodeStageTwoStatus">BLOQUEADA</small></button><button id="mapNodeCanyonTwo" type="button" class="rift-map-node rift-map-node-canyon" aria-pressed="false" aria-label="Selecionar Cânion Prisma 2">
+ <span class="rift-node-emblem" aria-hidden="true">◈</span><span class="rift-node-number">04</span>
+ <span class="rift-node-title">CÂNION PRISMA 2</span><small id="mapNodeCanyonTwoStatus">BLOQUEADA</small></button><button id="mapNodeStageThree" type="button" class="rift-map-node rift-map-node-city" aria-pressed="false" aria-label="Selecionar Cidade das Fendas">
+ <span class="rift-node-emblem" aria-hidden="true">▥</span><span class="rift-node-number">05</span>
+ <span class="rift-node-title">CIDADE DAS FENDAS</span><small id="mapNodeStageThreeStatus">BLOQUEADA</small></button><button id="mapNodeStageFour" type="button" class="rift-map-node rift-map-node-final" aria-pressed="false" aria-label="Selecionar Fenda Original">
+ <span class="rift-node-emblem" aria-hidden="true">✧</span><span class="rift-node-number">06</span>
+ <span class="rift-node-title">FENDA ORIGINAL</span><small id="mapNodeStageFourStatus">BLOQUEADA</small></button></div><span class="rift-map-coordinate" aria-hidden="true">SIGA O RASTRO DE FLUX</span></div>
+ <div class="rift-map-info" aria-live="polite"><article id="stageOneCard" class="rift-map-details rift-detail-forest">
+ <div class="rift-detail-heading"><span class="rift-detail-index">DESTINO 01 / 06</span><span id="mapStageOneBadge" class="rift-detail-state">DISPONÍVEL</span></div>
+ <div class="journey-detail-art journey-art-forest" aria-hidden="true"><span>✦</span><i></i><i></i><i></i></div>
+ <div class="rift-detail-main"><p class="rift-detail-region">FLORESTA NEON 1</p><h3>Primeiro Impulso</h3><p class="rift-detail-story">Entre copas luminosas, descubra o impulso que atravessa mundos.</p></div>
+ <div class="journey-detail-feature">VELOCIDADE · EXPLORAÇÃO</div>
+ <div class="rift-detail-stats"><div><small>Melhor tempo</small><strong id="mapStageOneBest">--</strong></div><div><small>Núcleos</small><strong id="mapStageOneCores">0/3</strong></div><div><small>Segredos</small><strong id="mapStageOneSecrets">0/3</strong></div></div>
+ <p id="stageOneProgress" class="rift-stage-progress">Primeira região da jornada</p>
+ <button id="stageOneButton" class="rift-map-launch" type="button">JOGAR · FLORESTA NEON 1 →</button>
+ </article><article id="forestTwoCard" class="rift-map-details rift-detail-forest" hidden>
+ <div class="rift-detail-heading"><span class="rift-detail-index">DESTINO 02 / 06</span><span id="mapStageForestTwoBadge" class="rift-detail-state">BLOQUEADA</span></div>
+ <div class="journey-detail-art journey-art-forest" aria-hidden="true"><span>⚙</span><i></i><i></i><i></i></div>
+ <div class="rift-detail-main"><p class="rift-detail-region">FLORESTA NEON 2</p><h3>Fábrica Helix</h3><p class="rift-detail-story">Árvores gigantes guardam uma fábrica esquecida. Atravesse suas máquinas e enfrente o Titã Helix.</p></div>
+ <div class="journey-detail-feature">TITÃ HELIX</div>
+ <div class="rift-detail-stats"><div><small>Melhor tempo</small><strong id="mapStageForestTwoBest">--</strong></div><div><small>Conclusões</small><strong id="mapStageForestTwoClears">0</strong></div></div>
+ <p id="forestTwoProgress" class="rift-stage-progress">Conclua o destino anterior para liberar</p>
+ <button id="forestTwoButton" class="rift-map-launch" type="button" disabled>FASE BLOQUEADA</button>
+ </article><article id="stageTwoCard" class="rift-map-details rift-detail-canyon" hidden>
+ <div class="rift-detail-heading"><span class="rift-detail-index">DESTINO 03 / 06</span><span id="mapStageTwoBadge" class="rift-detail-state">BLOQUEADA</span></div>
+ <div class="journey-detail-art journey-art-canyon" aria-hidden="true"><span>◇</span><i></i><i></i><i></i></div>
+ <div class="rift-detail-main"><p class="rift-detail-region">CÂNION PRISMA 1</p><h3>Entre Cristais</h3><p class="rift-detail-story">Corra entre formações prismáticas e encontre a passagem para as profundezas.</p></div>
+ <div class="journey-detail-feature">VELOCIDADE · EXPLORAÇÃO</div>
+ <div class="rift-detail-stats"><div><small>Melhor tempo</small><strong id="mapStageTwoBest">--</strong></div><div><small>Núcleos</small><strong id="mapStageTwoCores">0/3</strong></div><div><small>Segredos</small><strong id="mapStageTwoSecrets">0/3</strong></div></div>
+ <p id="stageTwoProgress" class="rift-stage-progress">Conclua o destino anterior para liberar</p>
+ <button id="stageTwoButton" class="rift-map-launch" type="button" disabled>FASE BLOQUEADA</button>
+ </article><article id="canyonTwoCard" class="rift-map-details rift-detail-canyon" hidden>
+ <div class="rift-detail-heading"><span class="rift-detail-index">DESTINO 04 / 06</span><span id="mapStageCanyonTwoBadge" class="rift-detail-state">BLOQUEADA</span></div>
+ <div class="journey-detail-art journey-art-canyon" aria-hidden="true"><span>◈</span><i></i><i></i><i></i></div>
+ <div class="rift-detail-main"><p class="rift-detail-region">CÂNION PRISMA 2</p><h3>Santuário da Refração</h3><p class="rift-detail-story">Desça por cavernas, cristais suspensos e cachoeiras. O Guardião do Prisma protege o santuário.</p></div>
+ <div class="journey-detail-feature">GUARDIÃO DO PRISMA</div>
+ <div class="rift-detail-stats"><div><small>Melhor tempo</small><strong id="mapStageCanyonTwoBest">--</strong></div><div><small>Conclusões</small><strong id="mapStageCanyonTwoClears">0</strong></div></div>
+ <p id="canyonTwoProgress" class="rift-stage-progress">Conclua o destino anterior para liberar</p>
+ <button id="canyonTwoButton" class="rift-map-launch" type="button" disabled>FASE BLOQUEADA</button>
+ </article><article id="stageThreeCard" class="rift-map-details rift-detail-city" hidden>
+ <div class="rift-detail-heading"><span class="rift-detail-index">DESTINO 05 / 06</span><span id="mapStageThreeBadge" class="rift-detail-state">BLOQUEADA</span></div>
+ <div class="journey-detail-art journey-art-city" aria-hidden="true"><span>▥</span><i></i><i></i><i></i></div>
+ <div class="rift-detail-main"><p class="rift-detail-region">CIDADE DAS FENDAS</p><h3>O Arquiteto do Vazio</h3><p class="rift-detail-story">Domine o dash aéreo sobre a cidade partida e desafie o Arquiteto do Vazio.</p></div>
+ <div class="journey-detail-feature">DASH AÉREO · ARQUITETO</div>
+ <div class="rift-detail-stats"><div><small>Melhor tempo</small><strong id="mapStageThreeBest">--</strong></div><div><small>Núcleos</small><strong id="mapStageThreeCores">0/3</strong></div><div><small>Segredos</small><strong id="mapStageThreeSecrets">0/3</strong></div></div>
+ <p id="stageThreeProgress" class="rift-stage-progress">Conclua o destino anterior para liberar</p>
+ <button id="stageThreeButton" class="rift-map-launch" type="button" disabled>FASE BLOQUEADA</button>
+ </article><article id="stageFourCard" class="rift-map-details rift-detail-final" hidden>
+ <div class="rift-detail-heading"><span class="rift-detail-index">DESTINO 06 / 06</span><span id="mapStageFourBadge" class="rift-detail-state">BLOQUEADA</span></div>
+ <div class="journey-detail-art journey-art-final" aria-hidden="true"><span>✧</span><i></i><i></i><i></i></div>
+ <div class="rift-detail-main"><p class="rift-detail-region">FENDA ORIGINAL</p><h3>Uma Flor, Enfim</h3><p class="rift-detail-story">Reúna as memórias, atravesse duas realidades e alcance o trono do Soberano. Alicia espera por você.</p></div>
+ <div class="journey-detail-feature">SOBERANO · FLUX RUBRO</div>
+ <div class="rift-detail-stats"><div><small>Melhor tempo</small><strong id="mapStageFourBest">--</strong></div><div><small>Memórias</small><strong id="mapStageFourMemories">0/3</strong></div><div><small>Segredos</small><strong id="mapStageFourSecrets">0/3</strong></div></div><div class="rift-detail-coming">ALTAR DOS NOVE NÚCLEOS · <strong id="mapStageFourCores">0/9</strong></div>
+ <p id="stageFourProgress" class="rift-stage-progress">Conclua o destino anterior para liberar</p>
+ <button id="stageFourButton" class="rift-map-launch" type="button" disabled>FASE BLOQUEADA</button>
+ </article></div></div>
+ <footer class="rift-map-footer"><button id="backToMainButton" class="rift-map-back" type="button">← VOLTAR AO MENU</button><div class="journey-legend" aria-label="Legenda"><span>◉ Disponível</span><span>✓ Concluída</span><span>◇ Bloqueada</span></div></footer>
+ </section>
 <section id="achievementsMenu" class="menu-screen achievement-screen vr-collection" aria-labelledby="achievementsHeading" hidden>
             <header class="vr-collection-header">
               <div>
@@ -467,6 +393,7 @@
              the overlay: it is hidden and pointer-events:none during gameplay. -->
         </div>
         <button id="rubroButton" class="rubro-button" type="button" aria-label="Transformar em Flux Rubro" title="Flux Rubro (F)" hidden><svg viewBox="0 0 44 44" aria-hidden="true"><path d="M22 3 41 22 22 41 3 22Z" fill="#a86ff6" stroke="#ffdf9a" stroke-width="3"/><path d="M22 17 27 22 22 27 17 22Z" fill="#fff3ce"/></svg></button>
+        <button id="skipArrivalButton" class="journey-skip" type="button" hidden>PULAR INTRODUÇÃO ↠</button>
         <button id="pauseButton" class="v31-in-game-pause" type="button" aria-label="Pausar o jogo" hidden>Ⅱ PAUSA</button>
         <div class="touch-controls" aria-label="Controles de toque">
           <button type="button" data-key="arrowleft" aria-label="Esquerda">◀</button>

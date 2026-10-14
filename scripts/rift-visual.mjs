@@ -37,12 +37,13 @@ try{
    proto.save=function(){if(this.canvas.id==="game")window.__canvasSaveDepth++;return save.call(this);};
    proto.restore=function(){if(this.canvas.id==="game")window.__canvasSaveDepth--;return restore.call(this);};
    localStorage.setItem("velocity-rift-progress-v1",JSON.stringify({secrets:{stage1:["canopy","lumen","horizon"],stage2:["echo","prism","zenith"],stage3:["antenna","underpass","skyline"]}}));
-   // Existing 3.8 save: no stage4, preserve its prior collectibles.
+   // Existing R32 journey: both expanded parts cleared; final chapter remains.
+   for(const key of ["velocity-rift-forest2-experiment","velocity-rift-canyon2-experiment"])localStorage.setItem(key,JSON.stringify({layoutVersion:2,completed:true,bestTime:123,clears:1}));
    localStorage.setItem("velocity-rift-campaign-v3",JSON.stringify({started:true,stage1Completed:true,stage2Completed:true,stage3Completed:true,lastStage:3,aerialDash:true,
     extras:{cores:{stage1:[0,1,2],stage2:[0,1,2],stage3:[0,1,2]},secrets:{stage1:["canopy","lumen","horizon"],stage2:["echo","prism","zenith"],stage3:["antenna","underpass","skyline"]}},scenesSeen:[]}));
   });
   await page.goto(base+"/?rift-qa",{waitUntil:"networkidle"});
-  assert.equal(await page.locator("#menuProgress").innerText(),"75%");
+  assert.equal(await page.locator("#menuProgress").innerText(),"78%");
   assert.match(await page.locator("#continueDescription").innerText(),/Fenda Original/);
   await page.evaluate(()=>window.__riftQA.freeze());
   await page.locator("#selectStagesButton").click();await page.locator("#mapNodeStageFour").click();await page.locator("#stageFourButton").click();

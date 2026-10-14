@@ -1,6 +1,6 @@
 {
   "appId": "com.velocityrift.game.forest2",
-  "appName": "Velocity Rift Neon 2",
+  "appName": "Velocity Rift",
   "webDir": "dist",
   "android": {
     "backgroundColor": "#081120"

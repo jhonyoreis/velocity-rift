@@ -105,8 +105,8 @@ test("score varies in tempo, harmony and arrangement over a 32-bar form",()=>{
  assert.notDeepEqual(start,returnPhrase);assert.ok(start.every(s=>s.notes.length<=8));
  assert.ok(FINAL_SCORE[8].bpm<FINAL_SCORE[7].bpm);
 });
-test("completion reaches 100 only with four clears, twelve unique memories and routes",()=>{
- const old={stage1Completed:true,stage2Completed:true,stage3Completed:true,extras:{cores:{stage1:[0,1,2],stage2:[0,1,2],stage3:[0,1,2]},secrets:{stage1:[1,2,3],stage2:[1,2,3],stage3:[1,2,3]}}};
- assert.equal(computeCampaignCompletion(old).percent,75);old.stage4Completed=true;
- old.extras.cores.stage4=[0,1,2];old.extras.secrets.stage4=[1,2,3];assert.equal(computeCampaignCompletion(old).percent,100);
+test("completion reaches 100 only with six clears, twelve unique memories and routes",()=>{
+ const old={stage1Completed:true,canyonFirstCompleted:true,stage2Completed:true,stage3Completed:true,extras:{cores:{stage1:[0,1,2],stage2:[0,1,2],stage3:[0,1,2]},secrets:{stage1:[1,2,3],stage2:[1,2,3],stage3:[1,2,3]}}};
+ assert.equal(computeCampaignCompletion(old,{completed:true},{completed:true}).percent,78);old.stage4Completed=true;
+ old.extras.cores.stage4=[0,1,2];old.extras.secrets.stage4=[1,2,3];assert.equal(computeCampaignCompletion(old,{completed:true},{completed:true}).percent,100);
 });

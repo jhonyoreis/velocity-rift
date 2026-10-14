@@ -36,6 +36,8 @@ import {createOriginalRift,countRiftKeys} from "./game/originalRift.js";
 import {installSecretRoutes} from "./levels/secretChallenges.js";
 import {gradeForTime as gradeForTimeByStage} from "./game/scoring.js";
 import {computeCampaignCompletion} from "./game/completion.js";
+import {CAMPAIGN_ROUTE,routeId,routeState,nextRouteNode,resumeRouteNode,migrateCampaignRoute} from "./game/campaignRoute.js";
+import {drawPartApproach,partApproachHeight,PART_APPROACH_SECONDS} from "./rendering/partApproach.js";
 import {emptyCampaignRecords,loadCampaignRecords,recordCampaignClear} from "./game/campaignRecords.js";
 import {yOnTrack,circleRect,distance,approach,clamp,lerp} from "./game/geometry.js";
 import {renderCityBackground,renderForest} from "./rendering/scenery.js";
@@ -81,7 +83,7 @@ function placeGameplayControls(){
 placeGameplayControls();
 
 const screens=[mainMenu,stageMenu,resultMenu,achievementsMenu,settingsMenu,newGameConfirm,pauseMenu,deathMenu,cinematicMenu,galleryMenu];
-let selectedMapStage=1;
+let selectedMapStage="forest1";
 const soundToggle = document.querySelector("#soundToggle");
 const musicToggle = document.querySelector("#musicToggle");
 const trackNowPlaying = document.querySelector("#trackNowPlaying");
@@ -1018,8 +1020,8 @@ function replayCinematic(key){
 
 // 3.0 campaign pointer: legacy progress/achievements remain a separate archive.
 // This creates a safe migration from v2 on first use without modifying its key.
-// Four completed regions and their distinct extras contribute to campaign completion.
-const GAME_COMPLETION_STAGES=4;
+// Six destinations share the four regions’ collectible sets.
+const GAME_COMPLETION_STAGES=6;
 const GAME_COMPLETION_CORES_PER_STAGE=3;
 const GAME_COMPLETION_ROUTES_PER_STAGE=3;
 function emptyCampaignExtras(){
@@ -1049,6 +1051,9 @@ function sanitizedCampaignExtras(saved,stage1Done,stage2Done,stage3Done=false,st
   return extras;
 }
 function loadCampaign(){
+  return migrateCampaignRoute(readCampaign(),forestJourney,canyonJourney);
+}
+function readCampaign(){
   let saved=null;
   try{saved=JSON.parse(localStorage.getItem(CAMPAIGN_KEY)||"null");}catch(_){}
   if(saved&&typeof saved==="object"){
@@ -1060,7 +1065,7 @@ function loadCampaign(){
     const legacyBeforeCity=!Object.prototype.hasOwnProperty.call(saved,"stage3Completed");
     const last=d3?4:d2&&(saved.lastStage===3||legacyBeforeCity)?3:
       d1&&saved.lastStage===2?2:1;
-    return {started,stage1Completed:d1,stage2Completed:d2,stage3Completed:d3,stage4Completed:d4,
+    return {started,routeVersion:saved.routeVersion,lastNode:saved.lastNode,legacyUnlocked:saved.legacyUnlocked,canyonFirstCompleted:saved.canyonFirstCompleted,stage1Completed:d1,stage2Completed:d2,stage3Completed:d3,stage4Completed:d4,
       lastStage:last,aerialDash:saved.aerialDash===true&&d2,
       records:loadCampaignRecords(saved.records,{stage1:d1,stage2:d2,stage3:d3,stage4:d4},progress),
       extras:sanitizedCampaignExtras(saved,d1,d2,d3,d4),
@@ -1081,7 +1086,7 @@ function saveCampaign(){
 function resetCampaign(){
  Object.assign(forestJourney,{pending:false,completed:false,bestTime:0,clears:0});saveForestJourney();forestPart=1;
  Object.assign(canyonJourney,{pending:false,completed:false,bestTime:0,clears:0});saveCanyonJourney();canyonPart=1;
-  Object.assign(campaign,{started:false,stage1Completed:false,
+  Object.assign(campaign,{routeVersion:1,lastNode:"forest1",legacyUnlocked:[],canyonFirstCompleted:false,started:false,stage1Completed:false,
     stage2Completed:false,stage3Completed:false,stage4Completed:false,lastStage:1,aerialDash:false,
     records:emptyCampaignRecords(),extras:emptyCampaignExtras(),scenesSeen:[]});
   saveCampaign();
@@ -1105,13 +1110,17 @@ function recordCampaignSecret(stage,id){
   return true;
 }
 function campaignCompletion(){return fullTestMode?
- {stages:4,cores:12,secrets:12,percent:100}:computeCampaignCompletion(campaign);}
-function nextCampaignStage(){
-  return campaign.stage3Completed?4:campaign.stage2Completed&&campaign.lastStage===3?3:campaign.stage1Completed&&campaign.lastStage===2?2:1;
+ {stages:6,cores:12,secrets:12,percent:100}:computeCampaignCompletion(campaign,forestJourney,canyonJourney);}
+function campaignRoute(){return routeState(campaign,forestJourney,canyonJourney,testUnlocked());}
+function nextCampaignStage(){return resumeRouteNode(campaign,forestJourney,canyonJourney).stage;}
+function launchRouteNode(id){
+  const node=campaignRoute().find(n=>n.id===id);
+  if(!node?.unlocked)return;
+  startGame(node.stage,false,node.part===2,node.part);
 }
 function continueCampaign(){
   if(!campaign.started&&!fullTestMode)return;
-  if(canyonJourney.pending)startGame(2,true,false,2);else if(forestJourney.pending)startGame(1,true,false,2);else startGame(nextCampaignStage(),false,false,1);
+  launchRouteNode(resumeRouteNode(campaign,forestJourney,canyonJourney).id);
 }
 function askNewGame(){
   showScreen(newGameConfirm);
@@ -1175,14 +1184,14 @@ function recordStageClear(time, crystals, cores = 0) {
     const improvedTime=!canyonJourney.bestTime||time<canyonJourney.bestTime;
     if(improvedTime)canyonJourney.bestTime=time;
     canyonJourney.completed=true;canyonJourney.pending=false;canyonJourney.clears++;saveCanyonJourney();
-    campaign.started=true;campaign.stage1Completed=true;campaign.stage2Completed=true;campaign.lastStage=3;saveCampaign();
+    campaign.started=true;campaign.stage1Completed=true;campaign.canyonFirstCompleted=true;campaign.stage2Completed=true;campaign.lastStage=3;campaign.lastNode="city";saveCampaign();
     return {grade:gradeForTime(time,2),improvedTime,archiveRecord:false};
   }
   if(isForestTwo()){
     const improvedTime=!forestJourney.bestTime||time<forestJourney.bestTime;
     if(improvedTime)forestJourney.bestTime=time;
     forestJourney.completed=true;forestJourney.pending=false;forestJourney.clears++;saveForestJourney();
-    campaign.started=true;campaign.stage1Completed=true;campaign.lastStage=2;saveCampaign();
+    campaign.started=true;campaign.stage1Completed=true;campaign.lastStage=2;campaign.lastNode="canyon1";saveCampaign();
     return {grade:gradeForTime(time,1),improvedTime,archiveRecord:false};
   }
   const stage = progress["stage"+activeStage];
@@ -1193,13 +1202,13 @@ function recordStageClear(time, crystals, cores = 0) {
   stage.completed = true;
   stage.clears += 1;
   campaign.started=true;
-  if(activeStage===1){campaign.stage1Completed=true;campaign.lastStage=2;forestJourney.pending=true;saveForestJourney();}
+  if(activeStage===1){campaign.stage1Completed=true;campaign.lastStage=1;campaign.lastNode="forest2";forestJourney.pending=true;saveForestJourney();}
   else if(activeStage===2){
-    campaign.stage1Completed=true;campaign.lastStage=2;canyonJourney.pending=true;saveCanyonJourney();
+    campaign.stage1Completed=true;campaign.canyonFirstCompleted=true;campaign.lastStage=2;campaign.lastNode="canyon2";canyonJourney.pending=true;saveCanyonJourney();
   }else if(activeStage===3){
     campaign.stage1Completed=true;campaign.stage2Completed=true;
-    campaign.stage3Completed=true;campaign.lastStage=4;
-  }else if(activeStage===4){campaign.stage4Completed=true;campaign.lastStage=4;
+    campaign.stage3Completed=true;campaign.lastStage=4;campaign.lastNode="final";
+  }else if(activeStage===4){campaign.stage4Completed=true;campaign.lastStage=4;campaign.lastNode="final";
   }
   // Backstop for legacy clears and automated results; normal gameplay
   // already records exact core identities at pickup time.
@@ -1227,76 +1236,51 @@ function formatTime(seconds) {
 // The atlas presents current-campaign results, never historical archive stats.
 // Old completed journeys migrate once; New Game resets the journey record.
 function selectMapStage(stage){
-  if(![1,2,3,4].includes(stage))return;
+  if(!CAMPAIGN_ROUTE.some(n=>n.id===stage))return;
   selectedMapStage=stage;
-  for(const id of [1,2,3,4]){
-    const names=["One","Two","Three","Four"];
-    const suffix=names[id-1];
-    const node=document.querySelector("#mapNodeStage"+suffix);
-    const details=document.querySelector("#stage"+suffix+"Card");
-    details.hidden=id!==stage;
-    node.classList.toggle("is-selected",id===stage);
-    node.setAttribute("aria-pressed",String(id===stage));
+  for(const entry of CAMPAIGN_ROUTE){
+    const node=document.getElementById(entry.node);
+    document.getElementById(entry.card).hidden=entry.id!==stage;
+    node.classList.toggle("is-selected",entry.id===stage);
+    node.setAttribute("aria-pressed",String(entry.id===stage));
   }
 }
 function refreshMapView(){
-  const unlocked=campaign.stage1Completed||testUnlocked();
-  const cityUnlocked=campaign.stage2Completed||testUnlocked();
-  // Paths mirror campaign unlocks. Even locked regions remain selectable
-  // for preview; their "Play" buttons are separately disabled.
-  for(const [id,open] of [["mapPathToCanyon",unlocked],["mapPathToCity",cityUnlocked]]){
-    const path=document.querySelector("#"+id);
-    path.classList.toggle("rift-map-path-open",open);
-    path.classList.toggle("rift-map-path-locked",!open);
-  }
+  const route=campaignRoute(),next=nextRouteNode(campaign,forestJourney,canyonJourney);
   const completion=campaignCompletion();
-  document.querySelector("#mapCampaignSummary").textContent=
-    completion.percent+"% da jornada";
-  document.querySelector("#stageTwoButton").disabled=!unlocked;
-  document.querySelector("#stageTwoButton").textContent=unlocked?"JOGAR FASE 02 →":"FASE BLOQUEADA";
-  document.querySelector("#stageThreeButton").disabled=!cityUnlocked;
-  document.querySelector("#stageThreeButton").textContent=cityUnlocked?"JOGAR FASE 03 →":"FASE BLOQUEADA";
-  const previewAvailable=campaign.stage3Completed||testUnlocked();
+  document.querySelector("#mapCampaignSummary").textContent=completion.percent+"% da jornada · "+completion.stages+"/6";
+  document.querySelector("#mapNextDestination").textContent=completion.stages===6?(completion.percent===100?"Jornada 100% · revisite suas fendas":"Campanha concluída · busque os 100%"):"Próximo destino: "+next.name;
+  for(const [index,entry] of route.entries()){
+    const {suffix,stage,part,unlocked,completed}=entry;
+    const node=document.getElementById(entry.node),button=document.getElementById(entry.button);
+    const nextUp=next.id===entry.id&&!completed;
+    const status=fullTestMode?"TESTE 100%":completed?"CONCLUÍDA":unlocked?nextUp?"PRÓXIMO DESTINO":"DISPONÍVEL":"BLOQUEADA";
+    node.classList.toggle("is-completed",completed);
+    node.classList.toggle("is-locked",!unlocked);
+    node.classList.toggle("is-next",nextUp&&unlocked);
+    node.setAttribute("aria-label",entry.name+" · "+status.toLowerCase());
+    document.getElementById(entry.node+"Status").textContent=status;
+    document.getElementById("mapStage"+suffix+"Badge").textContent=status;
+    button.disabled=!unlocked;
+    button.textContent=unlocked?(completed?"REJOGAR":"JOGAR")+" · "+entry.name.toUpperCase()+" →":"FASE BLOQUEADA";
+    if(entry.path){
+      const path=document.getElementById(entry.path);
+      path.classList.toggle("rift-map-path-open",unlocked);
+      path.classList.toggle("rift-map-path-locked",!unlocked);
+    }
+    const record=part===2?(stage===1?forestJourney:canyonJourney):campaign.records["stage"+stage];
+    document.getElementById("mapStage"+suffix+"Best").textContent=formatTime(record.bestTime);
+    if(part===2){
+      document.getElementById("mapStage"+suffix+"Clears").textContent=String(record.clears);
+    }else{
+      document.getElementById("mapStage"+suffix+(stage===4?"Memories":"Cores")).textContent=(fullTestMode?3:campaign.extras.cores["stage"+stage].length)+"/3";
+      document.getElementById("mapStage"+suffix+"Secrets").textContent=(fullTestMode?3:campaign.extras.secrets["stage"+stage].length)+"/3";
+    }
+    document.getElementById(entry.card.replace("Card","Progress")).textContent=!unlocked?"Conclua "+route[index-1].name+" para liberar":completed?"Concluída nesta jornada · melhore seu recorde":part===2?"Uma nova travessia · sem núcleos ou desafios secretos":"Explore os caminhos e recupere as memórias";
+  }
   const riftCores=countRiftKeys(campaign,fullTestMode);
-  const previewButton=document.querySelector("#stageFourButton");
-  previewButton.disabled=!previewAvailable;
-  previewButton.textContent=previewAvailable?"JOGAR FENDA ORIGINAL →":"CONCLUA A CIDADE PARA ENTRAR";
-  document.querySelector("#mapStageFourBadge").textContent=previewAvailable?campaign.stage4Completed?"CONCLUÍDA":"CAPÍTULO FINAL":"BLOQUEADA";
-  document.querySelector("#mapNodeStageFourStatus").textContent=previewAvailable?campaign.stage4Completed?"CONCLUÍDA":"DISPONÍVEL":"BLOQUEADA";
   document.querySelector("#mapStageFourCores").textContent=riftCores+"/9";
-  document.querySelector("#stageFourProgress").textContent=riftCores===9?
-    "Nove núcleos recuperados · Portão liberado":
-    "Altar exige 9 núcleos · Faltam "+(9-riftCores);
-  document.querySelector("#stageTwoLock").hidden=unlocked;
-  for(const stage of [1,2,3,4]){
-    const suffix=["","One","Two","Three","Four"][stage];
-    const record=campaign.records["stage"+stage];
-    document.querySelector("#mapStage"+suffix+"Best").textContent=
-      formatTime(record.bestTime);
-    document.querySelector("#mapStage"+suffix+(stage===4?"Memories":"Cores")).textContent=
-      (fullTestMode?3:campaign.extras.cores["stage"+stage].length)+"/3";
-    document.querySelector("#mapStage"+suffix+"Secrets").textContent=
-      (fullTestMode?3:campaign.extras.secrets["stage"+stage].length)+"/3";
-  }
-  const forestStatus=fullTestMode?"TESTE 100%":campaign.stage1Completed?"CONCLUÍDA":
-    campaign.started&&campaign.lastStage===1?"EM ANDAMENTO":"DISPONÍVEL";
-  const canyonStatus=fullTestMode?"TESTE 100%":campaign.stage2Completed?"CONCLUÍDA":
-    unlocked?"DISPONÍVEL":"BLOQUEADA";
-  const cityStatus=fullTestMode?"TESTE 100%":campaign.stage3Completed?"CONCLUÍDA":
-    cityUnlocked?"DISPONÍVEL":"BLOQUEADA";
-  for(const [suffix,status,completed,locked] of [
-    ["One",forestStatus,campaign.stage1Completed,false],
-    ["Two",canyonStatus,campaign.stage2Completed,!unlocked],
-    ["Three",cityStatus,campaign.stage3Completed,!cityUnlocked]
-  ]){
-    document.querySelector("#mapNodeStage"+suffix+"Status").textContent=status;
-    document.querySelector("#mapNodeStage"+suffix).classList.toggle("is-completed",completed);
-    document.querySelector("#mapNodeStage"+suffix).classList.toggle("is-locked",locked);
-    document.querySelector("#mapStage"+suffix+"Badge").textContent=status;
-  }
-  document.querySelector("#stageThreeProgress").textContent=
-    campaign.stage3Completed?"Arquiteto derrotado · Passagem final liberada":
-    cityUnlocked?"A Cidade das Fendas aguarda Flux":"Conclua o Cânion Prisma para liberar";
+  if(route.at(-1).unlocked)document.querySelector("#stageFourProgress").textContent=riftCores===9?"Nove núcleos recuperados · Portão liberado":"Altar exige 9 núcleos · Faltam "+(9-riftCores);
   selectMapStage(selectedMapStage);
 }
 
@@ -1308,29 +1292,15 @@ function refreshProgressView() {
     "aria-valuenow",String(completion.percent));
   document.querySelector("#campaignProgressFill").style.width=completion.percent+"%";
   document.querySelector("#campaignCompletionBreakdown").textContent=
-    "Fases "+completion.stages+"/4  ·  Núcleos "+completion.cores+
+    "Fases "+completion.stages+"/6  ·  Núcleos "+completion.cores+
     "/12  ·  Rotas secretas "+completion.secrets+"/12";
   const continueButton=document.querySelector("#startButton");
   const canContinue=campaign.started===true||fullTestMode;
   continueButton.disabled=!canContinue;
   continueButton.setAttribute("aria-disabled",String(!canContinue));
-  const description=canContinue
-    ? canyonJourney.pending?"Retomar em Cânion Prisma 2":forestJourney.pending?"Retomar em Floresta Neon 2":"Retomar em "+(["","Primeiro Impulso","Cânion Prisma","Cidade das Fendas","Fenda Original"][nextCampaignStage()])
-    : "Disponível depois de iniciar sua primeira campanha.";
+  const description=canContinue?"Retomar em "+resumeRouteNode(campaign,forestJourney,canyonJourney).name:"Disponível depois de iniciar sua primeira campanha.";
   continueButton.title=description;
   document.querySelector("#continueDescription").textContent=description;
-  document.querySelector("#stageOneProgress").textContent=
-    campaign.stage1Completed?"Fase concluída nesta campanha":
-    "Primeira região da jornada";
-  document.querySelector("#stageTwoProgress").textContent=
-    campaign.stage2Completed?"Fase concluída nesta campanha":
-    campaign.stage1Completed?"Região disponível":
-    "Conclua Primeiro Impulso para liberar";
-  const unlocked=campaign.stage1Completed||testUnlocked();
-  document.querySelector("#stageTwoButton").disabled=!unlocked;
-  document.querySelector("#stageTwoCard").classList.toggle("stage-card-locked",!unlocked);
-  document.querySelector("#stageTwoCard").classList.toggle("stage-card-active",unlocked);
-  document.querySelector("#stageTwoLock").hidden=unlocked;
   refreshMapView();
   refreshCinematicGallery();
   refreshAchievementsView();
@@ -1341,6 +1311,8 @@ function refreshProgressView() {
 function showScreen(target) {
   if(cinematic.active)cancelCinematic(false);
   stageArrival.active=false;
+  document.querySelector("#skipArrivalButton").hidden=true;
+  document.querySelector(".game-panel").classList.remove("arrival-active");
   gameStarted = false;
   paused = false;
   if(debugToggle)debugToggle.hidden=true;
@@ -1447,7 +1419,7 @@ function showMainMenu() {
 function showSettingsMenu(){showScreen(settingsMenu);refreshAudioSettings();}
 function showStageMenu(){
   if(riftPreview.active){riftPreview.stop();gameStarted=false;paused=false;keys.clear();}
-  selectedMapStage=campaign.stage2Completed?3:campaign.stage1Completed?2:1;
+  selectedMapStage=nextRouteNode(campaign,forestJourney,canyonJourney).id;
   showScreen(stageMenu);
   selectMapStage(selectedMapStage);
 }
@@ -1485,11 +1457,11 @@ function showResults(time, crystals, cores = 0, recorded=null) {
   if(!debugUsedThisRun&&!isSecondPart())grantClearAchievements(result.grade,cores);
   document.querySelector("#resultSecrets").textContent=(activeStage===4?riftPreview.info().secrets.length:secretTrials.filter(t=>t.completed).length)+"/3";
   const nextStageButton=document.querySelector("#nextStageButton");
-  const nextPlayable=activeStage<4&&(campaign["stage"+activeStage+"Completed"]||testUnlocked());
-  const names=["","Floresta Neon","Cânion Prisma","Cidade das Fendas","Fenda Original"];
+  const nextEntry=campaignRoute()[CAMPAIGN_ROUTE.findIndex(n=>n.id===routeId(activeStage,isSecondPart()?2:1))+1];
+  const nextPlayable=!!nextEntry?.unlocked;
   nextStageButton.disabled=!nextPlayable;
-  nextStageButton.textContent=nextPlayable?"Próxima fase: "+names[activeStage+1]+" ➜":"ALICIA RESGATADA · JORNADA CONCLUÍDA";
-  nextStageButton.title=nextPlayable?"Começar "+names[activeStage+1]:"Explore as memórias e rotas que faltam para alcançar 100%";
+  nextStageButton.textContent=nextPlayable?"Próxima fase: "+nextEntry?.name+" ➜":"ALICIA RESGATADA · JORNADA CONCLUÍDA";
+  nextStageButton.title=nextPlayable?"Começar "+nextEntry?.name:"Explore as memórias e rotas que faltam para alcançar 100%";
   nextStageButton.classList.toggle("primary-action",nextPlayable);
   nextStageButton.classList.toggle("secondary-action",!nextPlayable);
   const retryButton=document.querySelector("#retryButton");
@@ -1507,7 +1479,7 @@ function showResults(time, crystals, cores = 0, recorded=null) {
     document.querySelector("#resultMessage").textContent=debugUsedThisRun?"Teste concluído — progresso não salvo.":"Titã Helix derrotado. A fenda para o Cânion Prisma está livre.";
   }
   if(activeStage===2&&!isCanyonTwo()){
-    nextStageButton.disabled=false;nextStageButton.textContent="Continuar: Cânion Prisma 2 ➜";nextStageButton.title="Descer ao Santuário da Refração";nextStageButton.classList.add("primary-action");nextStageButton.classList.remove("secondary-action");
+    nextStageButton.disabled=!nextPlayable;nextStageButton.textContent="Continuar: Cânion Prisma 2 ➜";nextStageButton.title="Descer ao Santuário da Refração";nextStageButton.classList.add("primary-action");nextStageButton.classList.remove("secondary-action");
   }
   if(isCanyonTwo()){
     if(!debugUsedThisRun&&guardian.defeated&&!bossDamagedThisRun)grantAchievement("untouched");
@@ -1538,6 +1510,8 @@ function syncPauseButton(){
   const playing=gameStarted&&!paused&&!gameCleared&&!cinematic.active;
   document.querySelector(".game-panel").classList.toggle("gameplay-active",playing);
   pauseButton.hidden=!playing;
+  document.querySelector("#skipArrivalButton").hidden=!(playing&&stageArrival.active);
+  document.querySelector(".game-panel").classList.toggle("arrival-active",playing&&stageArrival.active);
   syncRubroButton();
   pauseButton.textContent="Ⅱ PAUSA";
   pauseButton.setAttribute("aria-label","Pausar o jogo");
@@ -1593,6 +1567,8 @@ function togglePause(){
 
 function beginStageArrival(){
   stageArrival.active=true;
+  stageArrival.connection=isSecondPart();
+  stageArrival.duration=isSecondPart()?PART_APPROACH_SECONDS:STAGE_ARRIVAL_SECONDS;
   stageArrival.elapsed=0;
   stageArrival.finishX=spawn.x;
   // A longer camera-guided approach, completely outside the playable map.
@@ -1600,12 +1576,12 @@ function beginStageArrival(){
   stageArrival.startingCameraX=stageArrival.startX-165;
   player.x=stageArrival.startX;
   player.prevX=player.x;
-  player.y=spawn.y;
+  player.y=spawn.y+(stageArrival.connection?partApproachHeight(activeStage,0):0);
   player.prevY=player.y;
   player.facing=1;
   player.onGround=true;
   player.ground=tracks[0]||null;
-  player.vx=sampleStageArrival(0).speed;
+  player.vx=sampleStageArrival(0,{duration:stageArrival.duration}).speed;
   player.vy=0;
   player.sliding=false;
   player.downhillSliding=false;
@@ -1640,6 +1616,7 @@ function finishStageArrival(){
   gameTime=0;
   keys.clear();jumpHeld=false;jumpBuffer=0;coyoteTimer=0;
   resetFluxFx();
+  syncPauseButton();
 }
 function updateStageArrival(dt){
   if(!stageArrival.active)return;
@@ -1657,7 +1634,7 @@ function updateStageArrival(dt){
   // The city approach retains its short cinematic hops.
   const hop=activeStage===3?
     Math.max(0,Math.sin(Math.PI*2*ratio*2.25))*49:0;
-  player.y=spawn.y-hop;
+  player.y=spawn.y-hop+(stageArrival.connection?partApproachHeight(activeStage,sample.progress):0);
   player.vy=0;
   player.animationPhase+=Math.max(170,player.vx)*dt*.052;
   player.onGround=true;
@@ -1673,6 +1650,7 @@ function updateStageArrival(dt){
 }
 function drawStageArrivalRunway(){
   if(!stageArrival.active)return;
+  if(stageArrival.connection){drawPartApproach(ctx,{stage:activeStage,startX:stageArrival.startX,endX:spawn.x,floorY:spawn.y+PLAYER_RADIUS,time:visualTime,cameraX,cameraY,VIEW_W,VIEW_H});return;}
   const y=tracks[0]?.y1??420;
   const start=stageArrival.startX-280;
   const roadColor=activeStage===3?"#172b42":activeStage===2?"#231f46":"#103137";
@@ -1738,10 +1716,10 @@ function drawStageArrivalOverlay(){
   ctx.textAlign="center";
   ctx.shadowColor="#041726";ctx.shadowBlur=13;
   ctx.fillStyle="#a8ffeb";ctx.font="bold 12px system-ui";
-  ctx.fillText("CHEGANDO EM",VIEW_W/2,74);
+  ctx.fillText(stageArrival.connection?"A JORNADA CONTINUA · PARTE II":"CHEGANDO EM",VIEW_W/2,74);
   ctx.fillStyle="#f7feff";ctx.font="bold 27px system-ui";
   ctx.fillText(activeStage===3?"CIDADE DAS FENDAS":
-    activeStage===2?"CÂNION PRISMA":"FLORESTA NEON",VIEW_W/2,106);
+    activeStage===2?(stageArrival.connection?"SANTUÁRIO DA REFRAÇÃO":"CÂNION PRISMA"):(stageArrival.connection?"FÁBRICA HELIX":"FLORESTA NEON"),VIEW_W/2,106);
   ctx.restore();
 }
 function resetGame() {
@@ -1835,16 +1813,16 @@ function resetGame() {
 }
 
 function startGame(stage=activeStage,skipCinematic=false,withArrival=false,part=stage===1?forestPart:stage===2?canyonPart:1) {
+  const entry=campaignRoute().find(n=>n.id===routeId(stage,part));
+  if(!entry?.unlocked)return;
   forestPart=stage===1?part:1;canyonPart=stage===2?part:1;
   if(part===2)skipCinematic=true;
   if(stage===4){startRiftPreview(skipCinematic);return;}
   if(riftPreview.active)riftPreview.stop();
   if(![1,2,3].includes(stage))return;
-  if(stage===2&&part!==2&&!campaign.stage1Completed&&!testUnlocked())return;
-  if(stage===3&&!campaign.stage2Completed&&!testUnlocked())return;
   const chapter="intro"+stage;
   if(!skipCinematic&&!testUnlocked()&&!campaign.scenesSeen.includes(chapter)){
-    launchCinematic(chapter,()=>startGame(stage,true,true),false);
+    launchCinematic(chapter,()=>startGame(stage,true,true,part),false);
     return;
   }
   unlockAudio();
@@ -1853,7 +1831,7 @@ function startGame(stage=activeStage,skipCinematic=false,withArrival=false,part=
     if(stage===2){canyonJourney.pending=part===2;saveCanyonJourney();forestJourney.pending=false;saveForestJourney();}
     if(stage===3){canyonJourney.pending=false;forestJourney.pending=false;saveCanyonJourney();saveForestJourney();}
     campaign.started=true;
-    campaign.lastStage=stage;
+    campaign.lastStage=stage;campaign.lastNode=entry.id;
     saveCampaign();
   }
   debugUsedThisRun = debugMode||fullTestMode;
@@ -1898,7 +1876,7 @@ function startRiftPreview(skipCinematic=false){
   riftPreview.stop();launchCinematic("intro4",()=>startRiftPreview(true));return;
  }
  resetRubro(rubro);unlockAudio();activeStage=4;debugUsedThisRun=debugMode||fullTestMode;ghostRun=[];runDamageCount=0;
- if(!testUnlocked()){campaign.started=true;campaign.lastStage=4;saveCampaign();}
+ if(!testUnlocked()){campaign.started=true;campaign.lastStage=4;campaign.lastNode="final";saveCampaign();}
  riftPreview.start(countRiftKeys(campaign,fullTestMode),testUnlocked());
  gameCleared=false;resumeRiftScreen();
 }
@@ -5197,7 +5175,7 @@ window.addEventListener("keydown",(event)=>{
   if((key==="p"||key==="escape")&&gameStarted&&!event.repeat){
     event.preventDefault();togglePause();return;
   }
-  if(stageArrival.active){
+  if(stageArrival.active&&!paused){
     // Optional fast-forward for replaying the story; no movement controls
     // leak into the scripted entrance and the timer stays untouched.
     if((key==="enter"||key===" ")&&!event.repeat){
@@ -5266,40 +5244,34 @@ document.querySelector("#galleryStageThree").addEventListener("click",()=>replay
 for(const [id,key] of [["StageFour","intro4"],["Awakening","awakening"],["Ending","ending"]])document.querySelector("#gallery"+id).addEventListener("click",()=>replayCinematic(key));
 document.querySelector("#cinematicNextButton").addEventListener("click",nextCinematicFrame);
 document.querySelector("#cinematicExitButton").addEventListener("click",()=>cancelCinematic(true));
-for(const [index,name] of ["One","Two","Three","Four"].entries()){
-  const button=document.querySelector("#mapNodeStage"+name);
-  button.addEventListener("click",()=>selectMapStage(index+1));
+for(const [index,entry] of CAMPAIGN_ROUTE.entries()){
+  const button=document.getElementById(entry.node);
+  button.addEventListener("click",()=>selectMapStage(entry.id));
   button.addEventListener("keydown",event=>{
-    const next=event.key==="ArrowRight"||event.key==="ArrowDown"?
-      Math.min(4,index+2):
-      event.key==="ArrowLeft"||event.key==="ArrowUp"?Math.max(1,index):
-      event.key==="Home"?1:event.key==="End"?4:0;
-    if(!next)return;
-    event.preventDefault();
-    selectMapStage(next);
-    document.querySelector("#mapNodeStage"+["One","Two","Three","Four"][next-1]).focus?.();
+    const next=event.key==="ArrowRight"||event.key==="ArrowDown"?Math.min(5,index+1):
+      event.key==="ArrowLeft"||event.key==="ArrowUp"?Math.max(0,index-1):
+      event.key==="Home"?0:event.key==="End"?5:-1;
+    if(next<0)return;
+    event.preventDefault();selectMapStage(CAMPAIGN_ROUTE[next].id);
+    document.getElementById(CAMPAIGN_ROUTE[next].node).focus({preventScroll:true});
   });
+  document.getElementById(entry.button).addEventListener("click",()=>launchRouteNode(entry.id));
 }
-document.querySelector("#stageOneButton").addEventListener("click", ()=>startGame(1,false,false,1));
-document.querySelector("#forestTwoButton").addEventListener("click",()=>startGame(1,true,false,2));
-document.querySelector("#canyonTwoButton").addEventListener("click",()=>startGame(2,true,false,2));
- document.querySelector("#stageTwoButton").addEventListener("click",()=>{if(campaign.stage1Completed||testUnlocked())startGame(2,false,false,1)});
-document.querySelector("#stageThreeButton").addEventListener("click",()=>{if(campaign.stage2Completed||testUnlocked())startGame(3)});
-document.querySelector("#stageFourButton").addEventListener("click",startRiftPreview);
 document.querySelector("#backToMainButton").addEventListener("click", showMainMenu);
 document.querySelector("#achievementsButton").addEventListener("click",showAchievementsMenu);
 document.querySelector("#resultsAchievementsButton").addEventListener("click",showAchievementsMenu);
 document.querySelector("#achievementsBackButton").addEventListener("click",showMainMenu);
 document.querySelector("#nextStageButton").addEventListener("click",()=>{
-  if(gameCleared&&activeStage===1&&(campaign.stage1Completed||testUnlocked())){if(isForestTwo())startGame(2,false,false,1);else startGame(1,true,false,2);}
-  else if(gameCleared&&activeStage===2){if(isCanyonTwo())startGame(3);else startGame(2,true,false,2);}
-  else if(gameCleared&&activeStage===3&&(campaign.stage3Completed||testUnlocked()))startGame(4);
+  if(!gameCleared)return;
+  const index=CAMPAIGN_ROUTE.findIndex(n=>n.id===routeId(activeStage,isSecondPart()?2:1));
+  const next=CAMPAIGN_ROUTE[index+1];if(next)launchRouteNode(next.id);
 });
 document.querySelector("#retryButton").addEventListener("click", ()=>startGame(activeStage));
 document.querySelector("#resultsStagesButton").addEventListener("click", showStageMenu);
 document.querySelector("#resultsMainButton").addEventListener("click", showMainMenu);
 menuButton.addEventListener("click",showMainMenu);
 pauseButton.addEventListener("click",togglePause);
+document.querySelector("#skipArrivalButton").addEventListener("click",()=>{finishStageArrival();pauseButton.focus({preventScroll:true});});
 document.querySelector("#resumeButton").addEventListener("click",resumeGame);
 document.querySelector("#restartPauseButton").addEventListener("click",()=>riftPreview.active?startRiftPreview():startGame(activeStage));
 document.querySelector("#deathRestartButton").addEventListener("click",restartAfterDeath);
@@ -5367,13 +5339,15 @@ if(import.meta.env.DEV&&new URLSearchParams(location.search).has("rift-qa")){
       startRiftPreview(true);riftQAFrozen=true;for(let i=0;i<100;i++)riftPreview.update(1/120,new Set());draw();
       return riftPreview.info();
     },
-    gameInfo:()=>({forestPart,canyonPart,enemies:enemies.map(e=>({...e})),factory:{...factoryState},cargoLoads:cargoLoads.map(c=>({...c})),forestPlatforms:isForestTwo()?tracks.filter(t=>t.upper).map(t=>({...t})):[],ground:player.ground?{...player.ground}:null,cavePlatforms:isCanyonTwo()?tracks.filter(t=>["cave-bridge","cave-crumble","moving"].includes(t.kind)).map(t=>({...t})):[],guardian:{...guardian,core:guardianCorePosition(),line:guardianLaserLine()},caveHazards:caveHazards.map(c=>({...c})),portal:{...riftPortal},helix:{...helix},checkpointIndex,cleared:gameCleared,boost:player.boost,presses:isForestTwo()?forestTwoWorld.presses.map(p=>({...p,...pressState(p,gameTime)})):[],cameraX,cameraY,dashStatus:currentDashStatus(),defeat:defeat?{...defeat}:null,stage:activeStage,cores:player.cores,x:player.x,y:player.y,vx:player.vx,vy:player.vy,crystals:player.rings,onGround:player.onGround,sliding:player.sliding,boosting:player.boosting,dash:{...airDash},rubro:{...rubro},time:gameTime,damage:runDamageCount,walls:walls.map(w=>({...w})),tunnels:tunnels.map(w=>({...w}))}),
+    gameInfo:()=>({arrival:{...stageArrival},route:campaignRoute(),campaign:{...campaign},forestPart,canyonPart,enemies:enemies.map(e=>({...e})),factory:{...factoryState},cargoLoads:cargoLoads.map(c=>({...c})),forestPlatforms:isForestTwo()?tracks.filter(t=>t.upper).map(t=>({...t})):[],ground:player.ground?{...player.ground}:null,cavePlatforms:isCanyonTwo()?tracks.filter(t=>["cave-bridge","cave-crumble","moving"].includes(t.kind)).map(t=>({...t})):[],guardian:{...guardian,core:guardianCorePosition(),line:guardianLaserLine()},caveHazards:caveHazards.map(c=>({...c})),portal:{...riftPortal},helix:{...helix},checkpointIndex,cleared:gameCleared,boost:player.boost,presses:isForestTwo()?forestTwoWorld.presses.map(p=>({...p,...pressState(p,gameTime)})):[],cameraX,cameraY,dashStatus:currentDashStatus(),defeat:defeat?{...defeat}:null,stage:activeStage,cores:player.cores,x:player.x,y:player.y,vx:player.vx,vy:player.vy,crystals:player.rings,onGround:player.onGround,sliding:player.sliding,boosting:player.boosting,dash:{...airDash},rubro:{...rubro},time:gameTime,damage:runDamageCount,walls:walls.map(w=>({...w})),tunnels:tunnels.map(w=>({...w}))}),
     stepGame(inputs=[],frames=1,render=true){
       const wasJump=keys.has(" ");keys.clear();for(const key of inputs)keys.add(key);
       if(keys.has(" ")&&!wasJump){if(!player.onGround&&dashUnlocked())startAirDash();else jumpBuffer=.13;}
-      for(let i=0;i<frames;i++){riftQAFrozen=false;update(1/120);riftQAFrozen=true;}
+      for(let i=0;i<frames;i++){if(paused)break;riftQAFrozen=false;update(1/120);riftQAFrozen=true;}
       if(render){draw();syncRubroButton();}return this.gameInfo();
     },
+    tryStartStage(stage,part=1){startGame(stage,true,true,part);return this.gameInfo();},
+    completeStageForQA(){gameCleared=true;showResults(123,50,0);return this.gameInfo();},
     settleExit(){for(let i=0;i<240&&stageExit.active;i++)updateStageExit(1/120);return {campaign:{...campaign},journey:{...forestJourney},canyonJourney:{...canyonJourney}};},
     canyonWorld:()=>({tracks:canyonTwoWorld.tracks,spikes:canyonTwoWorld.spikes,enemies:canyonTwoWorld.enemies,refractors:canyonTwoWorld.refractors,pits:canyonTwoWorld.pits,checkpoints:canyonTwoWorld.checkpoints,waterfalls:canyonTwoWorld.waterfalls,sanctuary:SANCTUARY}),
     forestWorld:()=>({...forestTwoWorld,factory:FACTORY}),

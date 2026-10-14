@@ -1,7 +1,7 @@
 name: Android APK (Velocity Rift)
 on:
   push:
-    branches: [main, "experiment/neon-forest-2", "experiment/prism-canyon-2", "experiment/neon-factory-expansion"]
+    branches: [main, "maintenance/official-journey", "experiment/neon-forest-2", "experiment/prism-canyon-2", "experiment/neon-factory-expansion"]
   workflow_dispatch:
     inputs:
       require_signed:

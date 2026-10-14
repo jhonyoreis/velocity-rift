@@ -10,7 +10,7 @@ test("touch controls are explicitly enabled only for live gameplay",()=>{
   const end=js.indexOf("function showPauseMenu(){",start);
   assert.ok(start>=0&&end>start);
   const source=js.slice(start,end);
-  const elements={
+  const elements={"#skipArrivalButton":{hidden:true},
     ".game-panel":{classList:{current:new Set(),toggle(name,on){
       if(on)this.current.add(name);else this.current.delete(name);
     }}}
@@ -19,7 +19,7 @@ test("touch controls are explicitly enabled only for live gameplay",()=>{
   const doc={querySelector(sel){return elements[sel];}};
   const build=new Function("document","pauseButton",
     "let gameStarted=false,paused=false,gameCleared=false;"+
-    "const cinematic={active:false};const syncRubroButton=()=>{};"+
+    "const stageArrival={active:false};const cinematic={active:false};const syncRubroButton=()=>{};"+
     source+
     "return {syncPauseButton,setState:(started,isPaused,cleared,scene)=>{"+
     "gameStarted=started;paused=isPaused;gameCleared=cleared;cinematic.active=scene;}};");

@@ -11,10 +11,10 @@ try{
  for(const mobile of [false,true]){
   const context=await browser.newContext(mobile?{viewport:{width:844,height:390},isMobile:true,hasTouch:true}:{viewport:{width:1440,height:900}});
   const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.addInitScript(()=>{window.requestAnimationFrame=()=>0;});
+  await page.addInitScript(()=>{window.requestAnimationFrame=()=>0;if(!localStorage.getItem("velocity-rift-campaign-v3")){localStorage.setItem("velocity-rift-campaign-v3",JSON.stringify({routeVersion:1,started:true,stage1Completed:true,canyonFirstCompleted:true,lastNode:"canyon2",scenesSeen:["intro1","intro2"]}));localStorage.setItem("velocity-rift-forest2-experiment",JSON.stringify({layoutVersion:2,completed:true}));}});
   await page.goto('http://127.0.0.1:4179/?rift-qa',{waitUntil:'networkidle'});
   const label=mobile?'android':'desktop';
-  await page.locator('#selectStagesButton').click();await page.locator('#mapNodeStageTwo').click();await page.screenshot({path:`test-artifacts/visual/${label}-canyon2-map.png`});await page.locator('#canyonTwoButton').click();assert.equal((await page.evaluate(()=>window.__riftQA.gameInfo())).canyonPart,2);
+  await page.locator('#selectStagesButton').click();await page.locator('#mapNodeCanyonTwo').click();await page.screenshot({path:`test-artifacts/visual/${label}-canyon2-map.png`});await page.locator('#canyonTwoButton').click();assert.equal((await page.evaluate(()=>window.__riftQA.gameInfo())).canyonPart,2);
   for(const [name,x] of [['entrance',350],['shards',1080],['gallery',3500],['ruins',8050],['cathedral',11900],['bridge',16520],['aqueduct',21200],['great-falls',24850],['fractures',28900],['guardian',34980],['exit',36200]]){
    await page.evaluate(x=>{const a=window.__riftQA;a.setupScenario({stage:2,part:2,x});a.stepGame([],x===1080?65:1);},x);
    await page.waitForTimeout(200);await page.screenshot({path:`test-artifacts/visual/${label}-canyon2-${name}.png`});

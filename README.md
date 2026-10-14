@@ -1,4 +1,14 @@
-# Velocity Rift — Uma Flor, Enfim (versão 4.5.0)
+# Velocity Rift — Uma Flor, Enfim (versão 4.6.0)
+
+## 4.6.0 — Jornada Completa (APK R33 oficial)
+
+As seis etapas fazem parte da campanha: **Floresta Neon 1 → Floresta Neon 2 → Cânion Prisma 1 → Cânion Prisma 2 → Cidade das Fendas → Fenda Original**. Cada conclusão abre o próximo destino. O Mapa das Fendas tem paisagens ilustradas, trilha conectada, estados de progresso, destaque do próximo destino e fichas individuais com recordes.
+
+As segundas partes começam com uma travessia animada dentro do jogo: raízes e árvores gigantes rumo à fábrica Helix; cristais, cachoeira e descida até o Santuário da Refração. A introdução pode ser pulada e não consome tempo, cristais ou energia. Continue retoma a parte exata; reiniciar após uma morte não repete a travessia.
+
+Saves anteriores preservam recordes, conquistas e destinos já acessíveis. Novo Jogo reinicia a sequência de seis etapas sem apagar o arquivo histórico. As segundas partes contribuem para os 100% da jornada e continuam sem núcleos ou desafios secretos. O altar final mantém os nove núcleos das três regiões originais.
+
+O aplicativo passa a se chamar **Velocity Rift**, mantendo `com.velocityrift.game.forest2` e a assinatura permanente para atualizar R28–R32 sem perder seus dados. Os layouts ampliados, inimigos, armadilhas, trilhas e bosses das versões R31/R32 permanecem.
 
 ## 4.5.0 — A Fábrica Desperta (APK R32 experimental)
 

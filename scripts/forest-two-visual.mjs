@@ -13,7 +13,7 @@ try{
   const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.addInitScript(()=>{window.requestAnimationFrame=()=>0;if(!localStorage.getItem("velocity-rift-forest2-experiment"))localStorage.setItem("velocity-rift-forest2-experiment",JSON.stringify({completed:true,bestTime:35,clears:3}));});
   await page.goto('http://127.0.0.1:4178/?rift-qa',{waitUntil:'networkidle'});
-  await page.locator('#selectStagesButton').click();
+  await page.locator('#selectStagesButton').click();await page.locator('#mapNodeForestTwo').click();
   await page.screenshot({path:`test-artifacts/visual/${mobile?'android':'desktop'}-forest2-map.png`});
   await page.locator('#forestTwoButton').click();assert.equal((await page.evaluate(()=>window.__riftQA.gameInfo())).forestPart,2);
   const migrated=await page.evaluate(()=>JSON.parse(localStorage.getItem('velocity-rift-forest2-experiment')));assert.equal(migrated.layoutVersion,2);assert.equal(migrated.previousLayoutBestTime,35);assert.equal(migrated.bestTime,0);
