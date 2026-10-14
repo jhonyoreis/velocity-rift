@@ -48,6 +48,7 @@ import {renderRiftCorridorBackground} from "./rendering/riftCorridorBackground.j
 import {createEnemy as enemy,isCityEnemyType} from "./game/enemies.js";
 import {resolveAirDashDirection} from "./game/dashDirection.js";
 import {calculateCrystalDamage} from "./game/crystals.js";
+import {bindTouchDragControls} from "./game/touchControls.js";
 import {isNativeAndroid,shouldUseMobilePresentation} from "./game/mobilePresentation.js";
 import {checkpointReached,checkpointRespawnTarget} from "./game/checkpoints.js";
 import {STAGE_ARRIVAL_SECONDS,STAGE_ARRIVAL_DISTANCE,sampleStageArrival} from "./game/stageArrival.js";
@@ -5289,26 +5290,25 @@ document.querySelectorAll("button:not([data-key])").forEach(button=>{
   });
 });
 
-// Touch input uses the same controls as the keyboard.
-document.querySelectorAll('[data-key]').forEach(button => {
-  const key = button.dataset.key;
-  const release = event => { event.preventDefault(); keys.delete(key); if (key === ' ') jumpHeld = false; };
-  button.addEventListener('pointerdown', event => {
-    event.preventDefault();
-    // Older Android WebViews may reject pointer capture; never let that
-    // prevent movement, jump, boost or slide from registering.
-    try{button.setPointerCapture(event.pointerId)}catch(_){}
-    unlockAudio();
-    keys.add(key);
-    if(key===' '&&!jumpHeld){
-      if(!player.onGround&&dashUnlocked()&&startAirDash()){
-        jumpHeld=true;
-      }else{jumpBuffer=.13;jumpHeld=true;}
-    }
-  });
-  button.addEventListener('pointerup', release);
-  button.addEventListener('pointercancel', release);
-  button.addEventListener('lostpointercapture', release);
+// Android: dragging from one button to another adds the new command
+// without releasing earlier buttons until that finger leaves the screen.
+const touchButtonByKey=new Map([...document.querySelectorAll('.touch-controls [data-key]')]
+ .map(button=>[button.dataset.key,button]));
+const touchControls=bindTouchDragControls(document.querySelector('.touch-controls'),{
+ unlockAudio,
+ onPress:key=>{
+  keys.add(key);
+  touchButtonByKey.get(key)?.setAttribute('data-touch-held','true');
+  if(key===' '&&!jumpHeld){
+   if(!player.onGround&&dashUnlocked()&&startAirDash())jumpHeld=true;
+   else{jumpBuffer=.13;jumpHeld=true;}
+  }
+ },
+ onRelease:key=>{
+  keys.delete(key);
+  touchButtonByKey.get(key)?.removeAttribute('data-touch-held');
+  if(key===' ')jumpHeld=false;
+ }
 });
 
 showMainMenu();
