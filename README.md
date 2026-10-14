@@ -1,4 +1,8 @@
-# Velocity Rift — Uma Flor, Enfim (versão 4.4.1)
+# Velocity Rift — Uma Flor, Enfim (versão 4.5.0)
+
+## 4.5.0 — A Fábrica Desperta (APK R32 experimental)
+
+Floresta Neon 2 ampliada de 14.200 para 34.000 unidades, com dez áreas e 40 inimigos desgastados. Raízes e copas com rotas alternativas, pátio com cargas suspensas, esteiras em sentidos opostos, elevadores, prensas e estufas com descargas de esporos. A fábrica se ilumina conforme Flux avança e se desliga após o Titã Helix; a trilha ganha arranjos industriais, harmonias de estufa e um encerramento tranquilo. Quinze checkpoints, chão contínuo e esmagamentos fatais mesmo com cristais ou Rubro. Preserva Cânion Prisma 2 R31 e o restante da campanha. Tempos da versão curta ficam arquivados separadamente.
 
 ## 4.4.1 — Cataratas e Pontes de Vidro (APK R31 experimental)
 

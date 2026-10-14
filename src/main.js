@@ -3,9 +3,10 @@ import {createCaveHazards,advanceFallingCrystal,refractorState,beamTouches,refle
 import {drawCanyonTwoBackdrop,drawCanyonTwoGround,drawCaveHazards,drawCaveTunnel,drawCanyonWaterfalls} from "./rendering/canyonTwo.js";
 import {canyonTwoScore} from "./audio/canyonTwoScore.js";
 import {createForestTwoWorld,FACTORY,pressState,pressCrushes} from "./levels/forestTwo.js";
+import {forestZone,createFactoryState,advanceFactory,conveyorCarry,createCargoLoads,advanceCargoLoad,ventState,ventTouches} from "./game/factoryHazards.js";
 import {createHelix,advanceHelix} from "./bosses/helix.js";
 import {forestTwoScore} from "./audio/forestTwoScore.js";
-import {drawForestTwoBackdrop,drawForestTwoGround,drawPresses,drawWornWalker,drawHelix} from "./rendering/forestTwo.js";
+import {drawForestTwoBackdrop,drawForestTwoGround,drawPresses,drawWornWalker,drawHelix,drawFactoryHazards,drawForestTwoTunnel} from "./rendering/forestTwo.js";
 import {architectCameraX,containArenaPlayer,dashIndicatorState} from "./game/combatReadability.js";
 import {drawDashCharge} from "./rendering/combatReadability.js";
 import {drawBoostTrail} from "./rendering/boostTrail.js";
@@ -136,8 +137,8 @@ const GRADE_ORDER=["C","B","A","S"];
 // Steps are [horizontal offset, rise, platform width, platform behavior].
 let activeStage = 1;
 let forestPart=1;
-const forestJourney={pending:false,completed:false,bestTime:0,clears:0};
-try{const j=JSON.parse(localStorage.getItem("velocity-rift-forest2-experiment")||"{}");forestJourney.pending=j.pending===true;forestJourney.completed=j.completed===true;forestJourney.bestTime=Number.isFinite(j.bestTime)&&j.bestTime>0?j.bestTime:0;forestJourney.clears=Number.isInteger(j.clears)&&j.clears>0?j.clears:0;}catch(_){}
+const forestJourney={pending:false,completed:false,bestTime:0,clears:0,layoutVersion:2,previousLayoutBestTime:0};
+try{const j=JSON.parse(localStorage.getItem("velocity-rift-forest2-experiment")||"{}");forestJourney.pending=j.pending===true;forestJourney.completed=j.completed===true;const validBest=Number.isFinite(j.bestTime)&&j.bestTime>0?j.bestTime:0;forestJourney.bestTime=j.layoutVersion===2?validBest:0;forestJourney.previousLayoutBestTime=j.layoutVersion===2?(Number.isFinite(j.previousLayoutBestTime)?j.previousLayoutBestTime:0):validBest;forestJourney.clears=j.layoutVersion===2&&Number.isInteger(j.clears)&&j.clears>0?j.clears:0;}catch(_){}
 function saveForestJourney(){try{localStorage.setItem("velocity-rift-forest2-experiment",JSON.stringify(forestJourney));}catch(_){}}
 function isForestTwo(){return activeStage===1&&forestPart===2;}
 let canyonPart=1;
@@ -543,6 +544,7 @@ polishWorldObstacles(canyonTwoWorld);
 let caveHazards=createCaveHazards(canyonTwoWorld);
 const forestTwoWorld=createForestTwoWorld(levelApi);
 polishWorldObstacles(forestTwoWorld);
+let factoryState=createFactoryState(),cargoLoads=createCargoLoads(forestTwoWorld);
 const STAGES={1:stageOneWorld,2:createStageTwoWorld({...levelApi,guardian}),3:createStageThreeWorld(levelApi)};
 installSecretRoutes(STAGES[1],1,{track,PLAYER_RADIUS});
 installSecretRoutes(STAGES[2],2,{track,PLAYER_RADIUS});
@@ -592,6 +594,13 @@ function secretPlatformSolid(floor){
 }
 function updateMovingPlatforms(dt) {
   for(const floor of tracks){
+    if(isForestTwo()&&floor.kind==="factory-lift"){
+      if(helix.defeated)continue;
+      const y=floor.initialY+Math.sin(gameTime*floor.speed+floor.phase)*floor.swing,dy=y-floor.y1;
+      floor.y1=y;floor.y2=y;
+      if(player.onGround&&player.ground===floor){player.y+=dy;player.prevY+=dy;}
+      continue;
+    }
     if(floor.kind==="cave-crumble"){advanceCaveBridge(floor,player.onGround&&player.ground===floor,dt);continue;}
     if(activeStage===3&&floor.kind==="rift-elevator"){
       const newY=riftElevatorY(floor,gameTime),dy=newY-floor.y1;
@@ -1417,7 +1426,7 @@ function restartAfterDeath(){
   boostOrbs.forEach(item=>{if(item.x>=target.x)item.active=true;});
   if(activeStage===3&&cityBoss.active&&!cityBoss.defeated)resetCityBoss();
   if(activeStage===2&&guardian.active&&!guardian.defeated)resetGuardian();
-  if(isForestTwo()&&!helix.defeated)Object.assign(helix,createHelix());
+  if(isForestTwo()){if(!helix.defeated)Object.assign(helix,createHelix());cargoLoads=createCargoLoads(forestTwoWorld);factoryState=createFactoryState(target.x);factoryState.defeated=helix.defeated;if(helix.defeated)factoryState.power=0;}
   if(isCanyonTwo()){caveHazards=createCaveHazards(canyonTwoWorld);tracks.forEach(resetCaveBridge);}
   cameraAnchorX=VIEW_W*CAMERA_IDLE_ANCHOR;
   cameraX=clamp(target.x-cameraAnchorX,0,Math.max(0,WORLD_W-VIEW_W));
@@ -1736,6 +1745,7 @@ function drawStageArrivalOverlay(){
   ctx.restore();
 }
 function resetGame() {
+  factoryState=createFactoryState();cargoLoads=createCargoLoads(forestTwoWorld);
   caveHazards=createCaveHazards(canyonTwoWorld);
   Object.assign(helix,createHelix());
   defeat=null;player.rubroAtDefeat=false;
@@ -1810,7 +1820,7 @@ function resetGame() {
   });
   tracks.forEach(t=>{
     resetCaveBridge(t);
-    if(t.kind==="rift-elevator"){t.y1=t.initialY;t.y2=t.initialY;}
+    if(["rift-elevator","factory-lift"].includes(t.kind)){t.y1=t.initialY;t.y2=t.initialY;}
     if(!t.secretId)return;
     t.broken=false;t.crumbleTime=0;
     if(t.originX!==undefined){
@@ -2871,6 +2881,7 @@ function update(dt) {
     player.y+=player.vy*dt;
     }
   }
+  if(isForestTwo()&&!debugMode){const carry=conveyorCarry(player.ground,player.onGround,dt,helix.defeated);player.x+=carry;}
   updateMovingPlatforms(dt);
   if(!debugMode)resolveTracks();
   if(player.onGround&&airDash.active){airDash.active=false;airDash.time=0;}
@@ -2906,7 +2917,23 @@ function update(dt) {
   }
   if(activeStage===2&&!isCanyonTwo()&&player.x>goal.x-650&&!riftPortal.opening)activateRiftPortal();
   if(isForestTwo()){
-    for(const p of forestTwoWorld.presses)if(pressCrushes(p,gameTime,player,PLAYER_RADIUS))damagePlayer(false,{crush:true});
+    advanceFactory(factoryState,player.x,helix.defeated,dt);
+    if(!helix.defeated){
+      for(const p of forestTwoWorld.presses){
+        const state=pressState(p,gameTime);
+        if(state.warning&&!pressState(p,gameTime-dt).warning&&Math.abs(p.x-player.x)<560)playSfx("gate");
+        if(pressCrushes(p,gameTime,player,PLAYER_RADIUS))damagePlayer(false,{crush:true});
+      }
+      for(const v of forestTwoWorld.vents){
+        if(ventState(v,gameTime).warning&&!ventState(v,gameTime-dt).warning&&Math.abs(v.x-player.x)<500)playSfx("prism-charge");
+        if(ventTouches(v,player,gameTime))damagePlayer(false);
+      }
+    }
+    for(const load of cargoLoads)advanceCargoLoad(load,player,dt,{
+      warning:()=>playSfx("boss-alert"),
+      impact:c=>{if(Math.abs(c.x-player.x)<650){emitParticles(c.x,c.floor-8,"#f7ce91",18,125);shakeTime=.12;playSfx("gate");}},
+      crush:()=>damagePlayer(false,{crush:true})
+    },helix.defeated);
     const previousHelixState=helix.active+":"+helix.defeated;
     if(!defeat)advanceHelix(helix,player,dt,{damage:()=>damagePlayer(false),dashing:()=>airDash.active,sound:playSfx,notice:announce,burst:(x,y)=>{emitParticles(x,y,"#b1ffdc",36,190);shakeTime=.2;}});
     if(previousHelixState!==helix.active+":"+helix.defeated){musicStep=0;syncTrackLabel();}
@@ -3563,6 +3590,7 @@ function handleHazards() {
 }
 
 function pulseState(gate, t = gameTime) {
+  if(isForestTwo()&&helix.defeated)return {active:false,warning:false};
   const phase = ((t + gate.phase) % gate.period + gate.period) % gate.period;
   return {active:phase < gate.live, warning:phase >= gate.period - .40};
 }
@@ -3675,10 +3703,10 @@ function draw() {
   if(activeStage===2&&!isCanyonTwo())drawChasms();
   if(activeStage===3){drawCityChasms();drawCityRiftGates();}
   if(isCanyonTwo()){drawCanyonWaterfalls(ctx,canyonTwoWorld.waterfalls,{cameraX,cameraY,width:VIEW_W,height:VIEW_H,time:visualTime});drawCanyonTwoGround(ctx,tracks,cameraX,VIEW_W,visualTime);}
-  if(isForestTwo())drawForestTwoGround(ctx,tracks,cameraX,VIEW_W,visualTime);
+  if(isForestTwo())drawForestTwoGround(ctx,tracks,cameraX,VIEW_W,visualTime,helix.defeated);
   drawTracks();
   drawTunnels();
-  if(isForestTwo())drawPresses(ctx,forestTwoWorld.presses,gameTime,cameraX,VIEW_W);
+  if(isForestTwo()){drawPresses(ctx,forestTwoWorld.presses,gameTime,cameraX,VIEW_W,helix.defeated);drawFactoryHazards(ctx,cargoLoads,forestTwoWorld.vents,gameTime,cameraX,VIEW_W,helix.defeated);}
   if(isCanyonTwo())drawCaveHazards(ctx,caveHazards,canyonTwoWorld.refractors,gameTime,cameraX,VIEW_W);
   drawPulseGates();
   drawSigns();
@@ -3750,7 +3778,7 @@ function drawCityBackground(){
 }
 function drawBackground() {
   if(isCanyonTwo()){drawCanyonTwoBackdrop(ctx,{cameraX,cameraY,width:VIEW_W,height:VIEW_H,time:visualTime,defeated:guardian.defeated});return;}
-  if(isForestTwo()){drawForestTwoBackdrop(ctx,{cameraX,cameraY,width:VIEW_W,height:VIEW_H,time:visualTime});return;}
+  if(isForestTwo()){drawForestTwoBackdrop(ctx,{cameraX,cameraY,width:VIEW_W,height:VIEW_H,time:visualTime,factory:factoryState});return;}
   if(activeStage===3){drawCityBackground();return;}
   if(activeStage===2){drawCanyonBackground();return;}
   // Three parallax layers, rendered in screen space with distinct scroll factors.
@@ -3979,6 +4007,7 @@ function drawTunnels() {
     if (tunnel.x > cameraX + VIEW_W + 80 || tunnel.x + tunnel.w < cameraX - 80) continue;
     const profile=tunnelProfile(tunnel,tracks);
     if(isCanyonTwo()){drawCaveTunnel(ctx,tunnel,profile);continue;}
+    if(isForestTwo()){drawForestTwoTunnel(ctx,tunnel,profile);continue;}
     ctx.fillStyle="#1a384e";ctx.beginPath();
     profile.forEach((p,i)=>i?ctx.lineTo(p.x,p.y-165):ctx.moveTo(p.x,p.y-165));
     for(const p of [...profile].reverse())ctx.lineTo(p.x,p.y-26);
@@ -5055,21 +5084,21 @@ function scheduleMusic(){
     }
     else if(activeStage===2)schedulePrismCanyonStep(nextMusicNote,musicStep,chapter);
     else if(isForestTwo()){
-      const score=forestTwoScore(musicStep,player.x>=FACTORY.entrance&&player.x<FACTORY.exit?1:0,helix.active&&!helix.defeated);
+      const score=forestTwoScore(musicStep,forestZone(player.x),helix.active&&!helix.defeated,helix.defeated);
       for(const n of score.notes)prismVoice(midiToHz(n.midi),nextMusicNote,n.duration,n.gain,n.voice);
       if(score.kick)synthMusic(64,nextMusicNote,.11,.1);
       if(score.snare)synthMusic(180,nextMusicNote,.085,.03,"triangle");
       if(score.hat)synthMusic(1550,nextMusicNote,.026,.011,"triangle");
       if(score.metal)synthMusic(380,nextMusicNote,.07,.018,"square");
     }else scheduleNeonCanopyStep(nextMusicNote,musicStep,chapter);
-    musicStep=(musicStep+1)%(isCanyonTwo()?256:128);
+    musicStep=(musicStep+1)%(isSecondPart()?256:128);
     nextMusicNote+=stepDuration;
   }
 }
 
 function syncTrackLabel(){
   if(!trackNowPlaying)return;
-  trackNowPlaying.textContent=isCanyonTwo()?(guardian.active&&!guardian.defeated?"♫ Ruptura do Prisma · Refração":"♫ Luz Sob a Pedra · 118 BPM"):isForestTwo()?(helix.active&&!helix.defeated?"♫ Pulso do Titã · 132 BPM":"♫ Raízes do Amanhã · 114 BPM"):riftPreview.active?"♫ "+FINAL_SCORE[riftPreview.musicSection].name+" · "+FINAL_SCORE[riftPreview.musicSection].bpm+" BPM":activeStage===3
+  trackNowPlaying.textContent=isCanyonTwo()?(guardian.active&&!guardian.defeated?"♫ Ruptura do Prisma · Refração":"♫ Luz Sob a Pedra · 118 BPM"):isForestTwo()?(helix.active&&!helix.defeated?"♫ Pulso do Titã · 132 BPM":(helix.defeated?"♫ A Floresta Respira · 114 BPM":"♫ Raízes do Amanhã · 114 BPM")):riftPreview.active?"♫ "+FINAL_SCORE[riftPreview.musicSection].name+" · "+FINAL_SCORE[riftPreview.musicSection].bpm+" BPM":activeStage===3
     ?cityBoss.active&&!cityBoss.defeated
       ?"♫ CHEFE: Coroa do Vazio · 158 BPM"
       :"♫ Cidade Entre Estrelas · 136 BPM"
@@ -5321,7 +5350,7 @@ if(import.meta.env.DEV&&new URLSearchParams(location.search).has("rift-qa")){
       riftPreview.stop();activateStage(stage);resetGame();debugMode=false;fullTestMode=false;debugUsedThisRun=false;
       progress.stage4.completed=completed;campaign.stage4Completed=completed;campaign.aerialDash=part!==2;
       player.x=x;player.prevX=x;player.y=(groundY(x)??420)-PLAYER_RADIUS;player.prevY=player.y;
-      player.invulnerable=invulnerable;player.onGround=true;player.ground=tracks.find(p=>x>=p.x1&&x<=p.x2&&!p.secretId);player.rings=crystals;player.boost=boost??(part===2?0:boostCapacity());player.vx=vx;
+      player.invulnerable=invulnerable;player.onGround=true;player.ground=tracks.find(p=>x>=p.x1&&x<=p.x2&&!p.secretId);player.rings=crystals;player.boost=boost??(part===2?0:boostCapacity());player.vx=vx;if(isForestTwo())factoryState=createFactoryState(x);
       cameraX=clamp(x-360,0,WORLD_W-VIEW_W);cameraY=clamp(player.y-295,0,WORLD_H-VIEW_H);
       gameCleared=false;resumeRiftScreen();riftQAFrozen=true;draw();syncRubroButton();
     },
@@ -5338,7 +5367,7 @@ if(import.meta.env.DEV&&new URLSearchParams(location.search).has("rift-qa")){
       startRiftPreview(true);riftQAFrozen=true;for(let i=0;i<100;i++)riftPreview.update(1/120,new Set());draw();
       return riftPreview.info();
     },
-    gameInfo:()=>({forestPart,canyonPart,ground:player.ground?{...player.ground}:null,cavePlatforms:isCanyonTwo()?tracks.filter(t=>["cave-bridge","cave-crumble","moving"].includes(t.kind)).map(t=>({...t})):[],guardian:{...guardian,core:guardianCorePosition(),line:guardianLaserLine()},caveHazards:caveHazards.map(c=>({...c})),portal:{...riftPortal},helix:{...helix},checkpointIndex,cleared:gameCleared,boost:player.boost,presses:isForestTwo()?forestTwoWorld.presses.map(p=>({...p,...pressState(p,gameTime)})):[],cameraX,cameraY,dashStatus:currentDashStatus(),defeat:defeat?{...defeat}:null,stage:activeStage,cores:player.cores,x:player.x,y:player.y,vx:player.vx,vy:player.vy,crystals:player.rings,onGround:player.onGround,sliding:player.sliding,boosting:player.boosting,dash:{...airDash},rubro:{...rubro},time:gameTime,damage:runDamageCount,walls:walls.map(w=>({...w})),tunnels:tunnels.map(w=>({...w}))}),
+    gameInfo:()=>({forestPart,canyonPart,enemies:enemies.map(e=>({...e})),factory:{...factoryState},cargoLoads:cargoLoads.map(c=>({...c})),forestPlatforms:isForestTwo()?tracks.filter(t=>t.upper).map(t=>({...t})):[],ground:player.ground?{...player.ground}:null,cavePlatforms:isCanyonTwo()?tracks.filter(t=>["cave-bridge","cave-crumble","moving"].includes(t.kind)).map(t=>({...t})):[],guardian:{...guardian,core:guardianCorePosition(),line:guardianLaserLine()},caveHazards:caveHazards.map(c=>({...c})),portal:{...riftPortal},helix:{...helix},checkpointIndex,cleared:gameCleared,boost:player.boost,presses:isForestTwo()?forestTwoWorld.presses.map(p=>({...p,...pressState(p,gameTime)})):[],cameraX,cameraY,dashStatus:currentDashStatus(),defeat:defeat?{...defeat}:null,stage:activeStage,cores:player.cores,x:player.x,y:player.y,vx:player.vx,vy:player.vy,crystals:player.rings,onGround:player.onGround,sliding:player.sliding,boosting:player.boosting,dash:{...airDash},rubro:{...rubro},time:gameTime,damage:runDamageCount,walls:walls.map(w=>({...w})),tunnels:tunnels.map(w=>({...w}))}),
     stepGame(inputs=[],frames=1,render=true){
       const wasJump=keys.has(" ");keys.clear();for(const key of inputs)keys.add(key);
       if(keys.has(" ")&&!wasJump){if(!player.onGround&&dashUnlocked())startAirDash();else jumpBuffer=.13;}
@@ -5347,7 +5376,7 @@ if(import.meta.env.DEV&&new URLSearchParams(location.search).has("rift-qa")){
     },
     settleExit(){for(let i=0;i<240&&stageExit.active;i++)updateStageExit(1/120);return {campaign:{...campaign},journey:{...forestJourney},canyonJourney:{...canyonJourney}};},
     canyonWorld:()=>({tracks:canyonTwoWorld.tracks,spikes:canyonTwoWorld.spikes,enemies:canyonTwoWorld.enemies,refractors:canyonTwoWorld.refractors,pits:canyonTwoWorld.pits,checkpoints:canyonTwoWorld.checkpoints,waterfalls:canyonTwoWorld.waterfalls,sanctuary:SANCTUARY}),
-    forestWorld:()=>({tracks:forestTwoWorld.tracks,spikes:forestTwoWorld.spikes,pulseGates:forestTwoWorld.pulseGates,enemies:forestTwoWorld.enemies}),
+    forestWorld:()=>({...forestTwoWorld,factory:FACTORY}),
     addShot(){sentryShots.push({x:player.x,y:player.y,vx:0,vy:0,life:2,r:9,unblockable:true});},
     takeHit(){player.invulnerable=0;damagePlayer(false);syncRubroButton();return this.gameInfo();},
     saveQAProgress(){storeProgress();saveCampaign();},
