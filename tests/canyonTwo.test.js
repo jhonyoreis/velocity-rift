@@ -67,3 +67,11 @@ test('waterfall and fractured aqueduct sections develop the score instead of loo
  assert.notDeepEqual(canyonTwoScore(2,2).notes,canyonTwoScore(2,7).notes);
  assert.notDeepEqual(canyonTwoScore(0,3).notes,canyonTwoScore(128,3).notes);
 });
+
+test('Canyon 2 thins crystal rewards without removing tutorial arcs or boss approach',()=>{
+ assert.ok(world.rings.length<300,'Canyon 2 should no longer flood the route with crystals');
+ assert.ok(world.rings.length>160,'Canyon 2 must still reward exploration');
+ const firstArc=world.rings.filter(r=>r.x>=1495&&r.x<=1835);
+ assert.ok(firstArc.length>=7,'the first waterfall keeps its crystal guide');
+ assert.ok(world.rings.some(r=>r.x>34530&&r.x<34800),'boss approach retains a reward');
+});
