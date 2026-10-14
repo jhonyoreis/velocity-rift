@@ -62,7 +62,8 @@ export function createRiftRouteDriver({collectExtras=false}={}){
   const gap=p&&p.x2-s.x<65&&!platforms.some(n=>n!==p&&n.x1<=p.x2+22&&n.x2>p.x2&&Math.abs(platformSurface(n,p.x2,s.time)-platformSurface(p,p.x2,s.time))<30);
   const rise=p&&p.x2-s.x<130&&platforms.some(n=>n!==p&&Math.abs(n.x1-p.x2)<30&&(platformSurface(p,p.x2,s.time)-platformSurface(n,n.x1,s.time))*s.gravity>15);
   const hazard=world.hazards.some(h=>h.x>s.x&&h.x-s.x<120);
-  const enemy=world.enemies.some(e=>(e.dimension===-1||e.dimension===s.dimension)&&["rift-laser","rift-triple"].includes(e.type)&&e.x>s.x-40&&e.x<s.x+145);
+  // Under reverse gravity, jump and dash early across ceiling gaps before ranged fire can knock Flux back.
+  const enemy=world.enemies.some(e=>(e.dimension===-1||e.dimension===s.dimension)&&["rift-laser","rift-triple"].includes(e.type)&&e.x>s.x-40&&e.x<s.x+(s.gravity<0?340:145));
   if(anchor&&Math.abs(s.x-anchor.x)<170)needJump=needDash=false;
   const wall=world.barricades.some(b=>b.x>s.x-40&&b.x<s.x+180);
   needDash ||= (enemy||wall)&&!anchor;
