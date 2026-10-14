@@ -1,5 +1,5 @@
 import {createCanyonTwoWorld,prepareCanyonOne,SANCTUARY} from "./levels/canyonTwo.js";
-import {createCaveHazards,advanceFallingCrystal,refractorState,beamTouches,reflectedGuardianLine,advanceCaveBridge,resetCaveBridge} from "./game/canyonHazards.js";
+import {createCaveHazards,advanceFallingCrystal,refractorState,beamTouches,reflectedGuardianLine,advanceCaveBridge,resetCaveBridge,crystalImpactShards,guardianLaserSegments} from "./game/canyonHazards.js";
 import {drawCanyonTwoBackdrop,drawCanyonTwoGround,drawCaveHazards,drawCaveTunnel,drawCanyonWaterfalls} from "./rendering/canyonTwo.js";
 import {canyonTwoScore} from "./audio/canyonTwoScore.js";
 import {createForestTwoWorld,FACTORY,pressState,pressCrushes} from "./levels/forestTwo.js";
@@ -26,6 +26,7 @@ import {mobileTutorialSign} from "./game/mobileTutorial.js";
 import {speedometer} from "./game/speedometer.js";
 import {sanitizeGhost,ghostFrameAt,recordGhostFrame,makeGhost} from "./game/ghostReplay.js";
 import {guardianPhase} from "./bosses/guardianPhases.js";
+import {canyonEnemyVolley,canyonEnemyCooldown} from "./game/canyonCombat.js";
 import {ALICIA_ECHOES,sanitizeEchoArchive} from "./data/aliciaEchoes.js";
 import {BONUS_CHALLENGES,earnedBonusChallenges,sanitizeBonusChallenges} from "./game/bonusChallenges.js";
 import {ACHIEVEMENTS} from "./data/achievements.js";
@@ -525,7 +526,7 @@ const spikes=stageOneWorld.spikes.map(x=>({...x}));
 const pulseGates=stageOneWorld.pulseGates.map(x=>({...x}));
 const memoryCores=stageOneWorld.memoryCores.map(x=>({...x}));
 const guardian={
-  x:33360,y:336,hp:3,maxHp:3,active:false,defeated:false,
+  x:33360,y:336,hp:5,maxHp:5,active:false,defeated:false,
   state:"telegraph",timer:0,cycle:0,arenaLeft:32710,arenaRight:33670,
   aimX:32910,aimY:392,lockAim:false,
   pickups:[],arenaFloor:410,introDuration:1.85
@@ -2233,12 +2234,14 @@ function resetGuardian(){
   resetRiftPortal();
 }
 function guardianCorePosition(){
-  // Three real attack angles; the third core is behind the body.
-  const slot=Math.min(2,guardian.maxHp-guardian.hp);
+  // Five hits alternate between familiar front, top and back weak spots.
+  const slot=Math.min(4,guardian.maxHp-guardian.hp),second=isCanyonTwo();
   return [
-    {x:guardian.x-64,y:isCanyonTwo()?294:348,name:"FRENTE"},
+    {x:guardian.x-64,y:second?294:348,name:"FRENTE"},
     {x:guardian.x-35,y:226,name:"TOPO"},
-    {x:guardian.x+68,y:isCanyonTwo()?284:340,name:"COSTAS"}
+    {x:guardian.x+68,y:second?284:340,name:"COSTAS"},
+    {x:guardian.x-64,y:second?278:332,name:"FRENTE"},
+    {x:guardian.x+68,y:second?269:323,name:"COSTAS"}
   ][slot];
 }
 function guardianHint(){
@@ -2246,9 +2249,10 @@ function guardianHint(){
   if(guardian.state==="collapse")return "NÚCLEO DESTRUÍDO · PORTAL REATIVANDO";
   if(guardian.state==="telegraph")return guardian.lockAim?
     "MIRA TRAVADA! SAIA DA LINHA":
-    guardian.hp===1?"RUPTURA · LASER MAIS RÁPIDO":
-    guardian.hp===2?"FRATURA · GUARDA REFORÇADA":"LASER MIRANDO O FLUX";
-  if(guardian.state==="attack")return "LASER! DESVIE DA LINHA DE DISPARO";
+    guardian.hp===1?"RUPTURA FINAL · TRÊS RICOCHETES":
+    guardian.hp===2?"FRAGMENTAÇÃO · GUARDA REFORÇADA":"LASER MIRANDO O FLUX";
+  if(guardian.state==="attack")return guardian.hp===1?
+    "TRÊS RICOCHETES! DESVIE DAS QUATRO LINHAS":"LASER! DESVIE DA LINHA DE DISPARO";
   if(guardian.state==="exposed")
     return "NÚCLEO "+guardianCorePosition().name+" · BOOST OU GOLPE DESCENDENTE";
   return "NÚCLEO DESLOCADO: "+guardianCorePosition().name+" · RECONFIGURANDO";
@@ -2269,6 +2273,10 @@ function guardianLaserLine(){
   return {x1:ox,y1:oy,
     x2:clamp(ox+dx*reach,guardian.arenaLeft+8,guardian.arenaRight-8),
     y2:clamp(oy+dy*reach,93,guardian.arenaFloor-12)};
+}
+function guardianBeamPaths(){
+  return guardianLaserSegments(guardianLaserLine(),guardian.arenaLeft,
+    guardian.arenaRight,guardian.arenaFloor,guardianPhase(guardian.hp).ricochets);
 }
 function distanceToLaser(px,py,line){
   const dx=line.x2-line.x1,dy=line.y2-line.y1;
@@ -2394,8 +2402,8 @@ function updateGuardian(dt){
       playSfx("boss-alert");
     }
   }else if(guardian.state==="attack"){
-    const line=guardianLaserLine();
-    if(distanceToLaser(player.x,player.y,line)<PLAYER_RADIUS+8||distanceToLaser(player.x,player.y,reflectedGuardianLine(line,guardian.arenaLeft,guardian.arenaRight,guardian.arenaFloor))<PLAYER_RADIUS+8)damagePlayer(false);
+    if(guardianBeamPaths().some(line=>
+       distanceToLaser(player.x,player.y,line)<PLAYER_RADIUS+8))damagePlayer(false);
     if(guardian.timer>=phase.laser){guardian.state="exposed";guardian.timer=0;}
   }else if(guardian.state==="exposed"){
     const core=guardianCorePosition();
@@ -2637,7 +2645,7 @@ function drawGuardianCinematic(){
   ctx.fillText(arriving?"GUARDIÃO DO PRISMA":"NÚCLEO DESTRUÍDO",VIEW_W/2,236);
   ctx.font="bold 13px system-ui";
   ctx.fillStyle="#ffddb5";
-  ctx.fillText(arriving?"TRÊS NÚCLEOS · UMA ÚNICA SAÍDA":
+  ctx.fillText(arriving?"CINCO NÚCLEOS · UMA ÚNICA SAÍDA":
     "ESTABILIZANDO A FENDA · PORTAL REABRINDO",VIEW_W/2,259);
   ctx.fillStyle="#30294e";ctx.fillRect(237,273,486,5);
   ctx.fillStyle=arriving?"#c89fff":"#9cffe6";
@@ -2660,9 +2668,13 @@ function drawGuardian(){
     const laser=guardianLaserLine(),firing=guardian.state==="attack";
     ctx.strokeStyle=firing?"rgba(255,66,148,.9)":guardian.lockAim?"rgba(255,200,105,.7)":"rgba(255,210,118,.3)";
     ctx.lineWidth=firing?guardianPhase(guardian.hp).width:guardian.lockAim?4:2;
-    ctx.beginPath();ctx.moveTo(laser.x1,laser.y1);ctx.lineTo(laser.x2,laser.y2);ctx.stroke();
-    const reflected=reflectedGuardianLine(laser,guardian.arenaLeft,guardian.arenaRight,guardian.arenaFloor);
-    ctx.save();if(!firing)ctx.setLineDash([7,6]);ctx.beginPath();ctx.moveTo(reflected.x1,reflected.y1);ctx.lineTo(reflected.x2,reflected.y2);ctx.stroke();ctx.restore();
+    for(const [index,line] of guardianBeamPaths().entries()){
+      ctx.save();
+      if(index>0&&!firing)ctx.setLineDash([7,6]);
+      if(index>1)ctx.strokeStyle=firing?"#ffa0ff":"rgba(245,205,255,.85)";
+      ctx.beginPath();ctx.moveTo(line.x1,line.y1);ctx.lineTo(line.x2,line.y2);ctx.stroke();
+      ctx.restore();
+    }
     if(!firing){
       ctx.fillStyle="#ffe5b4";ctx.font="bold 12px system-ui";
       ctx.fillText(guardian.lockAim?"MIRA TRAVADA":"CALCULANDO ALVO",guardian.x-110,guardian.y-116);
@@ -2711,6 +2723,12 @@ function drawGuardian(){
   if(cracks>=3){
     ctx.beginPath();ctx.moveTo(-26,29);ctx.lineTo(0,10);
     ctx.lineTo(30,36);ctx.stroke();
+  }
+  if(cracks>=4){
+    ctx.beginPath();ctx.moveTo(28,-29);ctx.lineTo(6,-3);ctx.lineTo(15,39);ctx.stroke();
+  }
+  if(cracks>=5){
+    ctx.beginPath();ctx.moveTo(-43,-1);ctx.lineTo(-8,25);ctx.lineTo(42,8);ctx.stroke();
   }
   ctx.restore();
   const core=guardianCorePosition();
@@ -2889,7 +2907,14 @@ function update(dt) {
   if(isCanyonTwo()){
     for(const c of caveHazards)advanceFallingCrystal(c,player,dt,{
       warning:()=>playSfx("crystal-creak"),
-      impact:s=>{if(Math.abs(s.x-player.x)<650){emitParticles(s.x,s.floor-12,"#b9e9ff",22,145);shakeTime=Math.max(shakeTime,.13);playSfx("crystal-shatter");}},
+      impact:s=>{
+        // Fragments fly sideways after impact, using the shared enemy-shot bus.
+        sentryShots.push(...crystalImpactShards(s));
+        if(Math.abs(s.x-player.x)<650){
+          emitParticles(s.x,s.floor-12,"#b9e9ff",22,145);
+          shakeTime=Math.max(shakeTime,.13);playSfx("crystal-shatter");
+        }
+      },
       crush:()=>damagePlayer(false,{crush:true})
     });
     if(!defeat)for(const r of canyonTwoWorld.refractors){const b=refractorState(r,gameTime);if(b.warning&&!refractorState(r,gameTime-dt).warning&&Math.abs(r.x-player.x)<600)playSfx("prism-charge");if(b.active&&beamTouches(player,b.points))damagePlayer(false);}
@@ -3109,10 +3134,15 @@ function updateSentryShots(dt){
 }
 function drawSentryShots(){
   for(const shot of sentryShots){
-    ctx.fillStyle=shot.cityShot?"rgba(255,176,103,.23)":"rgba(255,107,179,.2)";
+    ctx.fillStyle=shot.caveShard?"rgba(159,244,255,.28)":shot.caveShot?"rgba(213,144,255,.23)":shot.cityShot?"rgba(255,176,103,.23)":"rgba(255,107,179,.2)";
     ctx.beginPath();ctx.arc(shot.x,shot.y,shot.r+7,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle=shot.cityShot?"#ffac79":"#ff82c5";
+    ctx.fillStyle=shot.caveShard?"#b9f5ff":shot.caveShot?"#d9a7ff":shot.cityShot?"#ffac79":"#ff82c5";
     ctx.beginPath();ctx.arc(shot.x,shot.y,shot.r,0,Math.PI*2);ctx.fill();
+    if(shot.caveShard){
+      ctx.strokeStyle="#e3fdff";ctx.lineWidth=2;
+      ctx.beginPath();ctx.moveTo(shot.x-shot.vx*.035,shot.y-shot.vy*.035);
+      ctx.lineTo(shot.x,shot.y);ctx.stroke();
+    }
     ctx.fillStyle="#ffe8f6";
     ctx.beginPath();ctx.arc(shot.x-2,shot.y-2,3,0,Math.PI*2);ctx.fill();
   }
@@ -3145,16 +3175,26 @@ function updateEnemies(dt) {
     if(bad.type==="sentry"){
       bad.shotTimer=(bad.shotTimer??(.75+(bad.baseX%4)*.23))-dt;
       const dist=Math.hypot(bad.x-player.x,(bad.y-27)-player.y);
-      if(bad.shotTimer<=0 && dist<720 && sentryShots.length<36){
-        // Sentries aim once and fire slow, readable plasma bolts.
-        const dx=player.x-bad.x,dy=player.y-(bad.y-24);
-        const len=Math.hypot(dx,dy)||1;
-        sentryShots.push({
-          x:bad.x,y:bad.y-24,
-          vx:dx/len*310,vy:dy/len*310,
-          life:3.8,r:9
-        });
-        bad.shotTimer=2.25;
+      if(bad.shotTimer<=0&&dist<(isCanyonTwo()?620:720)&&sentryShots.length<34){
+        if(isCanyonTwo()){
+          sentryShots.push(...canyonEnemyVolley("sentry",bad.x,bad.y-24,player));
+          bad.shotTimer=canyonEnemyCooldown("sentry");
+        }else{
+          // Preserve the original single projectile outside Prism Canyon 2.
+          const dx=player.x-bad.x,dy=player.y-(bad.y-24),len=Math.hypot(dx,dy)||1;
+          sentryShots.push({x:bad.x,y:bad.y-24,
+            vx:dx/len*310,vy:dy/len*310,life:3.8,r:9});
+          bad.shotTimer=2.25;
+        }
+        playSfx("boss-alert");
+      }
+    }
+    if(isCanyonTwo()&&bad.type==="drone"){
+      bad.shotTimer=(bad.shotTimer??1.3)-dt;
+      const dist=Math.hypot(bad.x-player.x,(bad.y-bad.h*.65)-player.y);
+      if(bad.shotTimer<=0&&dist<540&&sentryShots.length<34){
+        sentryShots.push(...canyonEnemyVolley("drone",bad.x,bad.y-bad.h*.65,player));
+        bad.shotTimer=canyonEnemyCooldown("drone");
         playSfx("boss-alert");
       }
     }
@@ -4150,7 +4190,12 @@ function drawObjects() {
       ctx.fillStyle="#cf94ff";
       roundRect(bad.x-23,bad.y-bad.h+bob,46,bad.h,11);ctx.fill();
       ctx.fillStyle="#22183a";ctx.fillRect(bad.x-10,bad.y-17+bob,20,6);
-      ctx.fillStyle="#6dfff4";ctx.fillRect(bad.x-6,bad.y-16+bob,12,3);
+      ctx.fillStyle=isCanyonTwo()&&bad.shotTimer<.5?"#ffe091":"#6dfff4";
+      ctx.fillRect(bad.x-6,bad.y-16+bob,12,3);
+      if(isCanyonTwo()&&bad.shotTimer<.5){
+        ctx.strokeStyle="#ffe5b4";ctx.lineWidth=2;
+        ctx.beginPath();ctx.arc(bad.x,bad.y-14,31,0,Math.PI*2);ctx.stroke();
+      }
       ctx.strokeStyle="#7affef";ctx.lineWidth=3;
       ctx.beginPath();ctx.moveTo(bad.x-34,bad.y-25+bob);ctx.lineTo(bad.x-20,bad.y-22+bob);
       ctx.moveTo(bad.x+20,bad.y-22+bob);ctx.lineTo(bad.x+34,bad.y-25+bob);ctx.stroke();
@@ -5339,7 +5384,7 @@ if(import.meta.env.DEV&&new URLSearchParams(location.search).has("rift-qa")){
       startRiftPreview(true);riftQAFrozen=true;for(let i=0;i<100;i++)riftPreview.update(1/120,new Set());draw();
       return riftPreview.info();
     },
-    gameInfo:()=>({arrival:{...stageArrival},route:campaignRoute(),campaign:{...campaign},forestPart,canyonPart,enemies:enemies.map(e=>({...e})),factory:{...factoryState},cargoLoads:cargoLoads.map(c=>({...c})),forestPlatforms:isForestTwo()?tracks.filter(t=>t.upper).map(t=>({...t})):[],ground:player.ground?{...player.ground}:null,cavePlatforms:isCanyonTwo()?tracks.filter(t=>["cave-bridge","cave-crumble","moving"].includes(t.kind)).map(t=>({...t})):[],guardian:{...guardian,core:guardianCorePosition(),line:guardianLaserLine()},caveHazards:caveHazards.map(c=>({...c})),portal:{...riftPortal},helix:{...helix},checkpointIndex,cleared:gameCleared,boost:player.boost,presses:isForestTwo()?forestTwoWorld.presses.map(p=>({...p,...pressState(p,gameTime)})):[],cameraX,cameraY,dashStatus:currentDashStatus(),defeat:defeat?{...defeat}:null,stage:activeStage,cores:player.cores,x:player.x,y:player.y,vx:player.vx,vy:player.vy,crystals:player.rings,onGround:player.onGround,sliding:player.sliding,boosting:player.boosting,dash:{...airDash},rubro:{...rubro},time:gameTime,damage:runDamageCount,walls:walls.map(w=>({...w})),tunnels:tunnels.map(w=>({...w}))}),
+    gameInfo:()=>({arrival:{...stageArrival},route:campaignRoute(),campaign:{...campaign},forestPart,canyonPart,enemies:enemies.map(e=>({...e})),factory:{...factoryState},cargoLoads:cargoLoads.map(c=>({...c})),forestPlatforms:isForestTwo()?tracks.filter(t=>t.upper).map(t=>({...t})):[],ground:player.ground?{...player.ground}:null,cavePlatforms:isCanyonTwo()?tracks.filter(t=>["cave-bridge","cave-crumble","moving"].includes(t.kind)).map(t=>({...t})):[],guardian:{...guardian,core:guardianCorePosition(),line:guardianLaserLine(),beams:guardianBeamPaths()},caveHazards:caveHazards.map(c=>({...c})),portal:{...riftPortal},helix:{...helix},checkpointIndex,cleared:gameCleared,boost:player.boost,presses:isForestTwo()?forestTwoWorld.presses.map(p=>({...p,...pressState(p,gameTime)})):[],cameraX,cameraY,dashStatus:currentDashStatus(),defeat:defeat?{...defeat}:null,stage:activeStage,cores:player.cores,x:player.x,y:player.y,vx:player.vx,vy:player.vy,crystals:player.rings,onGround:player.onGround,sliding:player.sliding,boosting:player.boosting,dash:{...airDash},rubro:{...rubro},time:gameTime,damage:runDamageCount,walls:walls.map(w=>({...w})),tunnels:tunnels.map(w=>({...w}))}),
     stepGame(inputs=[],frames=1,render=true){
       const wasJump=keys.has(" ");keys.clear();for(const key of inputs)keys.add(key);
       if(keys.has(" ")&&!wasJump){if(!player.onGround&&dashUnlocked())startAirDash();else jumpBuffer=.13;}
