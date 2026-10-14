@@ -13,7 +13,7 @@ export function createCanyonTwoWorld({track,rect,enemy,orb,yOnTrack,PLAYER_RADIU
  const rings=[];
  for(const [a,n] of [[210,9],[1570,5],[2510,7],[3040,4],[4040,4],[4690,6],[5870,6],[6640,6],[7130,4],[9050,5],[11140,6],[11640,3],[12870,6],[13400,6]])for(let i=0;i<n;i++){const x=a+i*46;rings.push({x,y:floor(x)-35-14*Math.sin(i/(n-1)*Math.PI),r:8,active:true});}
  for(const [a,b,y] of highs)for(let x=a+30;x<b-10;x+=58)rings.push({x,y:y-34,r:8,active:true});
- const fallingCrystals=[1100,1390,2800,4330,4580,6020,6250,6900,9260,9480,11000].map((x,i)=>({x,ceiling:100+(i%3)*15,floor:floor(x),width:42,height:88,trigger:180,delay:i===0?1.05:.9}));
+ const fallingCrystals=[1100,1390,2800,4330,4580,6020,6250,6900,9260,9480,11000].map((x,i)=>({x,ceiling:floor(x)-250,floor:floor(x),width:42,height:88,trigger:180,delay:i===0?1.05:.9}));
  const refractors=[{x:3350,floor:floor(3350),phase:0},{x:5650,floor:floor(5650),phase:1.1},{x:8870,floor:floor(8870),phase:2.2},{x:10300,floor:floor(10300),phase:.5}];
  return {worldW:13800,spawn:{x:100,y:402},goal:{x:13570,y:338,w:55,h:72},tracks,rings,fallingCrystals,refractors,
  chapters:[{x:0,title:'CÂNION PRISMA 2 / SOB A PEDRA'},{x:3000,title:'02 / GALERIA DA LUZ PARTIDA'},{x:7200,title:'03 / SANTUÁRIO SUSPENSO'},{x:11200,title:'04 / CORAÇÃO DO PRISMA'},{x:12900,title:'05 / O SILÊNCIO DEPOIS DA LUZ'}],

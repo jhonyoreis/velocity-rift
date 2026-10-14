@@ -80,6 +80,7 @@ export function drawCaveHazards(c,crystals,refractors,time,cameraX,width){
   if(warning||fall){c.fillStyle=warning?'rgba(255,196,113,.2)':'rgba(255,159,112,.3)';c.fillRect(s.x-s.width/2-8,s.floor-6,s.width+16,7);c.strokeStyle='#ffd18d';c.lineWidth=2;for(let i=-1;i<=1;i++){c.beginPath();c.moveTo(s.x+i*15-4,s.floor-21);c.lineTo(s.x+i*15,s.floor-16);c.lineTo(s.x+i*15+4,s.floor-21);c.stroke();}
    if(warning){c.strokeStyle='rgba(255,210,139,.2)';c.setLineDash([3,8]);c.beginPath();c.moveTo(s.x,s.y+s.height);c.lineTo(s.x,s.floor-26);c.stroke();c.setLineDash([]);for(let i=0;i<4;i++){const y=s.ceiling+s.height+((s.timer*110+i*29)%100);c.fillStyle='#ffe0a2';c.fillRect(s.x+Math.sin(i*4)*12,y,2,3);}}
   }
+  poly(c,[[s.x-33,s.ceiling-150],[s.x+29,s.ceiling-150],[s.x+24,s.ceiling-22],[s.x+13,s.ceiling+4],[s.x-18,s.ceiling+2],[s.x-31,s.ceiling-43]],'#172c41');
   const x=s.x+(warning?Math.sin(s.timer*62)*3:0);aura(c,x,s.y+s.height*.6,70,warning?'rgba(255,190,100,.19)':'rgba(135,190,255,.08)');
   crystal(c,x,s.y,s.width,s.height,warning?'#e6ad88':'#a8b9e8',true);
   if(warning){c.strokeStyle='#fff0ba';c.lineWidth=2;c.beginPath();c.moveTo(x-7,s.y+20);c.lineTo(x+3,s.y+35);c.lineTo(x-5,s.y+54);c.stroke();}
