@@ -129,7 +129,14 @@ export function drawWornWalker(c,b,time){
   c.fillStyle='#786e56';c.beginPath();c.roundRect(b.x-23,y-14,46,27,10);c.fill();
   line(c,b.x-36,y-12,b.x-20,y-7,'#98b69b',4);line(c,b.x+22,y-7,b.x+36,y-12,'#98b69b',4);
   for(const x of [b.x-32,b.x+32])ellipse(c,x,y-15,15,2,'#cdf5b6aa');
-  c.fillStyle='#203c39';c.fillRect(b.x-13,y-5,26,9);c.fillStyle='#ffc98c';c.fillRect(b.x-7,y-3,14,4);
+  c.fillStyle='#203c39';c.fillRect(b.x-13,y-5,26,9);
+  const charging=b.shotTimer<=.6;
+  c.fillStyle=charging?'#fff0a9':'#ffc98c';c.fillRect(b.x-7,y-3,14,4);
+  // The bright amber halo always warns before a projectile launches.
+  if(charging){
+   c.save();c.strokeStyle='#ffe3a7';c.globalAlpha=.65+.25*Math.sin(time*12);
+   c.lineWidth=2.3;c.beginPath();c.arc(b.x,y,36,0,Math.PI*2);c.stroke();c.restore();
+  }
   line(c,b.x+7,y-13,b.x+4,y-5,'#b7b08a',2);ellipse(c,b.x-15,y+7,7,3,'#4f9d6b');return;
  }
  if(b.type==='sentry'){
