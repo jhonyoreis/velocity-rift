@@ -4,7 +4,7 @@ import {createDefeat,sampleDefeat} from "./defeat.js";
 import {RUBRO,createRubroState,updateRubro,resetRubro,rubroCanBreak} from "./rubro.js";
 import {calculateCrystalDamage} from "./crystals.js";
 import {createVictorySequence,sampleVictorySequence} from "./victorySequence.js";
-import {FLUX_MOTION as M} from "./fluxMotion.js";
+import {FLUX_MOTION as M,FLUX_HIT_RECOIL} from "./fluxMotion.js";
 import {createOriginalRiftLayout,platformSurface,laserState,RIFT_WORLD_WIDTH,RIFT_FINISH_X,riftSectorAt} from "../levels/originalRift.js";
 import {createSovereign,advanceSovereign,hitSovereign,enemyCanBeDestroyed,shotFan,distanceToBeam,CHASE,SOVEREIGN_ARENA,steerRiftOrb} from "../bosses/sovereign.js";
 import {drawOriginalRift} from "../rendering/originalRift.js";
@@ -89,7 +89,11 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
   if(s.crystals===0){die(false);return;}
   s.damageCount++;s.crystals=all&&(absolute||!rubroState.active)?0:calculateCrystalDamage(s.crystals,{rubro:rubroState.active,baseFraction:.35,baseMinimum:8}).remaining;
   if(s.crystals===0)resetRubro(rubroState);
-  s.fx.hit=1;s.invincible=1.25;s.vy=-260*s.gravity;s.grounded=false;s.dash=0;
+  // Same physical reaction as the earlier campaign stages.
+  s.fx.hit=1;s.invincible=FLUX_HIT_RECOIL.invulnerability;
+  s.vx=-s.facing*FLUX_HIT_RECOIL.horizontal;
+  s.vy=-s.gravity*FLUX_HIT_RECOIL.vertical;
+  s.grounded=false;s.dash=0;s.boosting=false;
   burst(s.x,s.y,"#ffa68b");onSound("hit");
  }
  function respawn(){
