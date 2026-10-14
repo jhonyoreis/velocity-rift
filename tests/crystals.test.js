@@ -5,9 +5,9 @@ test("fall removes everything and ends the run",()=>{
  for(const n of [0,1,10,100])
    assert.deepEqual(calculateCrystalDamage(n,{fall:true}),{remaining:0,lost:n,dead:true});
 });
-test("regular hit costs at least eight or forty-five percent",()=>{
- assert.deepEqual(calculateCrystalDamage(100),{remaining:55,lost:45,dead:false});
- assert.deepEqual(calculateCrystalDamage(20),{remaining:11,lost:9,dead:false});
+test("regular hit costs at least eleven or sixty-five percent",()=>{
+ assert.deepEqual(calculateCrystalDamage(100),{remaining:35,lost:65,dead:false});
+ assert.deepEqual(calculateCrystalDamage(20),{remaining:7,lost:13,dead:false});
  assert.deepEqual(calculateCrystalDamage(5),{remaining:0,lost:5,dead:false});
  assert.deepEqual(calculateCrystalDamage(0),{remaining:0,lost:0,dead:true});
 });
@@ -24,4 +24,9 @@ test("Rubro retains its established protection during crystal rebalance",()=>{
 test("scripted final chapter retains the original damage balance",()=>{
  assert.deepEqual(calculateCrystalDamage(100,{baseFraction:.35,baseMinimum:8}),{remaining:65,lost:35,dead:false});
  assert.deepEqual(calculateCrystalDamage(20,{baseFraction:.35,baseMinimum:8}),{remaining:12,lost:8,dead:false});
+});
+
+test("minimum eleven crystals are lost when held reserve is small",()=>{
+ assert.deepEqual(calculateCrystalDamage(12),{remaining:1,lost:11,dead:false});
+ assert.deepEqual(calculateCrystalDamage(11),{remaining:0,lost:11,dead:false});
 });
