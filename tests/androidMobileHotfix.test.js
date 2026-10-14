@@ -99,7 +99,9 @@ test("louder synthesized audio uses a shared dynamics compressor and respects vo
 });
 
 test("touch handler uses safe pointer capture and does not drop game input",()=>{
-  assert.ok(js.includes("button.addEventListener('pointerdown'"));
+  const controls=readFileSync(new URL("../src/game/touchControls.js",import.meta.url),"utf8");
+  assert.ok(js.includes("bindTouchDragControls"));
+  assert.ok(controls.includes("button.addEventListener('pointerdown'"));
   assert.ok(js.includes("keys.add(key)"));
-  assert.ok(js.includes("try{button.setPointerCapture(event.pointerId)}catch"));
+  assert.ok(controls.includes("try{button.setPointerCapture(event.pointerId)}catch"));
 });

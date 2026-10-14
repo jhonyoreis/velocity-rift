@@ -87,7 +87,7 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
  function damage(all=false,absolute=false){
   if(s.invincible>0||isDebug()||s.dead)return;
   if(s.crystals===0){die(false);return;}
-  s.damageCount++;s.crystals=all&&(absolute||!rubroState.active)?0:calculateCrystalDamage(s.crystals,{rubro:rubroState.active}).remaining;
+  s.damageCount++;s.crystals=all&&(absolute||!rubroState.active)?0:calculateCrystalDamage(s.crystals,{rubro:rubroState.active,baseFraction:.35,baseMinimum:8}).remaining;
   if(s.crystals===0)resetRubro(rubroState);
   s.fx.hit=1;s.invincible=1.25;s.vy=-260*s.gravity;s.grounded=false;s.dash=0;
   burst(s.x,s.y,"#ffa68b");onSound("hit");

@@ -24,10 +24,22 @@ export function createCanyonTwoWorld({track,rect,enemy,orb,yOnTrack,PLAYER_RADIU
  const inPit=x=>pits.some(([a,b])=>x>a&&x<b);
  const landingSafe=x=>pits.every(([a,b])=>x<a-150||x>b+180);
  const rings=[];
- for(const [a,n] of [[210,9],[1850,5],[2510,7],[3040,4],[4040,4],[5000,6],[5870,6],[6640,6],[7130,4],[9050,5],[11140,6],[11700,5],[12620,5],[13250,5],[14580,4],[15350,5],[15820,6],[18160,5],[19450,5],[19950,4],[20800,5],[21860,6],[23400,6],[23800,4],[26500,6],[27920,5],[28330,4],[31120,6],[31830,4],[32600,7],[33700,5],[34300,5],[34640,3],[35870,6],[36400,6]])for(let i=0;i<n;i++){const x=a+i*46;if(!inPit(x))rings.push({x,y:floor(x)-35-14*Math.sin(i/(n-1)*Math.PI),r:8,active:true});}
- for(const [a,b,y] of [...highs,...stepping])for(let x=a+35;x<b-20;x+=58)rings.push({x,y:y-34,r:8,active:true});
+ for(const [a,n] of [[210,9],[1850,5],[2510,7],[3040,4],[4040,4],[5000,6],[5870,6],[6640,6],[7130,4],[9050,5],[11140,6],[11700,5],[12620,5],[13250,5],[14580,4],[15350,5],[15820,6],[18160,5],[19450,5],[19950,4],[20800,5],[21860,6],[23400,6],[23800,4],[26500,6],[27920,5],[28330,4],[31120,6],[31830,4],[32600,7],[33700,5],[34300,5],[34640,3],[35870,6],[36400,6]])for(let i=0;i<n;i+=2){const x=a+i*46;if(!inPit(x))rings.push({x,y:floor(x)-35-14*Math.sin(i/(n-1)*Math.PI),r:8,active:true});}
+ for(const [a,b,y] of [...highs,...stepping])for(let x=a+35;x<b-20;x+=92)rings.push({x,y:y-34,r:8,active:true});
  // Arcs teach the takeoff and landing before the first deadly crossing.
- for(const [a,b] of pits.filter(([a,b])=>b-a<500))for(let i=0;i<7;i++){const x=a-55+(b-a+110)*i/6;rings.push({x,y:floor(x)-36-Math.sin(i/6*Math.PI)*85,r:8,active:true});}
+ for(const [a,b] of pits.filter(([a,b])=>b-a<500)){
+  // Keep the first two tutorial arcs fully readable; thin later rewards.
+  const count=a<5000?7:5;
+  for(let i=0;i<count;i++){const t=i/(count-1),x=a-55+(b-a+110)*t;rings.push({x,y:floor(x)-36-Math.sin(t*Math.PI)*85,r:8,active:true});}
+ }
+ // Recovery reserves are concentrated at the final Guardian approach and arena,
+ // rather than flooding the entire canyon with collectibles.
+ for(let x=33760;x<34800;x+=80){
+  if(!inPit(x))rings.push({x,y:floor(x)-35,r:8,active:true});
+ }
+ for(let x=34840;x<35750;x+=100){
+  rings.push({x,y:floor(x)-48,r:8,active:true});
+ }
  const fallingCrystals=[1100,1390,2800,4330,6020,6250,6900,11000,11480,13020,13200,15720,18300,18510,19680,20520,20700,22020,23650,26900,27100,28180,31420,32900,33950].filter(x=>!inPit(x)).map((x,i)=>({x,ceiling:floor(x)-250,floor:floor(x),width:42,height:88,trigger:180,delay:i===0?1.05:.9}));
  const refractors=[3350,5650,8870,10300,12750,14600,18250,20200,22300,26700,28000,31600,33000].map((x,i)=>({x,floor:floor(x),phase:(i*1.1)%4.4}));
  const enemySpecs=[[690,'walker'],[2040,'drone'],[2640,'walker'],[3750,'drone'],[5380,'walker'],[6770,'walker'],[7370,'drone'],[8250,'sentry'],[9800,'drone'],[10870,'walker'],
