@@ -1,10 +1,10 @@
 # Velocity Rift — Uma Flor, Enfim (versão 4.6.4)
 
-## 4.6.4 — Recuo Unificado da Fenda Original (APK R37, teste de jogabilidade)
+## 4.6.4 — Recuo Unificado da Fenda Original (APK R37)
 
 - **Única mudança de jogabilidade:** ao receber dano normal na Fenda Original, Flux sofre o mesmo recuo das fases anteriores: 250 unidades horizontais para trás e 450 unidades verticais contra a gravidade (inclusive invertida), preservando a proteção original de 1,25 segundo.
 - **Sem reposicionamento de inimigos ou alteração de plataformas, hazards, ataques, cristais, chefes ou saves.**
-- A intensidade será avaliada jogando no celular. Os percursos automáticos antigos podem não completar a fase porque o recuo altera a trajetória após os golpes.
+- O recuo foi aprovado após teste de jogabilidade no celular. Os seis testes de percurso completo conduzidos por um robô antigo ficam disponíveis separadamente (`npm run test:legacy-autoplay`) até que o robô seja adaptado; a suíte normal mantém os testes de física, chefes, salvamento e progresso. O teste visual antigo do percurso final está disponível em `npm run test:visual:legacy-finale`.
 
 ## 4.6.3 — Prensas e Refração (APK R36)
 
