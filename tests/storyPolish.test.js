@@ -26,7 +26,7 @@ test("all three levels animate Flux crossing the portal before showing results",
  assert.ok(main.includes("function beginStageExit()"));
  assert.ok(main.includes("function updateStageExit(dt)"));
  assert.ok(main.includes("function drawStageExitFX()"));
- assert.ok(main.includes("if(stageExit.active)updateStageExit(dt);"));
+ assert.ok(main.includes("if(stageExit.active&&!riftPreview.active&&!cinematic.active)updateStageExit(dt);"));
  assert.ok(main.includes("showResults(stageExit.time,stageExit.crystals,stageExit.cores)"));
  assert.ok(main.includes("if(exitReached && !gameCleared){\n    beginStageExit();"));
 });
