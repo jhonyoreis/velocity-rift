@@ -1,0 +1,122 @@
+name: Android APK R37 (teste de recuo)
+on:
+  push:
+    branches: ["playtest/4.6.4-rift-recoil-only"]
+  workflow_dispatch:
+    inputs:
+      require_signed:
+        description: Require a permanent signing key for an update APK
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: velocity-rift-r37-playtest-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: platform-tools
+      - name: Install Android SDK 35
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - name: Install game dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Check dependency security
+        run: npm audit --audit-level=high
+      - name: Verify experimental recoil physics
+        run: |
+          node --test tests/riftRecoil.test.js
+          echo "### Experimental R37 build" >> "$GITHUB_STEP_SUMMARY"
+          echo "Full automated route bot is not adapted to the new knockback; manual gameplay test is required." >> "$GITHUB_STEP_SUMMARY"
+      - name: Build bundled web game
+        run: npm run build
+      - name: Generate Android project
+        run: npx cap add android
+      - name: Copy game into Android
+        run: npx cap sync android
+      - name: Configure landscape orientation
+        run: node scripts/configure-android.mjs
+      - name: Build debug APK
+        working-directory: android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
+      - name: Check for stable Android signing secrets
+        id: signing
+        shell: bash
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          REQUIRE_SIGNED: ${{ inputs.require_signed }}
+        run: |
+          if [[ -n "$KEYSTORE_B64" && -n "$STORE_PASS" && -n "$KEY_PASS" && -n "$KEY_ALIAS" ]]; then
+            umask 077
+            printf '%s' "$KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/velocity-rift-signing.jks"
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Debug APK only: permanent signing requires all four ANDROID_KEYSTORE secrets."
+            echo "### Android signing: DEBUG ONLY" >> "$GITHUB_STEP_SUMMARY"
+            echo "No permanently signed update APK was produced. Configure all four ANDROID_KEYSTORE secrets before distributing updates; debug signatures may differ from previous installations." >> "$GITHUB_STEP_SUMMARY"
+            if [[ "$REQUIRE_SIGNED" == "true" || -n "$KEYSTORE_B64" || -n "$STORE_PASS" || -n "$KEY_PASS" || -n "$KEY_ALIAS" ]]; then
+              echo "::error::Permanent signing was required or partially configured. Configure all four secrets."
+              exit 1
+            fi
+          fi
+      - name: Build stable signed release APK
+        if: steps.signing.outputs.enabled == 'true'
+        working-directory: android
+        shell: bash
+        env:
+          STORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          ./gradlew assembleRelease --no-daemon
+          BUILD_TOOLS="$ANDROID_HOME/build-tools/35.0.0"
+          UNSIGNED="app/build/outputs/apk/release/app-release-unsigned.apk"
+          ALIGNED="$RUNNER_TEMP/velocity-rift-aligned.apk"
+          "$BUILD_TOOLS/zipalign" -f -p 4 "$UNSIGNED" "$ALIGNED"
+          "$BUILD_TOOLS/apksigner" sign \
+            --ks "$RUNNER_TEMP/velocity-rift-signing.jks" \
+            --ks-key-alias "$KEY_ALIAS" \
+            --ks-pass env:STORE_PASS \
+            --key-pass env:KEY_PASS \
+            --out "app/build/outputs/apk/release/velocity-rift-release.apk" \
+            "$ALIGNED"
+          "$BUILD_TOOLS/apksigner" verify --verbose \
+            "app/build/outputs/apk/release/velocity-rift-release.apk"
+      - name: Upload stable signed APK
+        if: steps.signing.outputs.enabled == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: velocity-rift-r37-recoil-update
+          path: android/app/build/outputs/apk/release/velocity-rift-release.apk
+          if-no-files-found: error
+          retention-days: 30
+      - name: Publish installable APK
+        # Keep debug and permanently signed release artifacts clearly separate.
+        uses: actions/upload-artifact@v4
+        with:
+          name: velocity-rift-r37-recoil-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
