@@ -759,7 +759,7 @@ function drawCinematic(){
   ctx.save();ctx.clearRect(0,0,VIEW_W,VIEW_H);
   try {
   if(frame.art.startsWith("final:")){
-    drawFinaleFrame(ctx,frame.art.slice(6),t,ratio,{cinemaLandscape,cinemaPortal,cinemaFlux,cinemaAlicia,cinemaFlower,cinemaSovereign,cinemaCanyon,cinemaMetropolis,cinemaForest});return;
+    drawFinaleFrame(ctx,frame.art.slice(6),elapsed,ratio,{cinemaLandscape,cinemaPortal,cinemaFlux,cinemaFluxBack,cinemaAlicia,cinemaFlower,cinemaSovereign});return;
   }
   switch(frame.art){
     case "peace":
@@ -887,22 +887,22 @@ const CINEMATICS={
 };
 Object.assign(CINEMATICS,{
  intro4:{chapter:"CAPÍTULO FINAL · FENDA ORIGINAL",frames:[
-  {speaker:"TODOS OS CAMINHOS CONVERGEM",title:"O mundo depois do mundo",text:"A cidade desaparece atrás de Flux. Ruínas de todas as dimensões flutuam sobre um abismo. Alicia está no centro da ruptura.",duration:5,art:"final:throne",sound:"cin-ominous"},
-  {speaker:"NOVE MEMÓRIAS",title:"A origem guarda as chaves",text:"O altar exige os nove núcleos das regiões anteriores. Aqui, gravidade e realidade precisam ser lidas: nem todo caminho aponta para a frente.",duration:5,art:"final:throne"}
+  {speaker:"TODOS OS CAMINHOS CONVERGEM",title:"O mundo depois do mundo",text:"A cidade desaparece atrás de Flux. Ruínas de todas as dimensões flutuam sobre um abismo. Alicia está no centro da ruptura.",duration:6,art:"final:arrival",sound:"cin-ominous"},
+  {speaker:"NOVE MEMÓRIAS",title:"A origem guarda as chaves",text:"O altar exige os nove núcleos das regiões anteriores. Aqui, gravidade e realidade precisam ser lidas: nem todo caminho aponta para a frente.",duration:5.5,art:"final:altar"}
  ]},
  sovereignChase:{chapter:"O SOBERANO · PRIMEIRO CONFRONTO",frames:[
-  {speaker:"SOBERANO",title:"Tudo que corre, cai",text:"Você atravessou meus mundos. Agora tente escapar daquilo que os destrói.",duration:4.5,art:"final:chase",sound:"boss-enter"},
+  {speaker:"SOBERANO",title:"Tudo que corre, cai",text:"Você atravessou meus mundos. Agora tente escapar daquilo que os destrói.",duration:4.5,art:"final:descent",sound:"boss-enter"},
   {speaker:"FLUX",title:"Não vou deixar ninguém para trás",text:"Acerte o núcleo aberto com Dash cinco vezes. A barreira atrás de Flux leva todos os cristais; o próximo golpe será fatal.",duration:5,art:"final:chase"}
  ]},
  arenaIntro:{chapter:"TRONO DA RUPTURA",frames:[
-  {speaker:"ALICIA",title:"Você chegou",text:"Eu sabia que você encontraria o caminho. Mas ele controla até o chão sob seus pés.",duration:4.5,art:"final:throne",sound:"cin-flower"},
+  {speaker:"ALICIA",title:"Você chegou",text:"Eu sabia que você encontraria o caminho. Mas ele controla até o chão sob seus pés.",duration:4.5,art:"final:prison",sound:"cin-flower"},
   {speaker:"SOBERANO",title:"A última realidade",text:"Desvie das rajadas e leia os avisos de inversão. O núcleo fica exposto depois do ataque. Só o Dash atravessa sua primeira armadura.",duration:5,art:"final:throne",sound:"boss-enter"}
  ]},
  awakening:{chapter:"NOVE CORAÇÕES · FLUX RUBRO",frames:[
   {speaker:"A SEGUNDA FORMA",title:"O poder que não quebra",text:"A armadura se recompõe. O Soberano encerra a luta com uma onda de ruptura. Flux cai; suas forças se esgotam.",duration:4.7,art:"final:form",sound:"boss-enter"},
   {speaker:"ALICIA",title:"Olhe para mim, Flux",text:"Você não correu sozinho. Cada memória que trouxe guarda um mundo que você salvou. Levante. Eu ainda estou aqui.",duration:6,art:"final:defeat",sound:"cin-flower"},
-  {speaker:"AS NOVE MEMÓRIAS",title:"A promessa desperta",text:"Os nove núcleos se unem. Eletricidade escarlate envolve Flux: o poder Rubro eleva seus saltos, sua velocidade e seu impacto.",duration:5.3,art:"final:awaken",sound:"boss-crack"},
-  {speaker:"FLUX",title:"Eu prometi voltar",text:"Dash ou Boost Rubro ferem o núcleo aberto. Cada acerto consome o poder. Busque a próxima ressonância sinalizada no chão ou no teto antes de atacar de novo.",duration:6,art:"final:awaken"}
+  {speaker:"AS NOVE MEMÓRIAS",title:"A promessa desperta",text:"Os nove núcleos se unem. Eletricidade escarlate envolve Flux: o poder Rubro eleva seus saltos, sua velocidade e seu impacto.",duration:7,art:"final:awaken",sound:"cin-flower"},
+  {speaker:"FLUX",title:"Eu prometi voltar",text:"Dash ou Boost Rubro ferem o núcleo aberto. Cada acerto consome o poder. Busque a próxima ressonância sinalizada no chão ou no teto antes de atacar de novo.",duration:6,art:"final:resolve",sound:"boss-crack"}
  ]},
  ending:{chapter:"UMA FLOR, ENFIM · CRÉDITOS",frames:[
   {speaker:"A RUPTURA SE FECHA",title:"Alicia está livre",text:"A coroa se desfaz. O poder Rubro retorna às memórias; Flux volta a si. Pela primeira vez, Alicia pode caminhar ao seu lado.",duration:6,art:"final:rescue",sound:"boss-win"},
@@ -911,7 +911,7 @@ Object.assign(CINEMATICS,{
   {speaker:"ONDE A JORNADA COMEÇOU",title:"A floresta lembra",text:"Sob as copas neon, eles deixam para trás o último portal. A velocidade agora tem outra razão: voltar juntos.",duration:7,art:"final:forest"},
   {speaker:"O VALE TRANQUILO",title:"Antes das fendas, outra vez",text:"O pôr do sol espera no mesmo lugar. A promessa interrompida finalmente pode continuar.",duration:6,art:"final:home",sound:"cin-flower"},
   {speaker:"FLUX E ALICIA",title:"Uma flor para Alicia",text:"Flux estende a flor. Desta vez, Alicia a recebe. Nenhuma fenda os separa.",duration:7,art:"final:flower",sound:"cin-flower"},
-  {speaker:"OBRIGADO POR JOGAR",title:"Uma Flor, Enfim",text:"A jornada terminou. As memórias e rotas que faltam continuam esperando por você. Velocity Rift · 4.0.",duration:8,art:"final:promise"}
+  {speaker:"OBRIGADO POR JOGAR",title:"Uma Flor, Enfim",text:"A jornada terminou. As memórias e rotas que faltam continuam esperando por você. Obrigado por jogar Velocity Rift.",duration:8,art:"final:promise"}
  ]}
 });
 const cinematic={active:false,key:null,frameIndex:0,elapsed:0,
@@ -5089,7 +5089,11 @@ function scheduleMusic(){
   const now=audioContext.currentTime;
   const bossTheme=activeStage===2&&guardian.active&&!guardian.defeated;
   const cityBossTheme=activeStage===3&&cityBoss.active&&!cityBoss.defeated;
-  const finaleSection=cinematic.key==="ending"?8:cinematic.key==="awakening"?7:cinematic.key==="sovereignChase"?4:cinematic.key==="arenaIntro"?6:cinematic.key==="intro4"?0:null;
+  // The fallen-hero beat breathes before the Rubro theme returns in full.
+  const finaleArt=cinematic.active?CINEMATICS[cinematic.key].frames[cinematic.frameIndex].art:null;
+  const finaleSection=cinematic.key==="ending"?8:cinematic.key==="awakening"?
+    (finaleArt==="final:form"?6:finaleArt==="final:defeat"?5:finaleArt==="final:awaken"&&cinematic.elapsed<4.8?0:7):
+    cinematic.key==="sovereignChase"?4:cinematic.key==="arenaIntro"?6:cinematic.key==="intro4"?0:null;
   const stepDuration=cinematic.active?(finaleSection!==null?60/FINAL_SCORE[finaleSection].bpm/4:CINEMA_STEP_SECONDS):
     riftPreview.active?60/FINAL_SCORE[riftPreview.musicSection].bpm/4:
     cityBossTheme?CITY_BOSS_STEP_SECONDS:
@@ -5384,6 +5388,20 @@ draw();
 
 if(import.meta.env.DEV&&new URLSearchParams(location.search).has("rift-qa")){
   window.__riftQA={freeze(){riftQAFrozen=true;},info:()=>riftPreview.info(),
+    cinematicCatalog(){return Object.fromEntries(Object.entries(CINEMATICS)
+      .filter(([,scene])=>scene.frames.some(f=>f.art.startsWith("final:")))
+      .map(([key,scene])=>[key,scene.frames.map(f=>({art:f.art,duration:f.duration}))]));},
+    cinematicState(){return {active:cinematic.active,key:cinematic.key,index:cinematic.frameIndex,
+      elapsed:cinematic.elapsed,gameStarted,paused,seen:[...campaign.scenesSeen]};},
+    cinematicForQA({key,index=0,progress=0,replay=true}={}){
+      if(!CINEMATICS[key])throw new Error("Unknown cinematic");
+      launchCinematic(key,replay?showGalleryMenu:()=>{riftPreview.resumeStory();resumeRiftScreen();},replay);
+      cinematic.frameIndex=Math.max(0,Math.min(CINEMATICS[key].frames.length-1,index));
+      cinematic.elapsed=Math.max(0,Math.min(1,progress))*CINEMATICS[key].frames[cinematic.frameIndex].duration;
+      cinematic.clock=cinematic.elapsed;riftQAFrozen=true;refreshCinematicText();drawCinematic();
+      return this.cinematicState();
+    },
+    advanceCinematicForQA(seconds){updateCinematic(seconds);if(cinematic.active)drawCinematic();else draw();return this.cinematicState();},
     step(inputs,render=true){riftPreview.update(1/120,new Set(inputs));syncRubroButton();if(render){if(cinematic.active)drawCinematic();else draw();}},
     setupScenario({stage=1,part=1,x=180,crystals=0,completed=false,vx=0,invulnerable=0,boost=null}={}){
       forestPart=stage===1?part:1;canyonPart=stage===2?part:1;
