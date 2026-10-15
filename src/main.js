@@ -35,6 +35,7 @@ import {createStageOneWorld} from "./levels/forest.js";
 import {createStageTwoWorld} from "./levels/canyon.js";
 import {createStageThreeWorld} from "./levels/city.js";
 import {createOriginalRift,countRiftKeys} from "./game/originalRift.js";
+import {clearForeignStageTransitions} from "./game/riftEntryReset.js";
 import {installSecretRoutes} from "./levels/secretChallenges.js";
 import {gradeForTime as gradeForTimeByStage} from "./game/scoring.js";
 import {computeCampaignCompletion} from "./game/completion.js";
@@ -1869,6 +1870,8 @@ function finishRiftCampaign(r){
  launchCinematic("ending",()=>{gameCleared=true;showResults(r.time,r.crystals,r.runCores.length,result);});
 }
 function resumeRiftScreen(){
+ // A scripted QA freeze must never remain latched during normal gameplay.
+ if(!import.meta.env.DEV||!new URLSearchParams(location.search).has("rift-qa"))riftQAFrozen=false;
  gameStarted=true;paused=false;accumulator=0;keys.clear();jumpHeld=false;
  screens.forEach(screen=>{screen.hidden=true;});overlay.classList.add("is-hidden");
  document.querySelector(".game-panel").classList.remove("menu-active","pause-active","cinematic-active");
@@ -1876,6 +1879,10 @@ function resumeRiftScreen(){
 }
 function startRiftPreview(skipCinematic=false){
  if(!campaign.stage3Completed&&!testUnlocked())return;
+ // Other-stage exits, arrivals or altar scenes cannot continue into the
+ // final chapter or unexpectedly replace it with a results overlay.
+ clearForeignStageTransitions({stageExit,stageArrival,dashAltar});
+ defeat=null;gameCleared=false;
  if(skipCinematic!==true&&!testUnlocked()&&!campaign.scenesSeen.includes("intro4")){
   riftPreview.stop();launchCinematic("intro4",()=>startRiftPreview(true));return;
  }
@@ -1939,7 +1946,7 @@ function loop(now) {
   const dt = Math.min(0.05, Math.max(0, (now - lastTime) / 1000));
   lastTime = now;
   if(cinematic.active&&!riftQAFrozen)updateCinematic(dt);
-  if(stageExit.active)updateStageExit(dt);
+  if(stageExit.active&&!riftPreview.active&&!cinematic.active)updateStageExit(dt);
 
   if (gameStarted && !gameCleared && !paused) {
     accumulator += dt;
@@ -5395,6 +5402,18 @@ if(import.meta.env.DEV&&new URLSearchParams(location.search).has("rift-qa")){
       sample.start(9);sample.update(1/120,new Set());sample.draw(ctx,VIEW_W,VIEW_H);
     },
     seedRiftCrystalsForQA(n){const state=riftPreview.qaSeedCrystals(n);syncRubroButton();draw();return state;},
+    injectStaleRiftEntryForQA(){
+      Object.assign(stageExit,{active:true,elapsed:stageExit.duration-.01});
+      Object.assign(stageArrival,{active:true,elapsed:stageArrival.duration-.01});
+      Object.assign(dashAltar,{active:true,elapsed:dashAltar.duration-.01});
+      return this.riftEntryStateForQA();
+    },
+    riftEntryStateForQA(){
+      return {stageExit:stageExit.active,stageArrival:stageArrival.active,
+        dashAltar:dashAltar.active,gameStarted,paused,gameCleared,
+        cinematic:cinematic.active,riftActive:riftPreview.active,
+        time:riftPreview.info().time};
+    },
     altarScenario(coreIds){
       campaign.stage1Completed=campaign.stage2Completed=campaign.stage3Completed=true;
       for(let i=0;i<3;i++)campaign.extras.cores["stage"+(i+1)]=coreIds[i];
