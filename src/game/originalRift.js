@@ -91,7 +91,7 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
   if(s.crystals===0)resetRubro(rubroState);
   // Same hit reaction as the other campaign stages. Only the vertical
   // direction changes under inverted gravity; enemies and arena stay intact.
-  s.fx.hit=1;s.invincible=1.1;
+  s.fx.hit=1;s.invincible=1.25;
   s.vx=-s.facing*250;
   s.vy=-450*s.gravity;
   s.grounded=false;s.dash=0;
