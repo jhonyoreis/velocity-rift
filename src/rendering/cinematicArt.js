@@ -27,14 +27,14 @@ function cinemaStars(clock,color="#cefff6",density=36){
 }
 // Use the EXACT sprite renderer used by gameplay, including the helmet,
  // cyan crest/visor, dark body, orange scarf and little running feet.
-function cinemaFlux(x,y,scale=1,clock=0,run=false){
+function cinemaFlux(x,y,scale=1,clock=0,run=false,pose={}){
   ctx.save();
   ctx.translate(x,y-15*scale*2.3);
   ctx.scale(scale*2.3,scale*2.3);
-  const actor={x:0,y:0,facing:1,onGround:true,ground:null,
-    sliding:false,boosting:run,invulnerable:0,
-    vx:run?480:0,vy:0,animationPhase:clock*(run?16:2)};
-  const fx={boost:run?.5:0,turn:0,landing:0,takeoff:0,hit:0,run:run?1:0};
+  const actor={x:0,y:0,facing:pose.facing??1,onGround:!pose.airborne,ground:null,
+    sliding:false,boosting:run,rubro:Boolean(pose.rubro),invulnerable:0,
+    vx:run?480:pose.walk?120:0,vy:pose.vy??0,animationPhase:clock*(run?16:pose.walk?8:2)};
+  const fx={boost:run?.5:0,turn:0,landing:0,takeoff:0,hit:0,run:run||pose.walk?1:0};
   drawFluxBody(actor,fx,clock);
   ctx.restore();
 }
@@ -63,13 +63,14 @@ function cinemaFluxBack(x,y,scale=1,clock=0){
   ctx.beginPath();ctx.moveTo(-8,-4+sway);ctx.quadraticCurveTo(0,0+sway,9,-4+sway);ctx.stroke();
   ctx.restore();
 }
-function cinemaAlicia(x,y,scale=1,clock=0,lift=0){
+function cinemaAlicia(x,y,scale=1,clock=0,lift=0,walk=false){
   ctx.save();ctx.translate(x,y-lift);ctx.scale(scale,scale);
   const sway=Math.sin(clock*2)*3;
   ctx.fillStyle="#162742";ctx.beginPath();ctx.ellipse(0,0,29,6,0,0,Math.PI*2);ctx.fill();
   ctx.strokeStyle="#283955";ctx.lineCap="round";ctx.lineWidth=9;
-  ctx.beginPath();ctx.moveTo(-10,-21);ctx.lineTo(-9,0);
-  ctx.moveTo(8,-21);ctx.lineTo(11,0);ctx.stroke();
+  const stride=walk?Math.sin(clock*12)*11:0;
+  ctx.beginPath();ctx.moveTo(-10,-21);ctx.lineTo(-9+stride,0);
+  ctx.moveTo(8,-21);ctx.lineTo(11-stride,0);ctx.stroke();
   ctx.fillStyle="#ab80de";ctx.beginPath();
   ctx.moveTo(-16,-54);ctx.lineTo(16,-54);ctx.lineTo(26,-23);
   ctx.lineTo(-26,-23);ctx.closePath();ctx.fill();

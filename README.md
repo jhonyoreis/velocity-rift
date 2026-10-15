@@ -1,4 +1,14 @@
-# Velocity Rift — Uma Flor, Enfim (versão 4.6.4)
+# Velocity Rift — Uma Flor, Enfim (versão 4.7.0)
+
+## 4.7.0 — Memórias da Ruptura (revisão Android R38)
+
+- **17 planos cinematográficos distintos:** chegada entre fragmentos da floresta, do cânion e da cidade; altar das nove memórias; aparição colossal do Soberano; perseguição sobre uma ponte em colapso; encontro com Alicia e arena de gravidade instável.
+- **Despertar Rubro encenado:** onda de ruptura, queda de Flux, ligação com Alicia, nove núcleos surgindo em sequência, lembranças dos mundos e transformação. A trilha fica mais contida na queda e cresce no despertar.
+- **Volta para casa:** coroa se desfazendo, libertação de Alicia, travessia das torres, cataratas prismáticas e copas neon. O vale retoma a composição do prólogo e Flux se aproxima para entregar a flor.
+- Arte nativa em Canvas, animações limitadas e sem vídeos ou downloads adicionais. Enquadramentos mantêm a ação acima das legendas no celular. Avanço manual, galeria e saída continuam disponíveis.
+- Inclui a limpeza de estados temporários na entrada da Fenda Original e os indicadores compactos de energia Rubra/Soberano (ícone e seta). O congelamento intermitente ainda merece confirmação em aparelho real.
+- Campanha, saves, desafios, inimigos e recuo aprovado na 4.6.4 preservados.
+- `npm run test:visual:cinematics`: verifica os 17 planos em cinco momentos, em desktop e duas telas de celular, além de câmera, legenda, galeria, saída e retomada da fase. Integrado ao `npm run test:visual` e ao CI. Os seis percursos antigos de autoplay continuam separados, como na 4.6.4.
 
 ## 4.6.4 — Recuo Unificado da Fenda Original (APK R37)
 

@@ -36,7 +36,10 @@ try{
   await page.screenshot({path:`${folder}/${prefix}-architect-left.png`});
   for(const [side,positions] of [["right",{bossX:45500,energyX:45900}],["left",{bossX:43300,energyX:43800}],["visible",{bossX:44550,energyX:44800}]]){
    const labels=await page.evaluate(p=>{window.__hudLabels=[];window.__riftQA.combatReadabilityScenario(p);return window.__hudLabels;},positions);
-   for(const label of ["SOBERANO","RUBRO"])assert.equal(labels.includes(label),side!=="visible",`${label}: ${side}`);
+   // Mobile offscreen indicators now use only an arrow and a distinct
+   // graphic symbol: no long SOBERANO/RUBRO text labels.
+   for(const label of ["SOBERANO","RUBRO"])
+    assert.equal(labels.includes(label),false,`compact markers must not print ${label} on ${side}`);
    await page.screenshot({path:`${folder}/${prefix}-sovereign-${side}.png`});
   }
   assert.deepEqual(errors,[]);await context.close();

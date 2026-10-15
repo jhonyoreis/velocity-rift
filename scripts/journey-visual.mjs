@@ -66,10 +66,40 @@ try{
     await p.locator('#pauseButton').click();await p.locator('#restartPauseButton').click();
     assert.equal((await info(p)).arrival.active,false,'retry does not repeat the connection');
    }
+   if(node.id==='final'){
+    // Regression: enter directly from an earlier level with stale timers,
+    // and verify Fenda Original starts advancing without visiting another map.
+    const entry=await p.evaluate(()=>window.__riftQA.riftEntryStateForQA());
+    assert.equal(entry.stageExit,false,'old exit sequence must not remain active');
+    assert.equal(entry.stageArrival,false,'old arrival sequence must not remain active');
+    assert.equal(entry.dashAltar,false,'old altar scene must not remain active');
+    assert.equal(entry.gameStarted,true);
+    assert.equal(entry.paused,false);
+    assert.equal(entry.riftActive,true);
+    const before=entry.time;
+    await p.evaluate(()=>{for(let i=0;i<24;i++)window.__riftQA.step(['arrowright'],false);});
+    assert.ok((await p.evaluate(()=>window.__riftQA.info().time))>before,'Fenda Original should not freeze at entry');
+    // Re-enter the same stage from a different screen and try again.
+    await p.locator('#pauseButton').click();
+    await p.locator('#menuButton').click();
+    await p.locator('#selectStagesButton').click();
+    await p.locator('#mapNodeStageFour').click();
+    await p.locator('#stageFourButton').click();
+    const second=await p.evaluate(()=>window.__riftQA.riftEntryStateForQA());
+    assert.equal(second.gameStarted,true);
+    assert.equal(second.paused,false);
+    await p.evaluate(()=>{for(let i=0;i<24;i++)window.__riftQA.step(['arrowright'],false);});
+    assert.ok((await p.evaluate(()=>window.__riftQA.info().time))>second.time,
+      'Fenda Original re-entry must not require opening another stage');
+   }
    await p.evaluate(()=>window.__riftQA.completeStageForQA());
    state=await info(p);assert.equal(state.route.filter(n=>n.completed).length,index+1,'clear saved once');
    const expected=Math.min(6,index+2);assert.equal(state.route.filter(n=>n.unlocked).length,expected,'sequential unlock');
-   if(index<5){assert.equal(await p.locator('#nextStageButton').isEnabled(),true);await p.locator('#nextStageButton').click();}
+   if(index<5){
+    assert.equal(await p.locator('#nextStageButton').isEnabled(),true);
+    if(node.id==='city')await p.evaluate(()=>window.__riftQA.injectStaleRiftEntryForQA());
+    await p.locator('#nextStageButton').click();
+   }
   }
   await p.locator('#resultsStagesButton').click();await verifyMap(p);await p.locator('#mapNodeCanyonTwo').click();await shot(p,`${label}-official-map-cleared`);
   assert.equal(await p.locator('#mapStageForestTwoBest').innerText(),'123.00s');

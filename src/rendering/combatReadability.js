@@ -9,24 +9,52 @@ export function drawDashCharge(ctx,state,x=245,y=37){
  for(const offset of [-6,3]){ctx.beginPath();ctx.moveTo(offset-3,-6);ctx.lineTo(offset+4,0);ctx.lineTo(offset-3,6);ctx.stroke();}
  ctx.shadowBlur=0;ctx.fillStyle=color;ctx.font="bold 9px system-ui";ctx.textAlign="center";ctx.fillText("DASH",0,29);ctx.restore();
 }
+// Compact mobile-friendly offscreen markers: arrow plus distinct symbol,
+// no text or long pill masking the action at the screen edges.
 export function drawSovereignDirections(ctx,s,W=960,H=540){
- const b=s.boss;if(s.story||s.victory||s.defeat||b.defeated||!["chase","arena","scarlet","invincible"].includes(b.mode))return;
- const targets=[{...b,label:"SOBERANO",color:"#dda2ff",core:false}];
- if(b.resonance&&b.resonance.warning===0)targets.push({...b.resonance,label:"RUBRO",color:"#ff759a",core:true});
- const markers=targets.map(target=>({target,marker:offscreenTarget(target,s.cameraX,s.cameraY,W,H)})).filter(x=>x.marker);
- if(markers.length===2&&markers[0].marker.side===markers[1].marker.side&&Math.abs(markers[0].marker.y-markers[1].marker.y)<62){
-  markers[0].marker.y=Math.min(markers[0].marker.y,H-215);markers[1].marker.y=markers[0].marker.y+65;
+ const boss=s.boss;
+ if(s.story||s.victory||s.defeat||boss.defeated||
+   !["chase","arena","scarlet","invincible"].includes(boss.mode))return;
+ const targets=[{...boss,color:"#dda2ff",core:false}];
+ if(boss.resonance&&boss.resonance.warning===0)
+  targets.push({...boss.resonance,color:"#ff759a",core:true});
+ const markers=targets
+  .map(target=>({target,marker:offscreenTarget(target,s.cameraX,s.cameraY,W,H)}))
+  .filter(item=>item.marker);
+ // Leave enough space between the two icons when both targets are offscreen
+ // in the same direction.
+ if(markers.length===2&&markers[0].marker.side===markers[1].marker.side&&
+   Math.abs(markers[0].marker.y-markers[1].marker.y)<56){
+  markers[0].marker.y=Math.min(markers[0].marker.y,H-112);
+  markers[1].marker.y=markers[0].marker.y+56;
  }
  for(const {target,marker:m} of markers){
-  const inward=m.x>W/2?-1:1,px=inward===1?m.x+15:m.x-119;
-  ctx.save();ctx.fillStyle="#080d25eb";ctx.beginPath();ctx.roundRect(px,m.y-20,104,40,10);ctx.fill();
-  ctx.strokeStyle=target.color;ctx.lineWidth=1;ctx.stroke();
-  ctx.translate(m.x,m.y);ctx.rotate(Math.atan2(target.y-s.cameraY-m.y,target.x-s.cameraX-m.x));ctx.fillStyle=target.color;
-  ctx.beginPath();ctx.moveTo(8,0);ctx.lineTo(-5,-7);ctx.lineTo(-5,7);ctx.closePath();ctx.fill();ctx.restore();
-  ctx.save();ctx.fillStyle=target.color;ctx.textAlign="center";ctx.font="bold 10px system-ui";
-  ctx.fillText(target.label,px+52,m.y+12);
-  if(target.core){ctx.strokeStyle=target.color;ctx.lineWidth=2;ctx.beginPath();ctx.arc(px+52,m.y-7,8,0,Math.PI*2);ctx.stroke();ctx.fillStyle="#fff0ca";ctx.beginPath();ctx.moveTo(px+54,m.y-14);ctx.lineTo(px+48,m.y-6);ctx.lineTo(px+52,m.y-6);ctx.lineTo(px+50,m.y);ctx.lineTo(px+57,m.y-9);ctx.lineTo(px+53,m.y-9);ctx.closePath();ctx.fill();}
-  else {ctx.strokeStyle=target.color;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(px+40,m.y-5);ctx.lineTo(px+40,m.y-12);ctx.lineTo(px+47,m.y-7);ctx.lineTo(px+52,m.y-15);ctx.lineTo(px+57,m.y-7);ctx.lineTo(px+64,m.y-12);ctx.lineTo(px+64,m.y-5);ctx.closePath();ctx.stroke();}
+  const inward=m.x>W/2?-1:1;
+  const cx=m.x+inward*42,cy=m.y;
+  ctx.save();
+  // Small capsule around the crown or Rubro energy shard.
+  ctx.fillStyle="#080d25eb";ctx.strokeStyle=target.color;ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.roundRect(cx-23,cy-19,46,38,10);ctx.fill();ctx.stroke();
+  ctx.save();
+  ctx.translate(m.x,m.y);
+  ctx.rotate(Math.atan2(target.y-s.cameraY-m.y,target.x-s.cameraX-m.x));
+  ctx.fillStyle=target.color;
+  ctx.beginPath();ctx.moveTo(9,0);ctx.lineTo(-6,-7);ctx.lineTo(-6,7);
+  ctx.closePath();ctx.fill();ctx.restore();
+  ctx.save();ctx.translate(cx,cy);
+  ctx.strokeStyle=target.color;ctx.fillStyle="#fff0ca";ctx.lineWidth=2;
+  if(target.core){
+   ctx.beginPath();ctx.arc(0,0,11,0,Math.PI*2);ctx.stroke();
+   ctx.beginPath();ctx.moveTo(3,-9);ctx.lineTo(-5,1);ctx.lineTo(0,1);
+   ctx.lineTo(-3,9);ctx.lineTo(7,-3);ctx.lineTo(2,-3);
+   ctx.closePath();ctx.fill();
+  }else{
+   ctx.beginPath();ctx.moveTo(-13,8);ctx.lineTo(-13,-6);
+   ctx.lineTo(-7,-2);ctx.lineTo(0,-10);ctx.lineTo(7,-2);
+   ctx.lineTo(13,-6);ctx.lineTo(13,8);ctx.closePath();ctx.stroke();
+   ctx.beginPath();ctx.arc(0,3,2.5,0,Math.PI*2);ctx.fill();
+  }
+  ctx.restore();
   ctx.restore();
  }
 }

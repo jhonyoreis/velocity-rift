@@ -3001,3 +3001,9 @@ html.mobile-game .rubro-button{right:max(26px,env(safe-area-inset-right));bottom
 html.mobile-game .game-panel .touch-controls button[data-touch-held="true"]{
  background:#a4f5db;color:#072937;border-color:#d5ffee;
 }
+
+/* Two-second dedication before the title screen; covers the first paint. */
+#loveSplash{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;background:#080e20;touch-action:none}
+#loveSplashArt{display:block;width:min(100vw,177.7778vh);height:auto;max-height:100vh;object-fit:contain;animation:love-reveal .35s ease-out both}
+@keyframes love-reveal{from{opacity:0;transform:scale(.98)}to{opacity:1;transform:scale(1)}}
+@media(prefers-reduced-motion:reduce){#loveSplashArt{animation:none}}
