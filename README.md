@@ -2,7 +2,7 @@
 
 ## 4.6.4 — Recuo Unificado da Fenda Original (APK R37, teste de jogabilidade)
 
-- **Única mudança de jogabilidade:** ao receber dano normal na Fenda Original, Flux sofre o mesmo recuo das fases anteriores: 250 unidades horizontais para trás e 450 unidades verticais contra a gravidade (inclusive invertida), com proteção de 1,1 segundo.
+- **Única mudança de jogabilidade:** ao receber dano normal na Fenda Original, Flux sofre o mesmo recuo das fases anteriores: 250 unidades horizontais para trás e 450 unidades verticais contra a gravidade (inclusive invertida), preservando a proteção original de 1,25 segundo.
 - **Sem reposicionamento de inimigos ou alteração de plataformas, hazards, ataques, cristais, chefes ou saves.**
 - A intensidade será avaliada jogando no celular. Os percursos automáticos antigos podem não completar a fase porque o recuo altera a trajetória após os golpes.
 
