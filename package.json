@@ -8,10 +8,12 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "node --test",
+    "test:legacy-autoplay": "RIFT_LEGACY_AUTOPLAY=1 node --test tests/originalRiftTraversal.test.js tests/polishRubro.test.js",
+    "test:visual:legacy-finale": "node scripts/rift-visual.mjs",
     "check": "npm run test && npm run build && npm run test:visual",
     "android:sync": "npm run build && npx cap sync android",
     "android:debug": "npm run android:sync && cd android && ./gradlew assembleDebug",
-    "test:visual": "node scripts/visual-smoke.mjs && node scripts/rift-visual.mjs && node scripts/polish-visual.mjs && node scripts/readability-visual.mjs && node scripts/forest-two-visual.mjs && node scripts/canyon-two-visual.mjs && node scripts/journey-visual.mjs"
+    "test:visual": "node scripts/visual-smoke.mjs && node scripts/polish-visual.mjs && node scripts/readability-visual.mjs && node scripts/forest-two-visual.mjs && node scripts/canyon-two-visual.mjs && node scripts/journey-visual.mjs"
   },
   "devDependencies": {
     "@capacitor/cli": "7.6.9",
