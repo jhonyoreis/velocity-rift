@@ -358,6 +358,8 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
   runes:[...s.runes],runCores:[...s.runCores],secrets:[...s.secrets],trials:[...s.trials].map(([id,t])=>({id,...t})),boss:{...s.boss},seen:[...s.seen],visitedSectors:[...s.visitedSectors],progress:s.finished?100:Math.round(clamp(s.distance/RIFT_FINISH_X,0,1)*100),
   sector:riftSectorAt(s.x).name};}
  return {start,resumeStory,stop(){s.active=false;},respawn,update,info,
+  // DEV-only resource setup for rendering tests; not exposed in production.
+  ...(import.meta.env?.DEV ? {qaSeedCrystals(n){s.crystals=Math.max(0,Math.floor(n));return info();}} : {}),
   draw(ctx,W=960,H=540){drawOriginalRift(ctx,s,layout,{W,H,drawFlux,drawSovereign,drawAlicia,ghost:ghostAt(s.time)});},
   get dashStatus(){const p=s.pocket||s;return dashIndicatorState({available:p.dashReady,active:p.dash>0,blocked:!!(s.dead||s.story||s.victory||s.finished||rubroState.transformTime)});},get active(){return s.active;},get crystals(){return s.crystals;},get ending(){return Boolean(s.victory);},get rubroLocked(){return Boolean(s.pocket)||s.arenaStarted&&!s.finished;},get musicSection(){return s.finished||s.victory?8:s.boss.mode==="scarlet"?7:s.boss.mode==="arena"||s.boss.mode==="invincible"?6:s.boss.mode==="chase"?4:riftSectorAt(s.x).music;}};
 }
