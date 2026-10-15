@@ -5479,3 +5479,37 @@ if(import.meta.env.DEV&&new URLSearchParams(location.search).has("rift-qa")){
     },
     release(){riftQAFrozen=false;}};
 }
+
+
+// A dedication on each launch, before the title becomes interactive.
+function showLoveSplash(){
+ const splash=document.querySelector('#loveSplash');
+ if(!splash)return;
+ const panel=document.querySelector('.shell');
+ panel.inert=true;
+ ctx.save();
+ try{
+  ctx.setTransform(1,0,0,1,0,0);
+  cinemaGradient('#080e20','#22213d');
+  cinemaStars(0,'#d4e8ff',48);
+  const glow=ctx.createRadialGradient(480,285,10,480,285,340);
+  glow.addColorStop(0,'rgba(224,133,180,.17)');glow.addColorStop(1,'rgba(224,133,180,0)');
+  ctx.fillStyle=glow;ctx.fillRect(0,0,960,540);
+  cinemaRidge(430,42,'#121c31');
+  cinemaFlux(220,325,1.65,0,false);
+  cinemaAlicia(740,325,1.5,0);
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.font='600 32px system-ui, sans-serif';
+  ctx.fillStyle='#9fe9ee';ctx.fillText('Jhony',220,388);
+  ctx.fillStyle='#e4c4f8';ctx.fillText('alicia',740,388);
+  ctx.fillStyle='#ffe5ed';ctx.font='500 34px system-ui, sans-serif';
+  ctx.fillText('feito com amor',480,275);
+  ctx.fillStyle='#eea8be';ctx.beginPath();
+  ctx.moveTo(480,223);ctx.bezierCurveTo(447,204,464,187,480,201);
+  ctx.bezierCurveTo(496,187,513,204,480,223);ctx.fill();
+  const target=document.querySelector('#loveSplashArt');
+  target.getContext('2d').drawImage(canvas,0,0);
+ }finally{ctx.restore();draw();}
+ window.setTimeout(()=>{splash.remove();panel.inert=false;},2000);
+}
+showLoveSplash();
