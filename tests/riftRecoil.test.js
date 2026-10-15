@@ -19,7 +19,7 @@ test('Fenda Original knocks Flux backwards and up exactly like other stages',()=
  const s=takeNormalRiftHit({facing:1,gravity:1});
  assert.equal(s.vx,-250);
  assert.equal(s.vy,-450);
- assert.equal(s.invincible,1.1);
+ assert.equal(s.invincible,1.25,'preserve final-stage hit immunity duration');
  assert.equal(s.grounded,false);
  assert.equal(s.dash,0);
  assert.equal(s.crystals,65,'Fenda Original retains its prior damage balance');
