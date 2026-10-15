@@ -5394,6 +5394,7 @@ if(import.meta.env.DEV&&new URLSearchParams(location.search).has("rift-qa")){
       }});
       sample.start(9);sample.update(1/120,new Set());sample.draw(ctx,VIEW_W,VIEW_H);
     },
+    seedRiftCrystalsForQA(n){const state=riftPreview.qaSeedCrystals(n);syncRubroButton();draw();return state;},
     altarScenario(coreIds){
       campaign.stage1Completed=campaign.stage2Completed=campaign.stage3Completed=true;
       for(let i=0;i<3;i++)campaign.extras.cores["stage"+(i+1)]=coreIds[i];

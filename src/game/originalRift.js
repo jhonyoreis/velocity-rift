@@ -89,7 +89,12 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
   if(s.crystals===0){die(false);return;}
   s.damageCount++;s.crystals=all&&(absolute||!rubroState.active)?0:calculateCrystalDamage(s.crystals,{rubro:rubroState.active,baseFraction:.35,baseMinimum:8}).remaining;
   if(s.crystals===0)resetRubro(rubroState);
-  s.fx.hit=1;s.invincible=1.25;s.vy=-260*s.gravity;s.grounded=false;s.dash=0;
+  // Same hit reaction as the other campaign stages. Only the vertical
+  // direction changes under inverted gravity; enemies and arena stay intact.
+  s.fx.hit=1;s.invincible=1.25;
+  s.vx=-s.facing*250;
+  s.vy=-450*s.gravity;
+  s.grounded=false;s.dash=0;
   burst(s.x,s.y,"#ffa68b");onSound("hit");
  }
  function respawn(){
@@ -353,6 +358,8 @@ export function createOriginalRift({onExit=()=>{},onDeath=()=>{},onFinish=()=>{}
   runes:[...s.runes],runCores:[...s.runCores],secrets:[...s.secrets],trials:[...s.trials].map(([id,t])=>({id,...t})),boss:{...s.boss},seen:[...s.seen],visitedSectors:[...s.visitedSectors],progress:s.finished?100:Math.round(clamp(s.distance/RIFT_FINISH_X,0,1)*100),
   sector:riftSectorAt(s.x).name};}
  return {start,resumeStory,stop(){s.active=false;},respawn,update,info,
+  // DEV-only resource setup for rendering tests; not exposed in production.
+  ...(import.meta.env?.DEV ? {qaSeedCrystals(n){s.crystals=Math.max(0,Math.floor(n));return info();}} : {}),
   draw(ctx,W=960,H=540){drawOriginalRift(ctx,s,layout,{W,H,drawFlux,drawSovereign,drawAlicia,ghost:ghostAt(s.time)});},
   get dashStatus(){const p=s.pocket||s;return dashIndicatorState({available:p.dashReady,active:p.dash>0,blocked:!!(s.dead||s.story||s.victory||s.finished||rubroState.transformTime)});},get active(){return s.active;},get crystals(){return s.crystals;},get ending(){return Boolean(s.victory);},get rubroLocked(){return Boolean(s.pocket)||s.arenaStarted&&!s.finished;},get musicSection(){return s.finished||s.victory?8:s.boss.mode==="scarlet"?7:s.boss.mode==="arena"||s.boss.mode==="invincible"?6:s.boss.mode==="chase"?4:riftSectorAt(s.x).music;}};
 }
